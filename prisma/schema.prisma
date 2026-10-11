@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  userId    String   @unique // 로그인 아이디
+  password  String   // 암호화된 비밀번호
+  name      String
+  role      String   @default("ADMIN")
+  level     Int      @default(1) // 사용자 레벨 (숫자가 높을수록 높은 권한)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MenuPermission {
+  id        String   @id @default(cuid())
+  menuPath  String   @unique // 메뉴 경로 (예: /items)
+  menuName  String   // 메뉴명
+  minLevel  Int      @default(1) // 접근 가능한 최소 레벨
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Estimate {
+  id             String   @id // 견적식별코드 (예: P2609070001)
+  movingType     String   // P: 포장이사, G: 일반이사, K: 보관이사 등
+  customerName   String
+  contact        String
+  fromAddress    String
+  toAddress      String
+  estimateDate   DateTime // 견적일자
+  movingDate     DateTime? // 이사일
+  organizeDate   DateTime? // 정리일
+  visitDate      DateTime? // 방문일정
+  
+  // JSON 문자열 필드 (SQLite에서는 String으로 저장 후 애플리케이션에서 파싱)
+  cbmItems       String?  // 물품 기본 CBM 및 내부 짐 추가 CBM
+  materials      String?  // 자재량 (박스, 바구니 등)
+  assemblyItems  String?  // 분해/설치 품목
+  environment    String?  // 차량, 인원, 층수, 사다리차, 엘리베이터 등
+  paymentPlan    String?  // 계약금, 중도금, 잔금 등
+  adminHistory   String?  // 수정 이력 (누가 언제 수정했는지)
+  signature      String?  // 고객 서명 (base64 이미지 등)
+  
+  // 비용 관련
+  movingCost     Int      @default(0)
+  storageCost    Int      @default(0)
+  storageDays    Int      @default(0)
+  additionalCost Int      @default(0) // 거리, 사다리차 등 추가비용
+  vat            Int      @default(0)
+  totalAmount    Int      @default(0)
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model LocationCategory {
+  id        String         @id @default(cuid())
+  name      String         @unique
+  order     Int            @default(0)
+  items     StandardItem[]
+  createdAt DateTime       @default(now())
+}
+
+model StandardItem {
+  id                 String   @id @default(cuid())
+  locations          LocationCategory[]
+  name               String
+  spec               String   @default("")
+  defaultCbm         Float
+  defaultInnerCbm    Float
+  createdAt          DateTime @default(now())
+
+  @@unique([name, spec])
+}
+
+model VehicleMaster {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  defaultCost Int
+  maxCbm      Float    @default(0)
+  createdAt   DateTime @default(now())
+}
+
+model LaborMaster {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  defaultCost Int
+  createdAt   DateTime @default(now())
+}
