@@ -273,20 +273,20 @@ export default function LadderTruckMasterPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-center border-collapse min-w-[960px]">
+          <table className="w-full text-center border-collapse min-w-[760px] md:min-w-[820px]">
             <thead>
               <tr className="bg-gray-100/90 text-gray-700 text-xs font-bold border-b border-gray-300">
-                <th className="py-3 px-3 text-left w-24">층수 구분</th>
-                <th className="py-3 px-2 w-16">시작층</th>
-                <th className="py-3 px-2 w-16">끝층</th>
-                <th className="py-3 px-3 bg-blue-50/50 text-blue-900 border-x border-gray-200">1톤</th>
-                <th className="py-3 px-3 bg-blue-50/50 text-blue-900 border-r border-gray-200">2.5톤</th>
-                <th className="py-3 px-3 bg-indigo-50/70 text-indigo-900 border-r border-gray-200">5톤 (기준)</th>
-                <th className="py-3 px-3 bg-blue-50/50 text-blue-900 border-r border-gray-200">6톤</th>
-                <th className="py-3 px-3 bg-blue-50/50 text-blue-900 border-r border-gray-200">7.5톤</th>
-                <th className="py-3 px-3 bg-blue-50/50 text-blue-900 border-r border-gray-200">10톤</th>
-                <th className="py-3 px-3 text-left">비고</th>
-                <th className="py-3 px-2 w-16">삭제</th>
+                <th className="py-2.5 px-2 text-left w-20 min-w-[72px] whitespace-nowrap">층수구분</th>
+                <th className="py-2.5 px-0.5 w-11 min-w-[42px] text-center whitespace-nowrap">시작</th>
+                <th className="py-2.5 px-0.5 w-11 min-w-[42px] text-center whitespace-nowrap">끝</th>
+                <th className="py-2.5 px-1 w-16 sm:w-19 min-w-[62px] sm:min-w-[70px] bg-blue-50/50 text-blue-900 border-x border-gray-200 whitespace-nowrap">1톤</th>
+                <th className="py-2.5 px-1 w-16 sm:w-19 min-w-[62px] sm:min-w-[70px] bg-blue-50/50 text-blue-900 border-r border-gray-200 whitespace-nowrap">2.5톤</th>
+                <th className="py-2.5 px-1 w-18 sm:w-21 min-w-[70px] sm:min-w-[78px] bg-indigo-50/70 text-indigo-900 border-r border-gray-200 whitespace-nowrap">5톤 (기준)</th>
+                <th className="py-2.5 px-1 w-16 sm:w-19 min-w-[62px] sm:min-w-[70px] bg-blue-50/50 text-blue-900 border-r border-gray-200 whitespace-nowrap">6톤</th>
+                <th className="py-2.5 px-1 w-16 sm:w-19 min-w-[62px] sm:min-w-[70px] bg-blue-50/50 text-blue-900 border-r border-gray-200 whitespace-nowrap">7.5톤</th>
+                <th className="py-2.5 px-1 w-16 sm:w-19 min-w-[62px] sm:min-w-[70px] bg-blue-50/50 text-blue-900 border-r border-gray-200 whitespace-nowrap">10톤</th>
+                <th className="py-2.5 px-3 text-left min-w-[150px] sm:min-w-[200px] whitespace-nowrap">비고</th>
+                <th className="py-2.5 px-1 w-10 min-w-[38px] text-center whitespace-nowrap">삭제</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 text-sm">
@@ -302,129 +302,129 @@ export default function LadderTruckMasterPage() {
                 fares.map((item, idx) => (
                   <tr key={item.id} className="hover:bg-blue-50/30 transition-colors">
                     {/* 층수 구분명 */}
-                    <td className="py-2.5 px-3 text-left font-bold text-gray-900">
+                    <td className="py-1.5 px-1 text-left font-bold text-gray-900">
                       <input 
                         type="text" 
                         value={item.floorName} 
                         onChange={e => handleCellChange(item.id, 'floorName', e.target.value)}
-                        className="w-full font-bold text-gray-900 bg-transparent px-1.5 py-1 rounded border border-transparent hover:border-gray-300 focus:border-blue-500 focus:bg-white outline-none"
+                        className="w-full font-bold text-gray-900 bg-transparent px-1 py-1 text-xs sm:text-sm rounded border border-transparent hover:border-gray-300 focus:border-blue-500 focus:bg-white outline-none"
                       />
                     </td>
 
                     {/* 시작층 */}
-                    <td className="py-2 px-1">
+                    <td className="py-1.5 px-0.5 text-center">
                       <input 
                         type="number" 
                         value={item.minFloor} 
                         onChange={e => handleCellChange(item.id, 'minFloor', parseInt(e.target.value) || 1)}
                         onFocus={handleSelectAllOnFocus}
-                        className="w-14 text-center text-gray-700 bg-transparent px-1 py-1 rounded border border-transparent hover:border-gray-300 focus:border-blue-500 focus:bg-white outline-none"
+                        className="w-9 sm:w-10 text-center text-xs sm:text-sm text-gray-700 bg-transparent px-0.5 py-1 rounded border border-transparent hover:border-gray-300 focus:border-blue-500 focus:bg-white outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
                     </td>
 
                     {/* 끝층 */}
-                    <td className="py-2 px-1">
+                    <td className="py-1.5 px-0.5 text-center">
                       <input 
                         type="number" 
                         value={item.maxFloor} 
                         onChange={e => handleCellChange(item.id, 'maxFloor', parseInt(e.target.value) || 1)}
                         onFocus={handleSelectAllOnFocus}
-                        className="w-14 text-center text-gray-700 bg-transparent px-1 py-1 rounded border border-transparent hover:border-gray-300 focus:border-blue-500 focus:bg-white outline-none"
+                        className="w-9 sm:w-10 text-center text-xs sm:text-sm text-gray-700 bg-transparent px-0.5 py-1 rounded border border-transparent hover:border-gray-300 focus:border-blue-500 focus:bg-white outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
                     </td>
 
                     {/* 1톤 */}
-                    <td className="py-2 px-2 border-x border-gray-200">
+                    <td className="py-1.5 px-1 border-x border-gray-200">
                       <input 
                         type="number" 
                         step="10000"
                         value={item.cost1Ton} 
                         onChange={e => handleCellChange(item.id, 'cost1Ton', parseInt(e.target.value) || 0)}
                         onFocus={handleSelectAllOnFocus}
-                        className="w-24 text-right text-gray-800 font-semibold bg-transparent px-2 py-1 rounded border border-transparent hover:border-gray-300 focus:border-blue-500 focus:bg-white outline-none"
+                        className="w-full text-right text-gray-800 font-semibold bg-transparent px-1 py-1 text-xs sm:text-sm rounded border border-transparent hover:border-gray-300 focus:border-blue-500 focus:bg-white outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
                     </td>
 
                     {/* 2.5톤 */}
-                    <td className="py-2 px-2 border-r border-gray-200">
+                    <td className="py-1.5 px-1 border-r border-gray-200">
                       <input 
                         type="number" 
                         step="10000"
                         value={item.cost2_5Ton} 
                         onChange={e => handleCellChange(item.id, 'cost2_5Ton', parseInt(e.target.value) || 0)}
                         onFocus={handleSelectAllOnFocus}
-                        className="w-24 text-right text-gray-800 font-semibold bg-transparent px-2 py-1 rounded border border-transparent hover:border-gray-300 focus:border-blue-500 focus:bg-white outline-none"
+                        className="w-full text-right text-gray-800 font-semibold bg-transparent px-1 py-1 text-xs sm:text-sm rounded border border-transparent hover:border-gray-300 focus:border-blue-500 focus:bg-white outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
                     </td>
 
                     {/* 5톤 (기준 대형) */}
-                    <td className="py-2 px-2 bg-indigo-50/30 border-r border-gray-200">
+                    <td className="py-1.5 px-1 bg-indigo-50/30 border-r border-gray-200">
                       <input 
                         type="number" 
                         step="10000"
                         value={item.cost5Ton} 
                         onChange={e => handleCellChange(item.id, 'cost5Ton', parseInt(e.target.value) || 0)}
                         onFocus={handleSelectAllOnFocus}
-                        className="w-24 text-right text-indigo-700 font-bold bg-transparent px-2 py-1 rounded border border-transparent hover:border-gray-300 focus:border-blue-500 focus:bg-white outline-none"
+                        className="w-full text-right text-indigo-700 font-bold bg-transparent px-1 py-1 text-xs sm:text-sm rounded border border-transparent hover:border-gray-300 focus:border-blue-500 focus:bg-white outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
                     </td>
 
                     {/* 6톤 */}
-                    <td className="py-2 px-2 border-r border-gray-200">
+                    <td className="py-1.5 px-1 border-r border-gray-200">
                       <input 
                         type="number" 
                         step="10000"
                         value={item.cost6Ton} 
                         onChange={e => handleCellChange(item.id, 'cost6Ton', parseInt(e.target.value) || 0)}
                         onFocus={handleSelectAllOnFocus}
-                        className="w-24 text-right text-gray-800 font-semibold bg-transparent px-2 py-1 rounded border border-transparent hover:border-gray-300 focus:border-blue-500 focus:bg-white outline-none"
+                        className="w-full text-right text-gray-800 font-semibold bg-transparent px-1 py-1 text-xs sm:text-sm rounded border border-transparent hover:border-gray-300 focus:border-blue-500 focus:bg-white outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
                     </td>
 
                     {/* 7.5톤 */}
-                    <td className="py-2 px-2 border-r border-gray-200">
+                    <td className="py-1.5 px-1 border-r border-gray-200">
                       <input 
                         type="number" 
                         step="10000"
                         value={item.cost7_5Ton} 
                         onChange={e => handleCellChange(item.id, 'cost7_5Ton', parseInt(e.target.value) || 0)}
                         onFocus={handleSelectAllOnFocus}
-                        className="w-24 text-right text-gray-800 font-semibold bg-transparent px-2 py-1 rounded border border-transparent hover:border-gray-300 focus:border-blue-500 focus:bg-white outline-none"
+                        className="w-full text-right text-gray-800 font-semibold bg-transparent px-1 py-1 text-xs sm:text-sm rounded border border-transparent hover:border-gray-300 focus:border-blue-500 focus:bg-white outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
                     </td>
 
                     {/* 10톤 */}
-                    <td className="py-2 px-2 border-r border-gray-200">
+                    <td className="py-1.5 px-1 border-r border-gray-200">
                       <input 
                         type="number" 
                         step="10000"
                         value={item.cost10Ton} 
                         onChange={e => handleCellChange(item.id, 'cost10Ton', parseInt(e.target.value) || 0)}
                         onFocus={handleSelectAllOnFocus}
-                        className="w-24 text-right text-gray-800 font-semibold bg-transparent px-2 py-1 rounded border border-transparent hover:border-gray-300 focus:border-blue-500 focus:bg-white outline-none"
+                        className="w-full text-right text-gray-800 font-semibold bg-transparent px-1 py-1 text-xs sm:text-sm rounded border border-transparent hover:border-gray-300 focus:border-blue-500 focus:bg-white outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
                     </td>
 
                     {/* 비고 */}
-                    <td className="py-2 px-3 text-left">
+                    <td className="py-1.5 px-2 text-left">
                       <input 
                         type="text" 
                         value={item.note || ''} 
-                        placeholder="특이사항"
+                        placeholder="특이사항 입력"
                         onChange={e => handleCellChange(item.id, 'note', e.target.value)}
-                        className="w-full text-xs text-gray-500 bg-transparent px-2 py-1 rounded border border-transparent hover:border-gray-300 focus:border-blue-500 focus:bg-white outline-none"
+                        className="w-full text-xs text-gray-700 bg-transparent px-2 py-1 rounded border border-transparent hover:border-gray-300 focus:border-blue-500 focus:bg-white outline-none placeholder:text-gray-400"
                       />
                     </td>
 
                     {/* 삭제 */}
-                    <td className="py-2 px-2 text-center">
+                    <td className="py-1.5 px-1 text-center">
                       <button 
                         type="button" 
                         onClick={() => handleDelete(item.id, item.floorName)}
-                        className="text-gray-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                        className="text-gray-400 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors"
                         title="구간 삭제"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={15} />
                       </button>
                     </td>
                   </tr>
