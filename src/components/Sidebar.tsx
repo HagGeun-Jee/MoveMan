@@ -74,9 +74,9 @@ export function Sidebar({
             <span className="text-sm font-bold text-gray-800">메뉴</span>
           </button>
           
-          <Link href="/" className="flex items-center gap-2">
-            <img src="/image.png" alt="MOVEMAN" className="h-7 object-contain" />
-            <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">MOVEMAN</span>
+          <Link href="/" className="flex items-center gap-2.5">
+            <img src="/image.png" alt="MOVEMAN" className="h-10 sm:h-12 object-contain" />
+            <span className="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">MOVEMAN</span>
           </Link>
         </div>
 
@@ -106,11 +106,11 @@ export function Sidebar({
           <aside className="fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-white shadow-2xl flex flex-col z-10 animate-in slide-in-from-left duration-200">
             {/* 드로어 상단 */}
             <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <img src="/image.png" alt="Logo" className="h-8 object-contain" />
+              <div className="flex items-center gap-2.5">
+                <img src="/image.png" alt="Logo" className="h-10 sm:h-12 object-contain" />
                 <div>
-                  <p className="text-xs font-bold text-gray-800">MOVEMAN</p>
-                  <p className="text-[11px] text-gray-400">이사견적 관리 시스템</p>
+                  <p className="text-sm font-bold text-gray-800">MOVEMAN</p>
+                  <p className="text-xs text-gray-400">이사견적 관리 시스템</p>
                 </div>
               </div>
               <button
@@ -234,7 +234,7 @@ export function Sidebar({
             <img src="/image.png" alt="Logo" className="w-10 h-10 object-contain" />
           ) : (
             <div className="flex flex-col items-center w-full">
-              <img src="/image.png" alt="Logo" className="h-10 object-contain" />
+              <img src="/image.png" alt="Logo" className="h-12 object-contain" />
               <p className="text-xs text-gray-500 mt-2 font-medium whitespace-nowrap overflow-hidden">이사견적 관리 시스템</p>
             </div>
           )}
