@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma'
 import Link from 'next/link'
 import { format, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns'
 import { ko } from 'date-fns/locale'
+import { EstimateRow } from './estimates/EstimateRow'
 
 export default async function DashboardPage() {
   const recentEstimates = await prisma.estimate.findMany({
@@ -107,20 +108,22 @@ export default async function DashboardPage() {
                   }
 
                   return (
-                    <tr key={est.id} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
-                      <td className="p-4 font-medium text-blue-600">{est.id}</td>
-                      <td className="p-4">{est.customerName}</td>
+                    <EstimateRow key={est.id} id={est.id}>
+                      <td className="p-4 font-medium text-blue-600 hover:underline">{est.id}</td>
+                      <td className="p-4 font-medium text-gray-900">{est.customerName}</td>
                       <td className="p-4">{est.contact}</td>
                       <td className="p-4">{format(new Date(est.estimateDate), 'yyyy-MM-dd', { locale: ko })}</td>
                       <td className="p-4">
-                        {est.movingType === 'P' ? '포장이사' : est.movingType === 'G' ? '일반이사' : '보관이사'}
+                        <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-md text-xs font-medium">
+                          {est.movingType === 'P' ? '포장이사' : est.movingType === 'G' ? '일반이사' : '보관이사'}
+                        </span>
                       </td>
                       <td className="p-4">
                         <span className={`px-2 py-1 rounded-md text-xs font-medium ${paymentStatusClass}`}>
                           {paymentStatusText}
                         </span>
                       </td>
-                    </tr>
+                    </EstimateRow>
                   )
                 })
               )}
