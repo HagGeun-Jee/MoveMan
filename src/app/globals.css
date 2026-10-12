@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f9fafb;
+  --foreground: #111827;
 }
 
 @theme inline {
@@ -12,16 +12,18 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* 태블릿 및 모바일의 다크모드 설정 시에도 텍스트가 흐릿해지지 않도록 선명한 고대비 유지 */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #f9fafb;
+    --foreground: #111827;
   }
 }
 
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  color-scheme: light;
 }
 
 body {

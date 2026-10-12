@@ -71,11 +71,11 @@ export default async function UsersPage() {
 
       <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
         <h2 className="text-xl font-bold mb-4">관리자 권한 설정</h2>
-        <p className="text-sm text-gray-500 mb-6">숫자가 높을수록 높은 권한입니다. (예: 9=최고관리자, 1=일반)</p>
+        <p className="text-sm text-gray-600 mb-6 font-medium">숫자가 높을수록 높은 권한입니다. (예: 9=최고관리자, 1=일반)</p>
         
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="bg-gray-50 text-gray-600">
+            <thead className="bg-gray-100 text-gray-800 font-bold border-b border-gray-200">
               <tr>
                 <th className="px-4 py-3 border-b">이름</th>
                 <th className="px-4 py-3 border-b">아이디</th>
@@ -87,9 +87,9 @@ export default async function UsersPage() {
             <tbody>
               {admins.map(admin => (
                 <tr key={admin.id} className="border-b hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3">{admin.name}</td>
-                  <td className="px-4 py-3">{admin.userId}</td>
-                  <td className="px-4 py-3">{admin.role}</td>
+                  <td className="px-4 py-3 font-bold text-gray-900">{admin.name}</td>
+                  <td className="px-4 py-3 font-medium text-gray-900">{admin.userId}</td>
+                  <td className="px-4 py-3 font-semibold text-blue-700">{admin.role}</td>
                   <td className="px-4 py-3">
                     <form action={updateAdminLevel} className="flex gap-2">
                       <input type="hidden" name="id" value={admin.id} />
@@ -97,7 +97,7 @@ export default async function UsersPage() {
                         type="number" 
                         name="level" 
                         defaultValue={admin.level} 
-                        className="border rounded px-2 py-1 w-20 text-center"
+                        className="border rounded px-2 py-1 w-20 text-center font-bold text-gray-900"
                         min="1" max="99"
                       />
                       <button className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-xs font-semibold">
@@ -115,11 +115,11 @@ export default async function UsersPage() {
 
       <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
         <h2 className="text-xl font-bold mb-4">메뉴별 접근 권한 (최소 레벨 설정)</h2>
-        <p className="text-sm text-gray-500 mb-6">해당 메뉴에 접근하기 위한 최소 사용자 레벨을 설정합니다.</p>
+        <p className="text-sm text-gray-600 mb-6 font-medium">해당 메뉴에 접근하기 위한 최소 사용자 레벨을 설정합니다.</p>
         
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="bg-gray-50 text-gray-600">
+            <thead className="bg-gray-100 text-gray-800 font-bold border-b border-gray-200">
               <tr>
                 <th className="px-4 py-3 border-b">메뉴명</th>
                 <th className="px-4 py-3 border-b">경로</th>
@@ -134,8 +134,8 @@ export default async function UsersPage() {
                 
                 return (
                   <tr key={menu.path} className="border-b hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-medium">{menu.name}</td>
-                    <td className="px-4 py-3 text-gray-500">{menu.path}</td>
+                    <td className="px-4 py-3 font-bold text-gray-900">{menu.name}</td>
+                    <td className="px-4 py-3 text-gray-900 font-medium">{menu.path}</td>
                     <td className="px-4 py-3">
                       <form action={updateMenuPermission} className="flex gap-2">
                         <input type="hidden" name="menuPath" value={menu.path} />

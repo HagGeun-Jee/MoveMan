@@ -65,7 +65,7 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
         </div>
         <div className="text-right">
           <h1 className="text-2xl font-black">이사 견적서</h1>
-          <p className="text-sm text-gray-500 mt-1">견적번호: {estimate.id}</p>
+          <p className="text-sm text-gray-700 font-semibold mt-1">견적번호: {estimate.id}</p>
         </div>
       </div>
 
@@ -90,45 +90,45 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
             <table className="w-full text-sm border-collapse border border-gray-300 print:text-xs min-w-[500px] print:min-w-0">
             <tbody>
               <tr>
-                <th className="border border-gray-300 bg-gray-50 px-3 py-2 print:px-2 print:py-1 text-left font-medium text-gray-700 w-1/4 sm:w-1/6">고객명</th>
+                <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900 w-1/4 sm:w-1/6">고객명</th>
                 <td className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900 w-1/4 sm:w-2/6">{estimate.customerName}</td>
-                <th className="border border-gray-300 bg-gray-50 px-3 py-2 print:px-2 print:py-1 text-left font-medium text-gray-700 w-1/4 sm:w-1/6">연락처</th>
+                <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900 w-1/4 sm:w-1/6">연락처</th>
                 <td className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900 w-1/4 sm:w-2/6">{estimate.contact}</td>
               </tr>
               <tr>
-                <th className="border border-gray-300 bg-gray-50 px-3 py-2 print:px-2 print:py-1 text-left font-medium text-gray-700">이사종류</th>
+                <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900">이사종류</th>
                 <td className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900">
                   {estimate.movingType === 'P' ? '포장이사' : estimate.movingType === 'G' ? '일반이사' : '보관이사'}
                 </td>
-                <th className="border border-gray-300 bg-gray-50 px-3 py-2 print:px-2 print:py-1 text-left font-medium text-gray-700">접수일자</th>
+                <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900">접수일자</th>
                 <td className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900">
                   {format(new Date(estimate.estimateDate), 'yyyy-MM-dd')}
                 </td>
               </tr>
               <tr>
-                <th className="border border-gray-300 bg-gray-50 px-3 py-2 print:px-2 print:py-1 text-left font-medium text-gray-700">방문 견적일정</th>
+                <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900">방문 견적일정</th>
                 <td className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900">
                   {estimate.visitDate ? format(new Date(estimate.visitDate), 'yyyy-MM-dd HH:mm') : '-'}
                 </td>
-                <th className="border border-gray-300 bg-gray-50 px-3 py-2 print:px-2 print:py-1 text-left font-medium text-gray-700">이사 예정일</th>
+                <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900">이사 예정일</th>
                 <td className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900">
                   {estimate.movingDate ? format(new Date(estimate.movingDate), 'yyyy-MM-dd') : '-'}
                 </td>
               </tr>
               {estimate.movingType === 'K' && (
                 <tr>
-                  <th className="border border-gray-300 bg-gray-50 px-3 py-2 print:px-2 print:py-1 text-left font-medium text-gray-700">정리 예정일(보관)</th>
+                  <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900">정리 예정일(보관)</th>
                   <td className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900">
                     {estimate.organizeDate ? format(new Date(estimate.organizeDate), 'yyyy-MM-dd') : '-'}
                   </td>
-                  <th className="border border-gray-300 bg-gray-50 px-3 py-2 print:px-2 print:py-1 text-left font-medium text-gray-700">정리 여부</th>
+                  <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900">정리 여부</th>
                   <td className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900">
                     {envObj.organizeStatus || '-'}
                   </td>
                 </tr>
               )}
               <tr>
-                <th className="border border-gray-300 bg-gray-50 px-3 py-2 print:px-2 print:py-1 text-left font-medium text-gray-700">출발지</th>
+                <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900">출발지</th>
                 <td colSpan={3} className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <span>{estimate.fromAddress || '-'}</span>
@@ -150,7 +150,7 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                 </td>
               </tr>
               <tr>
-                <th className="border border-gray-300 bg-gray-50 px-3 py-2 print:px-2 print:py-1 text-left font-medium text-gray-700">도착지</th>
+                <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900">도착지</th>
                 <td colSpan={3} className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <span>{estimate.toAddress || '-'}</span>
@@ -186,31 +186,31 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                 <div className="space-y-4 print:space-y-2">
                   {Object.entries(groupedItems).map(([locName, catItems]: [string, any]) => (
                     <div key={locName} className="border border-gray-200 rounded-lg overflow-hidden print:border-gray-300">
-                      <div className="bg-gray-100 px-4 py-2 font-bold text-gray-700 flex justify-between items-center print:bg-gray-50 print:py-1">
+                      <div className="bg-gray-100 px-4 py-2 font-bold text-gray-900 flex justify-between items-center print:bg-gray-50 print:py-1">
                         <span>{locName}</span>
-                        <span className="text-sm font-medium text-blue-600">
+                        <span className="text-sm font-bold text-blue-700">
                           {catItems.reduce((acc: number, item: any) => acc + ((Number(item.cbm) || 0) + (Number(item.innerBoxCbm) || 0)) * (item.quantity !== undefined ? Number(item.quantity) : 1), 0).toFixed(2)} CBM
                         </span>
                       </div>
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left print:text-xs min-w-[480px] print:min-w-0">
-                        <thead className="bg-gray-50 text-gray-600 border-b print:bg-transparent">
+                        <thead className="bg-gray-100 text-gray-800 font-bold border-b border-gray-200 print:bg-transparent">
                           <tr>
-                            <th className="px-4 py-2 font-medium print:px-2 print:py-1">품목</th>
-                            <th className="px-4 py-2 font-medium print:px-2 print:py-1">규격</th>
-                            <th className="px-4 py-2 font-medium text-right w-20 print:px-2 print:py-1">수량</th>
-                            <th className="px-4 py-2 font-medium text-right w-24 print:px-2 print:py-1">기본 CBM</th>
-                            <th className="px-4 py-2 font-medium text-right w-24 print:px-2 print:py-1">추가 CBM</th>
+                            <th className="px-4 py-2 print:px-2 print:py-1">품목</th>
+                            <th className="px-4 py-2 print:px-2 print:py-1">규격</th>
+                            <th className="px-4 py-2 text-right w-20 print:px-2 print:py-1">수량</th>
+                            <th className="px-4 py-2 text-right w-24 print:px-2 print:py-1">기본 CBM</th>
+                            <th className="px-4 py-2 text-right w-24 print:px-2 print:py-1">추가 CBM</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100 print:divide-gray-200">
+                        <tbody className="divide-y divide-gray-200 print:divide-gray-200">
                           {catItems.map((item: any, idx: number) => (
-                            <tr key={idx}>
-                              <td className="px-4 py-2 print:px-2 print:py-1">{item.name}</td>
-                              <td className="px-4 py-2 text-gray-600 print:px-2 print:py-1">{item.spec || '-'}</td>
-                              <td className="px-4 py-2 text-right print:px-2 print:py-1">{item.quantity !== undefined ? item.quantity : 1}</td>
-                              <td className="px-4 py-2 text-right print:px-2 print:py-1">{item.cbm}</td>
-                              <td className="px-4 py-2 text-right print:px-2 print:py-1">{item.innerBoxCbm}</td>
+                            <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                              <td className="px-4 py-2 font-bold text-gray-900 print:px-2 print:py-1">{item.name}</td>
+                              <td className="px-4 py-2 text-gray-800 font-medium print:px-2 print:py-1">{item.spec || '-'}</td>
+                              <td className="px-4 py-2 text-right font-semibold text-gray-900 print:px-2 print:py-1">{item.quantity !== undefined ? item.quantity : 1}</td>
+                              <td className="px-4 py-2 text-right text-gray-900 font-medium print:px-2 print:py-1">{item.cbm}</td>
+                              <td className="px-4 py-2 text-right text-gray-900 font-medium print:px-2 print:py-1">{item.innerBoxCbm}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -265,22 +265,22 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm print:gap-4 print:text-xs">
             <div className="space-y-2 print:space-y-1">
               <div className="flex justify-between">
-                <span className="text-gray-500">기본 이사 비용</span>
-                <span className="font-semibold">{estimate.movingCost.toLocaleString()} 원</span>
+                <span className="text-gray-800 font-medium">기본 이사 비용</span>
+                <span className="font-bold text-gray-900">{estimate.movingCost.toLocaleString()} 원</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">가산 비용 (사다리차/거리 등)</span>
-                <span className="font-semibold">{estimate.additionalCost.toLocaleString()} 원</span>
+                <span className="text-gray-800 font-medium">가산 비용 (사다리차/거리 등)</span>
+                <span className="font-bold text-gray-900">{estimate.additionalCost.toLocaleString()} 원</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">보관 비용</span>
-                <span className="font-semibold">{estimate.storageCost.toLocaleString()} 원</span>
+                <span className="text-gray-800 font-medium">보관 비용</span>
+                <span className="font-bold text-gray-900">{estimate.storageCost.toLocaleString()} 원</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">부가세</span>
-                <span className="font-semibold">{estimate.vat.toLocaleString()} 원</span>
+                <span className="text-gray-800 font-medium">부가세</span>
+                <span className="font-bold text-gray-900">{estimate.vat.toLocaleString()} 원</span>
               </div>
-              <div className="border-t pt-2 mt-2 flex justify-between text-lg font-bold text-blue-800">
+              <div className="border-t pt-2 mt-2 flex justify-between text-lg font-bold text-blue-900">
                 <span>총 합계 (공급대가)</span>
                 <span>{estimate.totalAmount.toLocaleString()} 원</span>
               </div>
@@ -289,36 +289,36 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
             <div className="bg-gray-50 p-4 rounded-lg space-y-3 print:bg-transparent print:p-0 print:border print:border-gray-300 print:p-3 print:space-y-2">
               <div className="font-bold text-gray-900 mb-2 border-b border-gray-200 pb-2 print:mb-1 print:pb-1">결제 플랜 ({payPlanObj.targetType === 'supply' ? '공급가액 기준' : '공급대가 기준'})</div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">계약금 {payPlanObj.downPaymentDate ? `(${payPlanObj.downPaymentDate})` : ''}</span>
+                <span className="text-gray-800 font-medium">계약금 {payPlanObj.downPaymentDate ? `(${payPlanObj.downPaymentDate})` : ''}</span>
                 <div className="flex items-center gap-2">
                   {payPlanObj.downPaymentPaid ? (
-                    <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded font-medium">입금완료</span>
+                    <span className="px-2 py-0.5 bg-green-100 text-green-900 text-xs rounded font-bold border border-green-300">입금완료</span>
                   ) : (
-                    <span className="px-2 py-0.5 bg-gray-200 text-gray-600 text-xs rounded font-medium">미입금</span>
+                    <span className="px-2 py-0.5 bg-gray-100 text-gray-800 text-xs rounded font-bold border border-gray-300">미입금</span>
                   )}
-                  <span className="font-semibold">{Number(payPlanObj.downPayment || 0).toLocaleString()} 원</span>
+                  <span className="font-bold text-gray-900">{Number(payPlanObj.downPayment || 0).toLocaleString()} 원</span>
                 </div>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">중도금 {payPlanObj.intermediateDate ? `(${payPlanObj.intermediateDate})` : ''}</span>
+                <span className="text-gray-800 font-medium">중도금 {payPlanObj.intermediateDate ? `(${payPlanObj.intermediateDate})` : ''}</span>
                 <div className="flex items-center gap-2">
                   {payPlanObj.intermediatePaymentPaid ? (
-                    <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded font-medium">입금완료</span>
+                    <span className="px-2 py-0.5 bg-green-100 text-green-900 text-xs rounded font-bold border border-green-300">입금완료</span>
                   ) : (
-                    <span className="px-2 py-0.5 bg-gray-200 text-gray-600 text-xs rounded font-medium">미입금</span>
+                    <span className="px-2 py-0.5 bg-gray-100 text-gray-800 text-xs rounded font-bold border border-gray-300">미입금</span>
                   )}
-                  <span className="font-semibold">{Number(payPlanObj.intermediatePayment || 0).toLocaleString()} 원</span>
+                  <span className="font-bold text-gray-900">{Number(payPlanObj.intermediatePayment || 0).toLocaleString()} 원</span>
                 </div>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">잔금 {payPlanObj.balanceDate ? `(${payPlanObj.balanceDate})` : ''}</span>
+                <span className="text-gray-800 font-medium">잔금 {payPlanObj.balanceDate ? `(${payPlanObj.balanceDate})` : ''}</span>
                 <div className="flex items-center gap-2">
                   {payPlanObj.balancePaid ? (
-                    <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded font-medium">입금완료</span>
+                    <span className="px-2 py-0.5 bg-green-100 text-green-900 text-xs rounded font-bold border border-green-300">입금완료</span>
                   ) : (
-                    <span className="px-2 py-0.5 bg-gray-200 text-gray-600 text-xs rounded font-medium">미입금</span>
+                    <span className="px-2 py-0.5 bg-gray-100 text-gray-800 text-xs rounded font-bold border border-gray-300">미입금</span>
                   )}
-                  <span className="font-semibold">{Number(payPlanObj.balance || 0).toLocaleString()} 원</span>
+                  <span className="font-bold text-gray-900">{Number(payPlanObj.balance || 0).toLocaleString()} 원</span>
                 </div>
               </div>
               <div className="border-t border-gray-200 pt-2 flex justify-between font-bold">

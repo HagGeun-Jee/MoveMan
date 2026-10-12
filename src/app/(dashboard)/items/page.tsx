@@ -256,7 +256,7 @@ export default function ItemsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[500px]">
               <thead>
-                <tr className="bg-gray-50 text-gray-500 text-sm border-b">
+                <tr className="bg-gray-100/90 text-gray-800 font-bold text-sm border-b border-gray-200">
                   <th className="p-4 font-medium">위치</th>
                   <th className="p-4 font-medium">품목</th>
                   <th className="p-4 font-medium">규격</th>
@@ -319,9 +319,9 @@ export default function ItemsPage() {
                             : '-'}
                         </td>
                         <td className="p-4 font-bold text-gray-900">{item.name}</td>
-                        <td className="p-4 text-gray-600">{item.spec || '-'}</td>
-                        <td className="p-4 text-blue-600 font-medium">{item.defaultCbm}</td>
-                        <td className="p-4 text-orange-500">{item.defaultInnerCbm > 0 ? `+${item.defaultInnerCbm}` : '-'}</td>
+                        <td className="p-4 text-gray-800 font-medium">{item.spec || '-'}</td>
+                        <td className="p-4 text-blue-700 font-bold">{item.defaultCbm}</td>
+                        <td className="p-4 text-amber-700 font-bold">{item.defaultInnerCbm > 0 ? `+${item.defaultInnerCbm}` : '-'}</td>
                         <td className="p-4 text-right flex justify-end gap-1">
                           <button onClick={() => setEditingId(item.id)} className="text-gray-500 hover:text-blue-600 p-2 rounded-md hover:bg-blue-50 transition-colors">
                             <Edit2 size={18} />

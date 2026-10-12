@@ -127,9 +127,9 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
       <div className="bg-white rounded-xl shadow-sm border border-gray-300 overflow-hidden">
         <div className="overflow-x-auto">
           <div className="min-w-[560px]">
-            <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-300">
+            <div className="grid grid-cols-7 bg-gray-100 border-b border-gray-300">
               {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => (
-                <div key={day} className={`p-2.5 sm:p-4 text-center text-xs sm:text-sm font-medium ${idx === 0 ? 'text-red-500' : idx === 6 ? 'text-blue-500' : 'text-gray-500'}`}>{day}</div>
+                <div key={day} className={`p-2.5 sm:p-4 text-center text-xs sm:text-sm font-bold ${idx === 0 ? 'text-red-600' : idx === 6 ? 'text-blue-600' : 'text-gray-800'}`}>{day}</div>
               ))}
             </div>
             <div className="grid grid-cols-7 auto-rows-[110px] sm:auto-rows-[120px] divide-y divide-x divide-gray-300 border-l border-gray-300">
@@ -161,12 +161,12 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                 const dayOfWeek = getDay(date)
                 const isRedColor = dayOfWeek === 0 || isRedDay
                 const dateColorClass = isToday(date) 
-                  ? 'bg-blue-600 text-white' 
+                  ? 'bg-blue-600 text-white font-bold' 
                   : isRedColor 
-                    ? 'text-red-500' 
+                    ? 'text-red-600 font-bold' 
                     : dayOfWeek === 6 
-                      ? 'text-blue-500' 
-                      : 'text-gray-700'
+                      ? 'text-blue-600 font-bold' 
+                      : 'text-gray-900 font-bold'
 
                 return (
                   <div key={i} className={`p-1.5 sm:p-2 flex flex-col transition-colors hover:bg-gray-50 ${isToday(date) ? 'bg-blue-50/30' : ''}`}>
@@ -203,12 +203,12 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                     </div>
                     <div className="flex-1 space-y-1 overflow-y-auto no-scrollbar">
                       {dayEstimates.map(est => (
-                        <Link href={`/estimates/${est.id}`} key={`est-${est.id}`} className="block text-[11px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 bg-blue-100 text-blue-700 rounded truncate cursor-pointer hover:bg-blue-200 shadow-sm border border-blue-200/50">
+                        <Link href={`/estimates/${est.id}`} key={`est-${est.id}`} className="block text-[11px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 bg-blue-100 text-blue-900 font-bold rounded truncate cursor-pointer hover:bg-blue-200 shadow-sm border border-blue-300">
                           방문: {est.customerName}
                         </Link>
                       ))}
                       {dayMovings.map(est => (
-                        <Link href={`/estimates/${est.id}`} key={`mov-${est.id}`} className="block text-[11px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 bg-red-100 text-red-700 rounded truncate cursor-pointer hover:bg-red-200 shadow-sm border border-red-200/50">
+                        <Link href={`/estimates/${est.id}`} key={`mov-${est.id}`} className="block text-[11px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 bg-red-100 text-red-900 font-bold rounded truncate cursor-pointer hover:bg-red-200 shadow-sm border border-red-300">
                           이사: {est.customerName}
                         </Link>
                       ))}

@@ -38,21 +38,21 @@ export default async function EstimatesPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-50 text-gray-500 text-sm border-b">
-                <th className="p-4 font-medium">식별코드</th>
-                <th className="p-4 font-medium">고객명</th>
-                <th className="p-4 font-medium">연락처</th>
-                <th className="p-4 font-medium">이사종류</th>
-                <th className="p-4 font-medium">접수일자</th>
-                <th className="p-4 font-medium">이사예정일</th>
-                <th className="p-4 font-medium">결제상태</th>
-                <th className="p-4 font-medium text-right">총 금액</th>
+              <tr className="bg-gray-100/90 text-gray-800 text-sm font-semibold border-b border-gray-200">
+                <th className="p-4 font-bold">식별코드</th>
+                <th className="p-4 font-bold">고객명</th>
+                <th className="p-4 font-bold">연락처</th>
+                <th className="p-4 font-bold">이사종류</th>
+                <th className="p-4 font-bold">접수일자</th>
+                <th className="p-4 font-bold">이사예정일</th>
+                <th className="p-4 font-bold">결제상태</th>
+                <th className="p-4 font-bold text-right">총 금액</th>
               </tr>
             </thead>
             <tbody>
               {estimates.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-gray-500">
+                  <td colSpan={8} className="p-8 text-center text-gray-600 font-medium">
                     등록된 견적이 없습니다.
                   </td>
                 </tr>
@@ -60,37 +60,37 @@ export default async function EstimatesPage() {
                 estimates.map(est => {
                   const payPlanObj = est.paymentPlan ? JSON.parse(est.paymentPlan) : {}
                   let paymentStatusText = "미입금"
-                  let paymentStatusClass = "bg-gray-100 text-gray-700"
+                  let paymentStatusClass = "bg-gray-100 text-gray-800 border border-gray-300"
                   
                   if (payPlanObj.balancePaid) {
                     paymentStatusText = "정산완료"
-                    paymentStatusClass = "bg-green-100 text-green-700"
+                    paymentStatusClass = "bg-green-100 text-green-800 border border-green-300"
                   } else if (payPlanObj.intermediatePaymentPaid) {
                     paymentStatusText = "중도금 완료"
-                    paymentStatusClass = "bg-blue-100 text-blue-700"
+                    paymentStatusClass = "bg-blue-100 text-blue-800 border border-blue-300"
                   } else if (payPlanObj.downPaymentPaid) {
                     paymentStatusText = "계약금 완료"
-                    paymentStatusClass = "bg-yellow-100 text-yellow-700"
+                    paymentStatusClass = "bg-amber-100 text-amber-900 border border-amber-300"
                   }
 
                   return (
                     <EstimateRow key={est.id} id={est.id}>
-                      <td className="p-4 font-medium text-blue-600">{est.id}</td>
-                      <td className="p-4">{est.customerName}</td>
-                      <td className="p-4">{est.contact}</td>
+                      <td className="p-4 font-bold text-blue-600">{est.id}</td>
+                      <td className="p-4 font-bold text-gray-900">{est.customerName}</td>
+                      <td className="p-4 font-medium text-gray-900">{est.contact}</td>
                       <td className="p-4">
-                        <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-md text-xs font-medium">
+                        <span className="px-2.5 py-1 bg-gray-100 text-gray-900 rounded-md text-xs font-bold border border-gray-200">
                           {est.movingType === 'P' ? '포장이사' : est.movingType === 'G' ? '일반이사' : '보관이사'}
                         </span>
                       </td>
-                      <td className="p-4">{format(new Date(est.estimateDate), 'yyyy-MM-dd', { locale: ko })}</td>
-                      <td className="p-4">{est.movingDate ? format(new Date(est.movingDate), 'yyyy-MM-dd', { locale: ko }) : '-'}</td>
+                      <td className="p-4 font-medium text-gray-900">{format(new Date(est.estimateDate), 'yyyy-MM-dd', { locale: ko })}</td>
+                      <td className="p-4 font-medium text-gray-900">{est.movingDate ? format(new Date(est.movingDate), 'yyyy-MM-dd', { locale: ko }) : '-'}</td>
                       <td className="p-4">
-                        <span className={`px-2 py-1 rounded-md text-xs font-medium ${paymentStatusClass}`}>
+                        <span className={`px-2.5 py-1 rounded-md text-xs font-bold ${paymentStatusClass}`}>
                           {paymentStatusText}
                         </span>
                       </td>
-                      <td className="p-4 text-right font-medium">{est.totalAmount.toLocaleString()}원</td>
+                      <td className="p-4 text-right font-bold text-gray-900">{est.totalAmount.toLocaleString()}원</td>
                     </EstimateRow>
                   )
                 })

@@ -53,15 +53,15 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-6">
         <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
-          <h2 className="text-gray-500 text-xs sm:text-sm font-medium">오늘 예정된 방문견적</h2>
+          <h2 className="text-gray-700 text-xs sm:text-sm font-semibold">오늘 예정된 방문견적</h2>
           <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">{todayVisitsCount}건</p>
         </div>
         <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
-          <h2 className="text-gray-500 text-xs sm:text-sm font-medium">이번 달 이사 건수</h2>
+          <h2 className="text-gray-700 text-xs sm:text-sm font-semibold">이번 달 이사 건수</h2>
           <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">{thisMonthMovingsCount}건</p>
         </div>
         <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
-          <h2 className="text-gray-500 text-xs sm:text-sm font-medium">대기 중인 견적 (미계약)</h2>
+          <h2 className="text-gray-700 text-xs sm:text-sm font-semibold">대기 중인 견적 (미계약)</h2>
           <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">{pendingCount}건</p>
         </div>
       </div>
@@ -74,19 +74,19 @@ export default async function DashboardPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-50 text-gray-500 text-sm border-b">
-                <th className="p-4 font-medium">식별코드</th>
-                <th className="p-4 font-medium">고객명</th>
-                <th className="p-4 font-medium">연락처</th>
-                <th className="p-4 font-medium">접수일자</th>
-                <th className="p-4 font-medium">이사종류</th>
-                <th className="p-4 font-medium">결제상태</th>
+              <tr className="bg-gray-100/90 text-gray-800 text-sm font-semibold border-b border-gray-200">
+                <th className="p-4 font-bold">식별코드</th>
+                <th className="p-4 font-bold">고객명</th>
+                <th className="p-4 font-bold">연락처</th>
+                <th className="p-4 font-bold">접수일자</th>
+                <th className="p-4 font-bold">이사종류</th>
+                <th className="p-4 font-bold">결제상태</th>
               </tr>
             </thead>
             <tbody>
               {recentEstimates.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-gray-500">
+                  <td colSpan={6} className="p-8 text-center text-gray-600 font-medium">
                     최근 작성된 견적이 없습니다.
                   </td>
                 </tr>
@@ -94,32 +94,32 @@ export default async function DashboardPage() {
                 recentEstimates.map(est => {
                   const payPlanObj = est.paymentPlan ? JSON.parse(est.paymentPlan) : {}
                   let paymentStatusText = "미입금"
-                  let paymentStatusClass = "bg-gray-100 text-gray-700"
+                  let paymentStatusClass = "bg-gray-100 text-gray-800 border border-gray-300"
                   
                   if (payPlanObj.balancePaid) {
                     paymentStatusText = "정산완료"
-                    paymentStatusClass = "bg-green-100 text-green-700"
+                    paymentStatusClass = "bg-green-100 text-green-800 border border-green-300"
                   } else if (payPlanObj.intermediatePaymentPaid) {
                     paymentStatusText = "중도금 완료"
-                    paymentStatusClass = "bg-blue-100 text-blue-700"
+                    paymentStatusClass = "bg-blue-100 text-blue-800 border border-blue-300"
                   } else if (payPlanObj.downPaymentPaid) {
                     paymentStatusText = "계약금 완료"
-                    paymentStatusClass = "bg-yellow-100 text-yellow-700"
+                    paymentStatusClass = "bg-amber-100 text-amber-900 border border-amber-300"
                   }
 
                   return (
                     <EstimateRow key={est.id} id={est.id}>
-                      <td className="p-4 font-medium text-blue-600 hover:underline">{est.id}</td>
-                      <td className="p-4 font-medium text-gray-900">{est.customerName}</td>
-                      <td className="p-4">{est.contact}</td>
-                      <td className="p-4">{format(new Date(est.estimateDate), 'yyyy-MM-dd', { locale: ko })}</td>
+                      <td className="p-4 font-bold text-blue-600 hover:underline">{est.id}</td>
+                      <td className="p-4 font-bold text-gray-900">{est.customerName}</td>
+                      <td className="p-4 font-medium text-gray-900">{est.contact}</td>
+                      <td className="p-4 font-medium text-gray-900">{format(new Date(est.estimateDate), 'yyyy-MM-dd', { locale: ko })}</td>
                       <td className="p-4">
-                        <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-md text-xs font-medium">
+                        <span className="px-2.5 py-1 bg-gray-100 text-gray-900 rounded-md text-xs font-bold border border-gray-200">
                           {est.movingType === 'P' ? '포장이사' : est.movingType === 'G' ? '일반이사' : '보관이사'}
                         </span>
                       </td>
                       <td className="p-4">
-                        <span className={`px-2 py-1 rounded-md text-xs font-medium ${paymentStatusClass}`}>
+                        <span className={`px-2.5 py-1 rounded-md text-xs font-bold ${paymentStatusClass}`}>
                           {paymentStatusText}
                         </span>
                       </td>

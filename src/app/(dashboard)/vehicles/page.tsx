@@ -98,21 +98,21 @@ export default function VehiclesPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-gray-50 text-gray-500 text-sm border-b">
-                  <th className="p-4 font-medium">차량명</th>
-                  <th className="p-4 font-medium">최대 CBM</th>
-                  <th className="p-4 font-medium">기본 단가</th>
-                  <th className="p-4 font-medium text-right">관리</th>
+                <tr className="bg-gray-100 text-gray-800 text-sm font-bold border-b border-gray-200">
+                  <th className="p-4">차량명</th>
+                  <th className="p-4">최대 CBM</th>
+                  <th className="p-4">기본 단가</th>
+                  <th className="p-4 text-right">관리</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={4} className="p-8 text-center text-gray-500">로딩 중...</td>
+                    <td colSpan={4} className="p-8 text-center text-gray-600 font-medium">로딩 중...</td>
                   </tr>
                 ) : items.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="p-8 text-center text-gray-500">등록된 차량이 없습니다. 좌측 폼에서 등록해주세요.</td>
+                    <td colSpan={4} className="p-8 text-center text-gray-600 font-medium">등록된 차량이 없습니다. 좌측 폼에서 등록해주세요.</td>
                   </tr>
                 ) : (
                   items.map(item => (
@@ -137,8 +137,8 @@ export default function VehiclesPage() {
                     ) : (
                       <tr key={item.id} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
                         <td className="p-4 font-bold text-gray-900">{item.name}</td>
-                        <td className="p-4 text-gray-600 font-medium">{item.maxCbm || 0} CBM</td>
-                        <td className="p-4 text-blue-600 font-medium">{item.defaultCost.toLocaleString()} 원</td>
+                        <td className="p-4 text-gray-900 font-semibold">{item.maxCbm || 0} CBM</td>
+                        <td className="p-4 text-blue-700 font-bold">{item.defaultCost.toLocaleString()} 원</td>
                         <td className="p-4 text-right flex justify-end gap-1">
                           <button onClick={() => setEditingId(item.id)} className="text-gray-500 hover:text-blue-600 p-2 rounded-md hover:bg-blue-50 transition-colors">
                             <Edit2 size={18} />
