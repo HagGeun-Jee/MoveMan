@@ -1,9 +1,22 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, FileText, Calendar, Settings, ChevronLeft, ChevronRight, LogOut, Users } from 'lucide-react'
+import { 
+  LayoutDashboard, 
+  FileText, 
+  Calendar, 
+  Settings, 
+  ChevronLeft, 
+  ChevronRight, 
+  LogOut, 
+  Users, 
+  Menu, 
+  X,
+  PlusCircle,
+  KeyRound
+} from 'lucide-react'
 
 export function Sidebar({ 
   sessionName, 
@@ -17,7 +30,13 @@ export function Sidebar({
   logoutAction: () => void 
 }) {
   const [collapsed, setCollapsed] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
   const pathname = usePathname()
+
+  // 경로 변경 시 모바일 드로어 자동 닫기
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [pathname])
 
   const isActive = (path: string) => pathname?.startsWith(path) && (path !== '/' || pathname === '/')
 
@@ -33,108 +52,274 @@ export function Sidebar({
   const subLinkClass = (active: boolean) => 
     `flex items-center gap-3 py-2.5 rounded-xl transition-colors text-sm ${collapsed ? 'px-0 justify-center w-full' : 'px-4'} ${active ? 'bg-blue-50 text-blue-600 font-bold' : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600 font-medium'}`
 
+  const mobileLinkClass = (active: boolean) =>
+    `flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium text-sm ${
+      active
+        ? 'bg-blue-50 text-blue-600 font-bold'
+        : 'text-gray-700 hover:bg-gray-100'
+    }`
+
   return (
-    <aside className={`bg-white shadow-md hidden md:flex md:flex-col transition-all duration-300 relative print:hidden ${collapsed ? 'w-20' : 'w-64'}`}>
-      
-      {/* Toggle Button */}
-      <button 
-        onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-8 bg-white border border-gray-200 text-gray-500 rounded-full p-1 shadow-sm hover:text-blue-600 hover:border-blue-300 z-10"
-        title={collapsed ? "메뉴 펼치기" : "메뉴 접기"}
-      >
-        {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-      </button>
-
-      <div className={`p-4 border-b flex flex-col justify-center h-24 ${collapsed ? 'items-center px-2' : ''}`}>
-        {collapsed ? (
-          <img src="/image.png" alt="Logo" className="w-10 h-10 object-contain" />
-        ) : (
-          <div className="flex flex-col items-center w-full">
-            <img src="/image.png" alt="Logo" className="h-10 object-contain" />
-            <p className="text-xs text-gray-500 mt-2 font-medium whitespace-nowrap overflow-hidden">이사견적 관리 시스템</p>
-          </div>
-        )}
-      </div>
-      
-      <nav className="flex-1 mt-6 overflow-hidden">
-        <ul className={`space-y-2 ${collapsed ? 'px-2' : 'px-4'}`}>
-          {canAccess('/') && (
-            <li>
-              <Link href="/" className={linkClass(isActive('/'))} title="대시보드">
-                <LayoutDashboard size={20} className="shrink-0" />
-                {!collapsed && <span>대시보드</span>}
-              </Link>
-            </li>
-          )}
-          {canAccess('/estimates') && (
-            <li>
-              <Link href="/estimates" className={linkClass(isActive('/estimates'))} title="견적 목록">
-                <FileText size={20} className="shrink-0" />
-                {!collapsed && <span>견적 목록</span>}
-              </Link>
-            </li>
-          )}
-          {canAccess('/calendar') && (
-            <li>
-              <Link href="/calendar" className={linkClass(isActive('/calendar'))} title="일정 캘린더">
-                <Calendar size={20} className="shrink-0" />
-                {!collapsed && <span>일정 캘린더</span>}
-              </Link>
-            </li>
-          )}
-          {canAccess('/users') && (
-            <li>
-              <Link href="/users" className={linkClass(isActive('/users'))} title="사용자 및 권한">
-                <Users size={20} className="shrink-0" />
-                {!collapsed && <span>사용자 및 권한</span>}
-              </Link>
-            </li>
-          )}
-        </ul>
-
-        <div className={`mt-8 text-xs font-bold text-gray-400 uppercase tracking-wider ${collapsed ? 'text-center' : 'px-8'}`}>
-          {collapsed ? '기초' : '기초정보'}
-        </div>
-        <ul className={`mt-2 space-y-1 ${collapsed ? 'px-2' : 'px-4'}`}>
-          {canAccess('/items') && (
-            <li>
-              <Link href="/items" className={subLinkClass(isActive('/items'))} title="물품정보">
-                <Settings size={18} className="shrink-0" />
-                {!collapsed && <span>물품정보</span>}
-              </Link>
-            </li>
-          )}
-          {canAccess('/vehicles') && (
-            <li>
-              <Link href="/vehicles" className={subLinkClass(isActive('/vehicles'))} title="차량정보">
-                <Settings size={18} className="shrink-0" />
-                {!collapsed && <span>차량정보</span>}
-              </Link>
-            </li>
-          )}
-          {canAccess('/labors') && (
-            <li>
-              <Link href="/labors" className={subLinkClass(isActive('/labors'))} title="인건비정보">
-                <Settings size={18} className="shrink-0" />
-                {!collapsed && <span>인건비정보</span>}
-              </Link>
-            </li>
-          )}
-        </ul>
-      </nav>
-
-      <div className={`p-4 border-t ${collapsed ? 'flex flex-col items-center px-2' : ''}`}>
-        {!collapsed && (
-          <div className="text-sm text-gray-600 mb-4 px-4 truncate">
-            <span className="font-semibold">{sessionName}</span> 관리자님
-          </div>
-        )}
-        <form action={logoutAction} className={collapsed ? 'w-full flex justify-center' : 'w-full'}>
-          <button className={`text-red-600 hover:bg-red-50 transition-colors flex items-center justify-center gap-2 ${collapsed ? 'p-2 rounded-lg w-full' : 'w-full text-left px-4 py-2 text-sm rounded-lg'}`} title="로그아웃">
-            {collapsed ? <LogOut size={18} /> : <span className="w-full">로그아웃</span>}
+    <>
+      {/* 1. 모바일 및 태블릿용 상단 네비게이션 헤더 (lg 미만 화면) */}
+      <header className="bg-white border-b border-gray-200 px-4 py-3 flex justify-between items-center lg:hidden print:hidden sticky top-0 z-30 shadow-xs">
+        <div className="flex items-center gap-3">
+          <button 
+            type="button"
+            onClick={() => setMobileOpen(true)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors shadow-2xs"
+            aria-label="메뉴 열기"
+          >
+            <Menu size={20} className="text-blue-600" />
+            <span className="text-sm font-bold text-gray-800">메뉴</span>
           </button>
-        </form>
-      </div>
-    </aside>
+          
+          <Link href="/" className="flex items-center gap-2">
+            <img src="/image.png" alt="MOVEMAN" className="h-7 object-contain" />
+            <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">MOVEMAN</span>
+          </Link>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-600 font-medium hidden sm:inline">{sessionName} 관리자님</span>
+          <form action={logoutAction}>
+            <button 
+              type="submit" 
+              className="text-xs text-red-600 font-semibold px-2.5 py-1.5 rounded-lg hover:bg-red-50 transition-colors border border-transparent hover:border-red-100"
+            >
+              로그아웃
+            </button>
+          </form>
+        </div>
+      </header>
+
+      {/* 2. 모바일 및 태블릿용 슬라이드 드로어 메뉴 */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden" aria-modal="true">
+          {/* 어두운 배경 오버레이 */}
+          <div 
+            className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity duration-300"
+            onClick={() => setMobileOpen(false)}
+          />
+
+          {/* 슬라이드 메뉴 창 */}
+          <aside className="fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-white shadow-2xl flex flex-col z-10 animate-in slide-in-from-left duration-200">
+            {/* 드로어 상단 */}
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <img src="/image.png" alt="Logo" className="h-8 object-contain" />
+                <div>
+                  <p className="text-xs font-bold text-gray-800">MOVEMAN</p>
+                  <p className="text-[11px] text-gray-400">이사견적 관리 시스템</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMobileOpen(false)}
+                className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                aria-label="메뉴 닫기"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* 빠른 새 견적 작성 버튼 */}
+            <div className="p-4 pb-2">
+              <Link
+                href="/estimates/new"
+                onClick={() => setMobileOpen(false)}
+                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-xl shadow-sm text-sm transition-colors"
+              >
+                <PlusCircle size={18} />
+                <span>+ 새 견적 작성</span>
+              </Link>
+            </div>
+
+            {/* 메뉴 목록 */}
+            <nav className="flex-1 overflow-y-auto px-4 py-2 space-y-6">
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-gray-400 px-3 uppercase tracking-wider mb-2">주요 메뉴</p>
+                {canAccess('/') && (
+                  <Link href="/" onClick={() => setMobileOpen(false)} className={mobileLinkClass(isActive('/'))}>
+                    <LayoutDashboard size={20} className="shrink-0" />
+                    <span>대시보드</span>
+                  </Link>
+                )}
+                {canAccess('/estimates') && (
+                  <Link href="/estimates" onClick={() => setMobileOpen(false)} className={mobileLinkClass(isActive('/estimates'))}>
+                    <FileText size={20} className="shrink-0" />
+                    <span>견적 목록</span>
+                  </Link>
+                )}
+                {canAccess('/calendar') && (
+                  <Link href="/calendar" onClick={() => setMobileOpen(false)} className={mobileLinkClass(isActive('/calendar'))}>
+                    <Calendar size={20} className="shrink-0" />
+                    <span>일정 캘린더</span>
+                  </Link>
+                )}
+                {canAccess('/users') && (
+                  <Link href="/users" onClick={() => setMobileOpen(false)} className={mobileLinkClass(isActive('/users'))}>
+                    <Users size={20} className="shrink-0" />
+                    <span>사용자 및 권한</span>
+                  </Link>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-gray-400 px-3 uppercase tracking-wider mb-2">기초정보 설정</p>
+                {canAccess('/items') && (
+                  <Link href="/items" onClick={() => setMobileOpen(false)} className={mobileLinkClass(isActive('/items'))}>
+                    <Settings size={18} className="shrink-0" />
+                    <span>물품정보</span>
+                  </Link>
+                )}
+                {canAccess('/vehicles') && (
+                  <Link href="/vehicles" onClick={() => setMobileOpen(false)} className={mobileLinkClass(isActive('/vehicles'))}>
+                    <Settings size={18} className="shrink-0" />
+                    <span>차량정보</span>
+                  </Link>
+                )}
+                {canAccess('/labors') && (
+                  <Link href="/labors" onClick={() => setMobileOpen(false)} className={mobileLinkClass(isActive('/labors'))}>
+                    <Settings size={18} className="shrink-0" />
+                    <span>인건비정보</span>
+                  </Link>
+                )}
+              </div>
+            </nav>
+
+            {/* 드로어 하단 사용자 정보 및 로그아웃 */}
+            <div className="p-4 border-t border-gray-100 bg-gray-50/80">
+              <div className="text-sm text-gray-700 mb-3 px-1">
+                <span className="font-bold text-blue-600">{sessionName}</span> 관리자님
+              </div>
+              <div className="flex gap-2">
+                <Link
+                  href="/change-password"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex-1 py-2 px-2 text-center text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 flex items-center justify-center gap-1 transition-colors"
+                >
+                  <KeyRound size={14} />
+                  <span>비번변경</span>
+                </Link>
+                <form action={logoutAction} className="flex-1">
+                  <button
+                    type="submit"
+                    className="w-full py-2 px-2 text-xs font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-1"
+                  >
+                    <LogOut size={14} />
+                    <span>로그아웃</span>
+                  </button>
+                </form>
+              </div>
+            </div>
+          </aside>
+        </div>
+      )}
+
+      {/* 3. 데스크톱용 좌측 사이드바 (lg 이상 화면) */}
+      <aside className={`bg-white shadow-md hidden lg:flex lg:flex-col transition-all duration-300 relative print:hidden ${collapsed ? 'w-20' : 'w-64'}`}>
+        
+        {/* 접기/펼치기 토글 버튼 */}
+        <button 
+          onClick={() => setCollapsed(!collapsed)}
+          className="absolute -right-3 top-8 bg-white border border-gray-200 text-gray-500 rounded-full p-1 shadow-sm hover:text-blue-600 hover:border-blue-300 z-10"
+          title={collapsed ? "메뉴 펼치기" : "메뉴 접기"}
+        >
+          {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+        </button>
+
+        <div className={`p-4 border-b flex flex-col justify-center h-24 ${collapsed ? 'items-center px-2' : ''}`}>
+          {collapsed ? (
+            <img src="/image.png" alt="Logo" className="w-10 h-10 object-contain" />
+          ) : (
+            <div className="flex flex-col items-center w-full">
+              <img src="/image.png" alt="Logo" className="h-10 object-contain" />
+              <p className="text-xs text-gray-500 mt-2 font-medium whitespace-nowrap overflow-hidden">이사견적 관리 시스템</p>
+            </div>
+          )}
+        </div>
+        
+        <nav className="flex-1 mt-6 overflow-hidden">
+          <ul className={`space-y-2 ${collapsed ? 'px-2' : 'px-4'}`}>
+            {canAccess('/') && (
+              <li>
+                <Link href="/" className={linkClass(isActive('/'))} title="대시보드">
+                  <LayoutDashboard size={20} className="shrink-0" />
+                  {!collapsed && <span>대시보드</span>}
+                </Link>
+              </li>
+            )}
+            {canAccess('/estimates') && (
+              <li>
+                <Link href="/estimates" className={linkClass(isActive('/estimates'))} title="견적 목록">
+                  <FileText size={20} className="shrink-0" />
+                  {!collapsed && <span>견적 목록</span>}
+                </Link>
+              </li>
+            )}
+            {canAccess('/calendar') && (
+              <li>
+                <Link href="/calendar" className={linkClass(isActive('/calendar'))} title="일정 캘린더">
+                  <Calendar size={20} className="shrink-0" />
+                  {!collapsed && <span>일정 캘린더</span>}
+                </Link>
+              </li>
+            )}
+            {canAccess('/users') && (
+              <li>
+                <Link href="/users" className={linkClass(isActive('/users'))} title="사용자 및 권한">
+                  <Users size={20} className="shrink-0" />
+                  {!collapsed && <span>사용자 및 권한</span>}
+                </Link>
+              </li>
+            )}
+          </ul>
+
+          <div className={`mt-8 text-xs font-bold text-gray-400 uppercase tracking-wider ${collapsed ? 'text-center' : 'px-8'}`}>
+            {collapsed ? '기초' : '기초정보'}
+          </div>
+          <ul className={`mt-2 space-y-1 ${collapsed ? 'px-2' : 'px-4'}`}>
+            {canAccess('/items') && (
+              <li>
+                <Link href="/items" className={subLinkClass(isActive('/items'))} title="물품정보">
+                  <Settings size={18} className="shrink-0" />
+                  {!collapsed && <span>물품정보</span>}
+                </Link>
+              </li>
+            )}
+            {canAccess('/vehicles') && (
+              <li>
+                <Link href="/vehicles" className={subLinkClass(isActive('/vehicles'))} title="차량정보">
+                  <Settings size={18} className="shrink-0" />
+                  {!collapsed && <span>차량정보</span>}
+                </Link>
+              </li>
+            )}
+            {canAccess('/labors') && (
+              <li>
+                <Link href="/labors" className={subLinkClass(isActive('/labors'))} title="인건비정보">
+                  <Settings size={18} className="shrink-0" />
+                  {!collapsed && <span>인건비정보</span>}
+                </Link>
+              </li>
+            )}
+          </ul>
+        </nav>
+
+        <div className={`p-4 border-t ${collapsed ? 'flex flex-col items-center px-2' : ''}`}>
+          {!collapsed && (
+            <div className="text-sm text-gray-600 mb-4 px-4 truncate">
+              <span className="font-semibold">{sessionName}</span> 관리자님
+            </div>
+          )}
+          <form action={logoutAction} className={collapsed ? 'w-full flex justify-center' : 'w-full'}>
+            <button className={`text-red-600 hover:bg-red-50 transition-colors flex items-center justify-center gap-2 ${collapsed ? 'p-2 rounded-lg w-full' : 'w-full text-left px-4 py-2 text-sm rounded-lg'}`} title="로그아웃">
+              {collapsed ? <LogOut size={18} /> : <span className="w-full">로그아웃</span>}
+            </button>
+          </form>
+        </div>
+      </aside>
+    </>
   )
 }

@@ -16,7 +16,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const permissions = await prisma.menuPermission.findMany()
 
   return (
-    <div className="flex h-screen bg-gray-100 print:h-auto print:block print:bg-white">
+    <div className="flex h-screen bg-gray-100 print:h-auto print:block print:bg-white flex-col lg:flex-row">
       <Sidebar 
         sessionName={session?.name as string} 
         userLevel={(session?.level as number) || 1}
@@ -30,16 +30,6 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto print:overflow-visible print:h-auto">
-        <header className="bg-white shadow-sm md:hidden print:hidden p-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold text-blue-600">MOVEMAN</h1>
-          <form action={async () => {
-            'use server'
-            await deleteSession()
-            redirect('/login')
-          }}>
-            <button className="text-sm text-red-600 font-medium">로그아웃</button>
-          </form>
-        </header>
         <div className="p-4 md:p-8">
           {children}
         </div>
