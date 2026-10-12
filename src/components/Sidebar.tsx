@@ -62,20 +62,20 @@ export function Sidebar({
   return (
     <>
       {/* 1. 모바일 및 태블릿용 상단 네비게이션 헤더 (lg 미만 화면) */}
-      <header className="bg-white border-b border-gray-200 px-4 py-3 flex justify-between items-center lg:hidden print:hidden sticky top-0 z-30 shadow-xs">
-        <div className="flex items-center gap-3">
+      <header className="bg-white border-b border-gray-200 px-3 sm:px-4 py-2 flex justify-between items-center lg:hidden print:hidden sticky top-0 z-30 shadow-xs">
+        <div className="flex items-center gap-2.5">
           <button 
             type="button"
             onClick={() => setMobileOpen(true)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors shadow-2xs"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors shadow-2xs text-xs font-bold"
             aria-label="메뉴 열기"
           >
-            <Menu size={20} className="text-blue-600" />
-            <span className="text-sm font-bold text-gray-800">메뉴</span>
+            <Menu size={18} className="text-blue-600" />
+            <span>메뉴</span>
           </button>
           
-          <Link href="/" className="flex items-center gap-2">
-            <img src="/image.png" alt="MOVEMAN" className="h-7 object-contain" />
+          <Link href="/" className="flex items-center gap-1.5">
+            <img src="/image.png" alt="MOVEMAN" className="h-6 sm:h-7 object-contain" />
             <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">MOVEMAN</span>
           </Link>
         </div>
@@ -105,12 +105,12 @@ export function Sidebar({
           {/* 슬라이드 메뉴 창 */}
           <aside className="fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-white shadow-2xl flex flex-col z-10 animate-in slide-in-from-left duration-200">
             {/* 드로어 상단 */}
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+            <div className="p-3.5 border-b border-gray-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <img src="/image.png" alt="Logo" className="h-8 object-contain" />
+                <img src="/image.png" alt="Logo" className="h-7 object-contain" />
                 <div>
                   <p className="text-xs font-bold text-gray-800">MOVEMAN</p>
-                  <p className="text-[11px] text-gray-400">이사견적 관리 시스템</p>
+                  <p className="text-[10px] text-gray-400">이사견적 관리 시스템</p>
                 </div>
               </div>
               <button
@@ -229,13 +229,13 @@ export function Sidebar({
           {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
 
-        <div className={`p-4 border-b flex flex-col justify-center h-24 ${collapsed ? 'items-center px-2' : ''}`}>
+        <div className={`p-3 border-b flex flex-col justify-center h-20 ${collapsed ? 'items-center px-2' : ''}`}>
           {collapsed ? (
-            <img src="/image.png" alt="Logo" className="w-10 h-10 object-contain" />
+            <img src="/image.png" alt="Logo" className="w-8 h-8 object-contain" />
           ) : (
             <div className="flex flex-col items-center w-full">
-              <img src="/image.png" alt="Logo" className="h-10 object-contain" />
-              <p className="text-xs text-gray-500 mt-2 font-medium whitespace-nowrap overflow-hidden">이사견적 관리 시스템</p>
+              <img src="/image.png" alt="Logo" className="h-8 object-contain" />
+              <p className="text-[11px] text-gray-500 mt-1 font-medium whitespace-nowrap overflow-hidden">이사견적 관리 시스템</p>
             </div>
           )}
         </div>
