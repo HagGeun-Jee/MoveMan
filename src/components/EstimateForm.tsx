@@ -1235,10 +1235,10 @@ export function EstimateForm({
             <table className="w-full text-xs sm:text-sm border-collapse min-w-[460px]">
               <thead className="bg-gray-50 border-b border-gray-200 text-gray-700 font-semibold">
                 <tr>
-                  <th className="px-3 py-2 text-left w-20 sm:w-24 whitespace-nowrap">구분</th>
-                  <th className="px-3 py-2 text-left whitespace-nowrap">금액 (원)</th>
-                  <th className="px-3 py-2 text-left w-36 sm:w-44 whitespace-nowrap">일자</th>
-                  <th className="px-3 py-2 text-center w-28 whitespace-nowrap">입금 상태</th>
+                  <th className="px-3 py-2 text-left w-16 sm:w-20 whitespace-nowrap">구분</th>
+                  <th className="px-3 py-2 text-right whitespace-nowrap">금액 (원)</th>
+                  <th className="px-3 py-2 text-center w-36 sm:w-44 whitespace-nowrap">일자</th>
+                  <th className="px-3 py-2 text-center w-24 sm:w-28 whitespace-nowrap">입금 상태</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">

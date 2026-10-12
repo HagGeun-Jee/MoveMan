@@ -287,41 +287,75 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
             </div>
             
             <div className="bg-gray-50 p-4 rounded-lg space-y-3 print:bg-transparent print:p-0 print:border print:border-gray-300 print:p-3 print:space-y-2">
-              <div className="font-bold text-gray-900 mb-2 border-b border-gray-200 pb-2 print:mb-1 print:pb-1">결제 플랜 ({payPlanObj.targetType === 'supply' ? '공급가액 기준' : '공급대가 기준'})</div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-800 font-medium">계약금 {payPlanObj.downPaymentDate ? `(${payPlanObj.downPaymentDate})` : ''}</span>
-                <div className="flex items-center gap-2">
-                  {payPlanObj.downPaymentPaid ? (
-                    <span className="px-2 py-0.5 bg-green-100 text-green-900 text-xs rounded font-bold border border-green-300">입금완료</span>
-                  ) : (
-                    <span className="px-2 py-0.5 bg-gray-100 text-gray-800 text-xs rounded font-bold border border-gray-300">미입금</span>
-                  )}
-                  <span className="font-bold text-gray-900">{Number(payPlanObj.downPayment || 0).toLocaleString()} 원</span>
-                </div>
+              <div className="font-bold text-gray-900 border-b border-gray-200 pb-2 print:mb-1 print:pb-1 flex justify-between items-center">
+                <span>결제 플랜</span>
+                <span className="text-xs font-semibold px-2 py-0.5 bg-blue-50 text-blue-700 rounded border border-blue-200">
+                  {payPlanObj.targetType === 'supply' ? '공급가액 기준' : '공급대가 기준'}
+                </span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-800 font-medium">중도금 {payPlanObj.intermediateDate ? `(${payPlanObj.intermediateDate})` : ''}</span>
-                <div className="flex items-center gap-2">
-                  {payPlanObj.intermediatePaymentPaid ? (
-                    <span className="px-2 py-0.5 bg-green-100 text-green-900 text-xs rounded font-bold border border-green-300">입금완료</span>
-                  ) : (
-                    <span className="px-2 py-0.5 bg-gray-100 text-gray-800 text-xs rounded font-bold border border-gray-300">미입금</span>
-                  )}
-                  <span className="font-bold text-gray-900">{Number(payPlanObj.intermediatePayment || 0).toLocaleString()} 원</span>
-                </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs sm:text-sm border-collapse">
+                  <thead className="bg-gray-100/80 text-gray-700 font-semibold border-b border-gray-200 print:bg-transparent">
+                    <tr>
+                      <th className="px-2.5 py-1.5 text-left whitespace-nowrap">구분</th>
+                      <th className="px-2.5 py-1.5 text-right whitespace-nowrap">금액</th>
+                      <th className="px-2.5 py-1.5 text-center whitespace-nowrap">일자</th>
+                      <th className="px-2.5 py-1.5 text-center whitespace-nowrap">상태</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    <tr>
+                      <td className="px-2.5 py-1.5 font-bold text-gray-800 whitespace-nowrap">계약금</td>
+                      <td className="px-2.5 py-1.5 text-right font-semibold text-gray-900 whitespace-nowrap">
+                        {Number(payPlanObj.downPayment || 0).toLocaleString()} 원
+                      </td>
+                      <td className="px-2.5 py-1.5 text-center text-gray-700 whitespace-nowrap">
+                        {payPlanObj.downPaymentDate || '-'}
+                      </td>
+                      <td className="px-2.5 py-1.5 text-center whitespace-nowrap">
+                        {payPlanObj.downPaymentPaid ? (
+                          <span className="px-2 py-0.5 bg-green-100 text-green-900 text-xs rounded font-bold border border-green-300">입금완료</span>
+                        ) : (
+                          <span className="px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded font-medium border border-gray-300">미입금</span>
+                        )}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-2.5 py-1.5 font-bold text-gray-800 whitespace-nowrap">중도금</td>
+                      <td className="px-2.5 py-1.5 text-right font-semibold text-gray-900 whitespace-nowrap">
+                        {Number(payPlanObj.intermediatePayment || 0).toLocaleString()} 원
+                      </td>
+                      <td className="px-2.5 py-1.5 text-center text-gray-700 whitespace-nowrap">
+                        {payPlanObj.intermediateDate || '-'}
+                      </td>
+                      <td className="px-2.5 py-1.5 text-center whitespace-nowrap">
+                        {payPlanObj.intermediatePaymentPaid ? (
+                          <span className="px-2 py-0.5 bg-green-100 text-green-900 text-xs rounded font-bold border border-green-300">입금완료</span>
+                        ) : (
+                          <span className="px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded font-medium border border-gray-300">미입금</span>
+                        )}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-2.5 py-1.5 font-bold text-gray-800 whitespace-nowrap">잔금</td>
+                      <td className="px-2.5 py-1.5 text-right font-semibold text-gray-900 whitespace-nowrap">
+                        {Number(payPlanObj.balance || 0).toLocaleString()} 원
+                      </td>
+                      <td className="px-2.5 py-1.5 text-center text-gray-700 whitespace-nowrap">
+                        {payPlanObj.balanceDate || '-'}
+                      </td>
+                      <td className="px-2.5 py-1.5 text-center whitespace-nowrap">
+                        {payPlanObj.balancePaid ? (
+                          <span className="px-2 py-0.5 bg-green-100 text-green-900 text-xs rounded font-bold border border-green-300">입금완료</span>
+                        ) : (
+                          <span className="px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded font-medium border border-gray-300">미입금</span>
+                        )}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-800 font-medium">잔금 {payPlanObj.balanceDate ? `(${payPlanObj.balanceDate})` : ''}</span>
-                <div className="flex items-center gap-2">
-                  {payPlanObj.balancePaid ? (
-                    <span className="px-2 py-0.5 bg-green-100 text-green-900 text-xs rounded font-bold border border-green-300">입금완료</span>
-                  ) : (
-                    <span className="px-2 py-0.5 bg-gray-100 text-gray-800 text-xs rounded font-bold border border-gray-300">미입금</span>
-                  )}
-                  <span className="font-bold text-gray-900">{Number(payPlanObj.balance || 0).toLocaleString()} 원</span>
-                </div>
-              </div>
-              <div className="border-t border-gray-200 pt-2 flex justify-between font-bold">
+              <div className="border-t border-gray-200 pt-2 flex justify-between font-bold text-xs sm:text-sm">
                 <span className="text-gray-800">미할당 잔액</span>
                 <span className={`${payPlanObj.remainingAmount === 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {Number(payPlanObj.remainingAmount || 0).toLocaleString()} 원
