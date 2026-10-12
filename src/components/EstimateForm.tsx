@@ -413,10 +413,10 @@ export function EstimateForm({
   }, [initialData])
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 pb-28">
+    <div className="max-w-4xl mx-auto space-y-3 sm:space-y-5 pb-20">
       <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{title}</h1>
       
-      <form action={action} className="space-y-6 sm:space-y-8">
+      <form action={action} className="space-y-4 sm:space-y-5">
         {initialData && <input type="hidden" name="id" value={initialData.id} />}
         
         {/* 기본 정보 */}
@@ -1163,118 +1163,125 @@ export function EstimateForm({
         </div>
 
         {/* 이사 비용 및 부가세 */}
-        <div className="bg-white p-3.5 sm:p-5 md:p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
-          <h2 className="text-base sm:text-lg font-bold text-blue-600 border-b pb-2">이사 비용 및 부가세</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white p-3.5 sm:p-4 rounded-xl shadow-sm border border-gray-100 space-y-3">
+          <h2 className="text-base sm:text-lg font-bold text-blue-600 border-b pb-1.5">이사 비용 및 부가세</h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 whitespace-nowrap">기본 이사 비용</label>
-              <NumberInput name="movingCost" value={movingCost} onChange={v => { setMovingCost(v); setIsCostEdited(true); }} className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 text-right" />
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap mb-1">기본 이사 비용</label>
+              <NumberInput name="movingCost" value={movingCost} onChange={v => { setMovingCost(v); setIsCostEdited(true); }} className="block w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-right outline-none focus:border-blue-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 whitespace-nowrap">가산 비용 (사다리차/거리 등)</label>
-              <NumberInput name="additionalCost" value={additionalCost} onChange={v => { setAdditionalCost(v); setIsCostEdited(true); }} className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 text-right" />
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap mb-1">가산 비용 (사다리차 등)</label>
+              <NumberInput name="additionalCost" value={additionalCost} onChange={v => { setAdditionalCost(v); setIsCostEdited(true); }} className="block w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-right outline-none focus:border-blue-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 whitespace-nowrap">보관 비용</label>
-              <NumberInput name="storageCost" value={storageCost} onChange={v => { setStorageCost(v); setIsCostEdited(true); }} className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 text-right" />
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap mb-1">보관 비용</label>
+              <NumberInput name="storageCost" value={storageCost} onChange={v => { setStorageCost(v); setIsCostEdited(true); }} className="block w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-right outline-none focus:border-blue-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 whitespace-nowrap">부가세</label>
-              <NumberInput name="vat" value={vat} onChange={setVat} className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 text-right" />
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap mb-1">부가세</label>
+              <NumberInput name="vat" value={vat} onChange={setVat} className="block w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-right outline-none focus:border-blue-500" />
             </div>
           </div>
-          <div className="pt-4 border-t border-gray-200 space-y-2">
-            <div className="flex justify-between items-center bg-gray-50 p-4 rounded-lg">
-              <span className="text-md font-bold text-gray-700">공급가액 합계 (부가세 제외)</span>
-              <span className="text-xl font-bold text-gray-800">{supplyAmount.toLocaleString()} 원</span>
+          <div className="pt-2 border-t border-gray-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 bg-blue-50/70 px-3 py-2 sm:py-2.5 rounded-lg border border-blue-100">
+            <div className="flex items-center justify-between sm:justify-start gap-2 text-xs sm:text-sm">
+              <span className="text-gray-600 font-medium whitespace-nowrap">공급가액 (부가세 제외):</span>
+              <span className="font-bold text-gray-800">{supplyAmount.toLocaleString()} 원</span>
             </div>
-            <div className="flex justify-between items-center bg-blue-50 p-4 rounded-lg">
-              <span className="text-lg font-bold text-blue-900">공급대가 (총 합계)</span>
-              <span className="text-2xl font-black text-blue-700">{totalAmount.toLocaleString()} 원</span>
+            <div className="flex items-center justify-between sm:justify-end gap-2 text-sm sm:text-base border-t sm:border-t-0 pt-1.5 sm:pt-0 border-blue-200">
+              <span className="text-blue-900 font-bold whitespace-nowrap">총 합계 (공급대가):</span>
+              <span className="text-base sm:text-lg font-black text-blue-700">{totalAmount.toLocaleString()} 원</span>
               <input type="hidden" name="totalAmount" value={totalAmount} />
             </div>
           </div>
         </div>
 
         {/* 결제 플랜 */}
-        <div className="bg-white p-3.5 sm:p-5 md:p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-2 gap-2">
-            <div className="flex items-center gap-6">
+        <div className="bg-white p-3.5 sm:p-4 rounded-xl shadow-sm border border-gray-100 space-y-3">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-1.5 gap-2">
+            <div className="flex items-center gap-4 sm:gap-6">
               <h2 className="text-base sm:text-lg font-bold text-blue-600">결제 플랜</h2>
-              <div className="flex items-center gap-3 text-sm text-gray-700">
-                <label className="flex items-center gap-1 cursor-pointer">
-                  <input type="radio" name="paymentTarget" checked={paymentTarget === 'supply'} onChange={() => setPaymentTarget('supply')} className="w-4 h-4 text-blue-600" />
+              <div className="flex items-center gap-3 text-xs sm:text-sm text-gray-700">
+                <label className="flex items-center gap-1 cursor-pointer whitespace-nowrap">
+                  <input type="radio" name="paymentTarget" checked={paymentTarget === 'supply'} onChange={() => setPaymentTarget('supply')} className="w-3.5 h-3.5 text-blue-600" />
                   공급가액
                 </label>
-                <label className="flex items-center gap-1 cursor-pointer">
-                  <input type="radio" name="paymentTarget" checked={paymentTarget === 'total'} onChange={() => setPaymentTarget('total')} className="w-4 h-4 text-blue-600" />
+                <label className="flex items-center gap-1 cursor-pointer whitespace-nowrap">
+                  <input type="radio" name="paymentTarget" checked={paymentTarget === 'total'} onChange={() => setPaymentTarget('total')} className="w-3.5 h-3.5 text-blue-600" />
                   공급대가
                 </label>
               </div>
             </div>
-            <div className="text-sm font-bold text-gray-700">
-              초기 대상 금액: <span className="text-base sm:text-lg text-blue-600">{targetAmount.toLocaleString()} 원</span>
+            <div className="text-xs sm:text-sm font-semibold text-gray-600">
+              초기 대상: <span className="text-sm sm:text-base font-bold text-blue-600">{targetAmount.toLocaleString()} 원</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-sm font-medium text-gray-700 whitespace-nowrap">계약금</label>
-                <label className="flex items-center gap-1 text-xs text-blue-700 font-medium cursor-pointer bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded whitespace-nowrap">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+            {/* 계약금 */}
+            <div className="bg-gray-50/80 p-2.5 rounded-lg border border-gray-200 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs sm:text-sm font-bold text-gray-800">계약금</span>
+                <label className="flex items-center gap-1 text-[11px] sm:text-xs text-blue-700 font-medium cursor-pointer bg-blue-50 hover:bg-blue-100 px-1.5 py-0.5 rounded whitespace-nowrap">
                   <input type="checkbox" checked={downPaymentPaid} onChange={e => setDownPaymentPaid(e.target.checked)} className="rounded text-blue-600 focus:ring-blue-500 w-3 h-3" />
                   입금완료
                 </label>
               </div>
-              <NumberInput value={downPayment} onChange={setDownPayment} className="block w-full rounded-lg border border-gray-300 px-4 py-2 text-right" />
+              <div>
+                <NumberInput value={downPayment} onChange={setDownPayment} className="block w-full rounded border border-gray-300 bg-white px-2.5 py-1.5 text-right text-sm font-semibold outline-none focus:border-blue-500" />
+              </div>
+              <div>
+                <CustomDatePicker selected={downPaymentDate} onChange={setDownPaymentDate} className="block w-full rounded border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 outline-none focus:border-blue-500" />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 whitespace-nowrap">계약금 일자</label>
-              <CustomDatePicker selected={downPaymentDate} onChange={setDownPaymentDate} className="block w-full rounded-lg border border-gray-300 px-4 py-2" />
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-sm font-medium text-gray-700 whitespace-nowrap">중도금</label>
-                <label className="flex items-center gap-1 text-xs text-blue-700 font-medium cursor-pointer bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded whitespace-nowrap">
+
+            {/* 중도금 */}
+            <div className="bg-gray-50/80 p-2.5 rounded-lg border border-gray-200 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs sm:text-sm font-bold text-gray-800">중도금</span>
+                <label className="flex items-center gap-1 text-[11px] sm:text-xs text-blue-700 font-medium cursor-pointer bg-blue-50 hover:bg-blue-100 px-1.5 py-0.5 rounded whitespace-nowrap">
                   <input type="checkbox" checked={intermediatePaymentPaid} onChange={e => setIntermediatePaymentPaid(e.target.checked)} className="rounded text-blue-600 focus:ring-blue-500 w-3 h-3" />
                   입금완료
                 </label>
               </div>
-              <NumberInput value={intermediatePayment} onChange={setIntermediatePayment} className="block w-full rounded-lg border border-gray-300 px-4 py-2 text-right" />
+              <div>
+                <NumberInput value={intermediatePayment} onChange={setIntermediatePayment} className="block w-full rounded border border-gray-300 bg-white px-2.5 py-1.5 text-right text-sm font-semibold outline-none focus:border-blue-500" />
+              </div>
+              <div>
+                <CustomDatePicker selected={intermediateDate} onChange={setIntermediateDate} className="block w-full rounded border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 outline-none focus:border-blue-500" />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 whitespace-nowrap">중도금 일자</label>
-              <CustomDatePicker selected={intermediateDate} onChange={setIntermediateDate} className="block w-full rounded-lg border border-gray-300 px-4 py-2" />
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-sm font-medium text-gray-700 whitespace-nowrap">잔금</label>
-                <label className="flex items-center gap-1 text-xs text-blue-700 font-medium cursor-pointer bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded whitespace-nowrap">
+
+            {/* 잔금 */}
+            <div className="bg-gray-50/80 p-2.5 rounded-lg border border-gray-200 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs sm:text-sm font-bold text-gray-800">잔금</span>
+                <label className="flex items-center gap-1 text-[11px] sm:text-xs text-blue-700 font-medium cursor-pointer bg-blue-50 hover:bg-blue-100 px-1.5 py-0.5 rounded whitespace-nowrap">
                   <input type="checkbox" checked={balancePaid} onChange={e => setBalancePaid(e.target.checked)} className="rounded text-blue-600 focus:ring-blue-500 w-3 h-3" />
                   입금완료
                 </label>
               </div>
-              <NumberInput value={balance} onChange={setBalance} className="block w-full rounded-lg border border-gray-300 px-4 py-2 text-right" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 whitespace-nowrap">잔금 일자</label>
-              <CustomDatePicker selected={balanceDate} onChange={setBalanceDate} className="block w-full rounded-lg border border-gray-300 px-4 py-2" />
+              <div>
+                <NumberInput value={balance} onChange={setBalance} className="block w-full rounded border border-gray-300 bg-white px-2.5 py-1.5 text-right text-sm font-semibold outline-none focus:border-blue-500" />
+              </div>
+              <div>
+                <CustomDatePicker selected={balanceDate} onChange={setBalanceDate} className="block w-full rounded border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 outline-none focus:border-blue-500" />
+              </div>
             </div>
           </div>
-          <div className="pt-4 border-t border-gray-200">
-            <div className="flex justify-between items-center bg-gray-50 p-4 rounded-lg">
-              <span className="text-md font-bold text-gray-700">남은 잔액 (미할당 금액)</span>
-              <span className={`text-xl font-bold ${remainingAmount === 0 ? 'text-green-600' : remainingAmount < 0 ? 'text-red-600' : 'text-blue-600'}`}>
-                {remainingAmount.toLocaleString()} 원
-              </span>
-            </div>
+
+          <div className="pt-2 border-t border-gray-100 flex items-center justify-between bg-gray-50 px-3 py-2 rounded-lg text-xs sm:text-sm">
+            <span className="text-gray-700 font-medium">남은 잔액 (미할당 금액)</span>
+            <span className={`font-bold text-sm sm:text-base ${remainingAmount === 0 ? 'text-green-600' : remainingAmount < 0 ? 'text-red-600' : 'text-blue-600'}`}>
+              {remainingAmount.toLocaleString()} 원
+            </span>
           </div>
           <input type="hidden" name="paymentPlan" value={JSON.stringify({ targetType: paymentTarget, targetAmount, downPayment, downPaymentDate: downPaymentDate ? format(downPaymentDate, 'yyyy-MM-dd') : '', downPaymentPaid, intermediatePayment, intermediateDate: intermediateDate ? format(intermediateDate, 'yyyy-MM-dd') : '', intermediatePaymentPaid, balance, balanceDate: balanceDate ? format(balanceDate, 'yyyy-MM-dd') : '', balancePaid, remainingAmount })} />
         </div>
 
         {/* 고객 서명 */}
-        <div className="bg-white p-3.5 sm:p-5 md:p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
-          <div className="flex justify-between items-center border-b pb-2">
+        <div className="bg-white p-3.5 sm:p-4 rounded-xl shadow-sm border border-gray-100 space-y-3">
+          <div className="flex justify-between items-center border-b pb-1.5">
             <h2 className="text-base sm:text-lg font-bold text-blue-600">고객 서명</h2>
             {!isSigning && signature ? (
               <button type="button" onClick={() => { setIsSigning(true); setSignature(''); }} className="text-xs sm:text-sm text-red-600 hover:text-red-800 font-medium px-3 py-1 bg-red-50 rounded-lg">서명 다시하기</button>
@@ -1283,7 +1290,7 @@ export function EstimateForm({
             )}
           </div>
           
-          <div className="border border-gray-300 rounded-lg overflow-hidden bg-gray-50 h-40 sm:h-48 relative touch-none">
+          <div className="border border-gray-300 rounded-lg overflow-hidden bg-gray-50 h-28 sm:h-32 relative touch-none">
             {isSigning ? (
               <SignatureCanvas 
                 ref={sigCanvas}
