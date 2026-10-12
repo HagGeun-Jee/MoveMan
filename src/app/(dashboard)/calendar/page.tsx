@@ -1,10 +1,24 @@
 import prisma from '@/lib/prisma'
-import { startOfMonth, endOfMonth, eachDayOfInterval, format, getDay, isSameMonth, isToday, isSameDay } from 'date-fns'
+import { startOfMonth, endOfMonth, eachDayOfInterval, format, getDay, isSameDay } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { Solar } from 'lunar-javascript'
 import KoreanLunarCalendar from 'korean-lunar-calendar'
 import { Sun, Cloud, CloudRain, CloudSnow, CloudLightning, Star } from 'lucide-react'
 import Link from 'next/link'
+
+// 한국 표준시(KST, Asia/Seoul) 기준 오늘 날짜 정보 구하기 (Vercel UTC 서버 환경 대응)
+function getKoreaToday(): { year: number, month: number, day: number, dateString: string } {
+  const now = new Date()
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  })
+  const dateString = formatter.format(now) // "YYYY-MM-DD"
+  const [year, month, day] = dateString.split('-').map(Number)
+  return { year, month, day, dateString }
+}
 
 // Fetch weather data for the next 14 days (Seoul)
 async function getWeatherData() {
@@ -31,7 +45,21 @@ import CalendarNavigation from './CalendarNavigation'
 
 export default async function CalendarPage({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
   const params = await searchParams
-  const currentDate = params.date ? new Date(params.date) : new Date()
+  const koreaToday = getKoreaToday()
+
+  let targetYear = koreaToday.year
+  let targetMonth = koreaToday.month
+
+  if (params.date && /^\d{4}-\d{1,2}/.test(params.date)) {
+    const parts = params.date.split('-').map(Number)
+    if (parts[0] && parts[1]) {
+      targetYear = parts[0]
+      targetMonth = parts[1]
+    }
+  }
+
+  // targetYear, targetMonth 기준의 1일 날짜 (로컬 컴포넌트로 생성하여 타임존 쉬프트 방지)
+  const currentDate = new Date(targetYear, targetMonth - 1, 1)
   
   const monthStart = startOfMonth(currentDate)
   const monthEnd = endOfMonth(currentDate)
@@ -106,7 +134,10 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100 gap-4">
-        <CalendarNavigation currentDateStr={currentDate.toISOString()} />
+        <CalendarNavigation 
+          currentDateStr={format(currentDate, 'yyyy-MM-dd')} 
+          todayStr={koreaToday.dateString} 
+        />
         <div className="flex flex-wrap gap-4 items-center bg-gray-50 p-2 rounded-lg border border-gray-100">
           <div className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
             <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" /> 손없는날
@@ -137,6 +168,9 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                 <div key={`empty-${i}`} className="bg-gray-50/50"></div>
               ))}
               {daysInMonth.map((date, i) => {
+                const dateStr = format(date, 'yyyy-MM-dd')
+                const isCellToday = dateStr === koreaToday.dateString
+
                 const dayEstimates = estimates.filter(e => e.visitDate && isSameDay(new Date(e.visitDate), date))
                 const dayMovings = estimates.filter(e => e.movingDate && isSameDay(new Date(e.movingDate), date))
                 
@@ -153,15 +187,14 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                 const { holidayName, isRedDay, jieQi } = getKoreanHolidayAndJieQi(solar, lunar)
 
                 // 날씨 매칭
-                const dateStr = format(date, 'yyyy-MM-dd')
                 const weatherIndex = weatherData?.time?.indexOf(dateStr)
                 const weatherCode = weatherIndex !== undefined && weatherIndex !== -1 ? weatherData?.weathercode[weatherIndex] : null
                 
                 // 주말 및 휴일 색상 처리
                 const dayOfWeek = getDay(date)
                 const isRedColor = dayOfWeek === 0 || isRedDay
-                const dateColorClass = isToday(date) 
-                  ? 'bg-blue-600 text-white font-bold' 
+                const dateColorClass = isCellToday 
+                  ? 'bg-blue-600 text-white font-bold ring-2 ring-blue-300' 
                   : isRedColor 
                     ? 'text-red-600 font-bold' 
                     : dayOfWeek === 6 
@@ -169,11 +202,16 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                       : 'text-gray-900 font-bold'
 
                 return (
-                  <div key={i} className={`p-1.5 sm:p-2 flex flex-col transition-colors hover:bg-gray-50 ${isToday(date) ? 'bg-blue-50/30' : ''}`}>
+                  <div key={i} className={`p-1.5 sm:p-2 flex flex-col transition-colors hover:bg-gray-50 ${isCellToday ? 'bg-blue-50/50 ring-1 ring-inset ring-blue-200' : ''}`}>
                     <div className="flex justify-between items-start mb-1 sm:mb-2">
                       <div className="flex flex-col">
-                        <div className={`text-xs sm:text-sm font-medium w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-full ${dateColorClass}`}>
-                          {format(date, 'd')}
+                        <div className="flex items-center gap-1">
+                          <div className={`text-xs sm:text-sm font-medium w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-full ${dateColorClass}`}>
+                            {format(date, 'd')}
+                          </div>
+                          {isCellToday && (
+                            <span className="text-[10px] font-bold text-blue-600 bg-blue-100 px-1 py-0.5 rounded leading-none">오늘</span>
+                          )}
                         </div>
                         {(holidayName || jieQi) && (
                           <div className="flex flex-col mt-0.5 px-0.5 sm:px-1 leading-tight">
