@@ -39,14 +39,14 @@ export default async function EstimatesPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-100/90 text-gray-800 text-sm font-semibold border-b border-gray-200">
-                <th className="p-4 font-bold">식별코드</th>
-                <th className="p-4 font-bold">고객명</th>
-                <th className="p-4 font-bold">연락처</th>
-                <th className="p-4 font-bold">이사종류</th>
-                <th className="p-4 font-bold">접수일자</th>
-                <th className="p-4 font-bold">이사예정일</th>
-                <th className="p-4 font-bold">결제상태</th>
-                <th className="p-4 font-bold text-right">총 금액</th>
+                <th className="p-4 font-bold whitespace-nowrap">식별코드</th>
+                <th className="p-4 font-bold whitespace-nowrap">고객명</th>
+                <th className="p-4 font-bold whitespace-nowrap">연락처</th>
+                <th className="p-4 font-bold whitespace-nowrap">이사종류</th>
+                <th className="p-4 font-bold whitespace-nowrap">접수일자</th>
+                <th className="p-4 font-bold whitespace-nowrap">이사예정일</th>
+                <th className="p-4 font-bold whitespace-nowrap">결제상태</th>
+                <th className="p-4 font-bold text-right whitespace-nowrap">총 금액</th>
               </tr>
             </thead>
             <tbody>

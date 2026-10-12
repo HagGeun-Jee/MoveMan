@@ -90,45 +90,45 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
             <table className="w-full text-sm border-collapse border border-gray-300 print:text-xs min-w-[500px] print:min-w-0">
             <tbody>
               <tr>
-                <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900 w-1/4 sm:w-1/6">고객명</th>
+                <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900 w-1/4 sm:w-1/6 whitespace-nowrap">고객명</th>
                 <td className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900 w-1/4 sm:w-2/6">{estimate.customerName}</td>
-                <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900 w-1/4 sm:w-1/6">연락처</th>
+                <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900 w-1/4 sm:w-1/6 whitespace-nowrap">연락처</th>
                 <td className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900 w-1/4 sm:w-2/6">{estimate.contact}</td>
               </tr>
               <tr>
-                <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900">이사종류</th>
+                <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900 whitespace-nowrap">이사종류</th>
                 <td className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900">
                   {estimate.movingType === 'P' ? '포장이사' : estimate.movingType === 'G' ? '일반이사' : '보관이사'}
                 </td>
-                <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900">접수일자</th>
+                <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900 whitespace-nowrap">접수일자</th>
                 <td className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900">
                   {format(new Date(estimate.estimateDate), 'yyyy-MM-dd')}
                 </td>
               </tr>
               <tr>
-                <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900">방문 견적일정</th>
+                <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900 whitespace-nowrap">방문 견적일정</th>
                 <td className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900">
                   {estimate.visitDate ? format(new Date(estimate.visitDate), 'yyyy-MM-dd HH:mm') : '-'}
                 </td>
-                <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900">이사 예정일</th>
+                <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900 whitespace-nowrap">이사 예정일</th>
                 <td className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900">
                   {estimate.movingDate ? format(new Date(estimate.movingDate), 'yyyy-MM-dd') : '-'}
                 </td>
               </tr>
               {estimate.movingType === 'K' && (
                 <tr>
-                  <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900">정리 예정일(보관)</th>
+                  <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900 whitespace-nowrap">정리 예정일(보관)</th>
                   <td className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900">
                     {estimate.organizeDate ? format(new Date(estimate.organizeDate), 'yyyy-MM-dd') : '-'}
                   </td>
-                  <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900">정리 여부</th>
+                  <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900 whitespace-nowrap">정리 여부</th>
                   <td className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900">
                     {envObj.organizeStatus || '-'}
                   </td>
                 </tr>
               )}
               <tr>
-                <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900">출발지</th>
+                <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900 whitespace-nowrap">출발지</th>
                 <td colSpan={3} className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <span>{estimate.fromAddress || '-'}</span>
@@ -150,7 +150,7 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                 </td>
               </tr>
               <tr>
-                <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900">도착지</th>
+                <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900 whitespace-nowrap">도착지</th>
                 <td colSpan={3} className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <span>{estimate.toAddress || '-'}</span>

@@ -426,7 +426,7 @@ export function EstimateForm({
             <table className="w-full border-collapse border border-gray-200 text-sm">
               <tbody>
                 <tr>
-                  <th className="w-24 sm:w-32 bg-gray-50 border border-gray-200 px-4 py-3 text-left font-medium text-gray-700">
+                  <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-3 sm:px-4 py-3 text-left font-medium text-gray-700 w-28 sm:w-36">
                     고객명 <span className="text-red-500">*</span>
                   </th>
                   <td className="border border-gray-200 p-2 sm:p-2.5">
@@ -440,7 +440,7 @@ export function EstimateForm({
                       placeholder="홍길동" 
                     />
                   </td>
-                  <th className="w-24 sm:w-32 bg-gray-50 border border-gray-200 px-4 py-3 text-left font-medium text-gray-700">
+                  <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-3 sm:px-4 py-3 text-left font-medium text-gray-700 w-28 sm:w-36">
                     연락처 <span className="text-red-500">*</span>
                   </th>
                   <td className="border border-gray-200 p-2 sm:p-2.5">
@@ -456,7 +456,7 @@ export function EstimateForm({
                   </td>
                 </tr>
                 <tr>
-                  <th className="bg-gray-50 border border-gray-200 px-4 py-3 text-left font-medium text-gray-700">
+                  <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-3 sm:px-4 py-3 text-left font-medium text-gray-700 w-28 sm:w-36">
                     이사 종류 <span className="text-red-500">*</span>
                   </th>
                   <td className="border border-gray-200 p-2 sm:p-2.5">
@@ -471,7 +471,7 @@ export function EstimateForm({
                       <option value="K">보관이사 (K)</option>
                     </select>
                   </td>
-                  <th className="bg-gray-50 border border-gray-200 px-4 py-3 text-left font-medium text-gray-700">
+                  <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-3 sm:px-4 py-3 text-left font-medium text-gray-700 w-28 sm:w-36">
                     접수일자 <span className="text-red-500">*</span>
                   </th>
                   <td className="border border-gray-200 p-2 sm:p-2.5">
@@ -508,7 +508,7 @@ export function EstimateForm({
             <table className="w-full border-collapse border border-gray-200 text-sm">
               <tbody>
                 <tr>
-                  <th className="w-24 sm:w-32 bg-gray-50 border border-gray-200 px-4 py-3 text-left font-medium text-gray-700">
+                  <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-3 sm:px-4 py-3 text-left font-medium text-gray-700 w-28 sm:w-36">
                     방문 견적일정
                   </th>
                   <td className="border border-gray-200 p-2 sm:p-2.5">
@@ -521,7 +521,7 @@ export function EstimateForm({
                       className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-blue-500" 
                     />
                   </td>
-                  <th className="w-24 sm:w-32 bg-gray-50 border border-gray-200 px-4 py-3 text-left font-medium text-gray-700">
+                  <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-3 sm:px-4 py-3 text-left font-medium text-gray-700 w-28 sm:w-36">
                     이사 예정일
                   </th>
                   <td className="border border-gray-200 p-2 sm:p-2.5">
@@ -536,7 +536,7 @@ export function EstimateForm({
 
                 {movingType === 'K' && (
                   <tr>
-                    <th className="bg-gray-50 border border-gray-200 px-4 py-3 text-left font-medium text-gray-700">
+                    <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-3 sm:px-4 py-3 text-left font-medium text-gray-700 w-28 sm:w-36">
                       정리 예정일 (보관)
                     </th>
                     <td className="border border-gray-200 p-2 sm:p-2.5">
@@ -547,7 +547,7 @@ export function EstimateForm({
                         className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-blue-500" 
                       />
                     </td>
-                    <th className="bg-gray-50 border border-gray-200 px-4 py-3 text-left font-medium text-gray-700">
+                    <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-3 sm:px-4 py-3 text-left font-medium text-gray-700 w-28 sm:w-36">
                       정리 여부
                     </th>
                     <td className="border border-gray-200 p-2 sm:p-2.5">
@@ -581,7 +581,7 @@ export function EstimateForm({
 
                 {/* 출발지 */}
                 <tr>
-                  <th className="bg-gray-50 border border-gray-200 px-4 py-3 text-left font-medium text-gray-700 align-top">
+                  <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-3 sm:px-4 py-3 text-left font-medium text-gray-700 align-top w-28 sm:w-36">
                     출발지 <span className="text-red-500">*</span>
                   </th>
                   <td colSpan={3} className="border border-gray-200 p-3 space-y-3">
@@ -664,7 +664,7 @@ export function EstimateForm({
 
                 {/* 도착지 */}
                 <tr>
-                  <th className="bg-gray-50 border border-gray-200 px-4 py-3 text-left font-medium text-gray-700 align-top">
+                  <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-3 sm:px-4 py-3 text-left font-medium text-gray-700 align-top w-28 sm:w-36">
                     도착지 <span className="text-red-500">*</span>
                   </th>
                   <td colSpan={3} className="border border-gray-200 p-3 space-y-3">
@@ -800,12 +800,12 @@ export function EstimateForm({
                         <table className="w-full text-sm text-left bg-white min-w-[500px]">
                           <thead className="bg-gray-50 text-gray-600 border-b">
                             <tr>
-                              <th className="px-3 sm:px-4 py-2 font-medium">품목</th>
-                              <th className="px-3 sm:px-4 py-2 font-medium">규격</th>
-                              <th className="px-3 sm:px-4 py-2 font-medium w-20">수량</th>
-                              <th className="px-3 sm:px-4 py-2 font-medium w-24">기본 CBM</th>
-                              <th className="px-3 sm:px-4 py-2 font-medium w-24">추가 CBM</th>
-                              <th className="px-3 sm:px-4 py-2 font-medium w-12 text-center">삭제</th>
+                              <th className="whitespace-nowrap px-3 sm:px-4 py-2 font-medium">품목</th>
+                              <th className="whitespace-nowrap px-3 sm:px-4 py-2 font-medium">규격</th>
+                              <th className="whitespace-nowrap px-3 sm:px-4 py-2 font-medium w-20">수량</th>
+                              <th className="whitespace-nowrap px-3 sm:px-4 py-2 font-medium w-24">기본 CBM</th>
+                              <th className="whitespace-nowrap px-3 sm:px-4 py-2 font-medium w-24">추가 CBM</th>
+                              <th className="whitespace-nowrap px-3 sm:px-4 py-2 font-medium w-12 text-center">삭제</th>
                             </tr>
                           </thead>
                         <tbody>
@@ -1023,9 +1023,9 @@ export function EstimateForm({
                   <table className="w-full text-sm text-left min-w-[280px]">
                     <thead className="bg-gray-50 text-gray-600 border-b">
                       <tr>
-                        <th className="px-3 py-2 font-medium">인력 구분</th>
-                        <th className="px-3 py-2 font-medium w-24">인원(명)</th>
-                        <th className="px-3 py-2 font-medium w-12 text-center">삭제</th>
+                        <th className="whitespace-nowrap px-3 py-2 font-medium">인력 구분</th>
+                        <th className="whitespace-nowrap px-3 py-2 font-medium w-24">인원(명)</th>
+                        <th className="whitespace-nowrap px-3 py-2 font-medium w-12 text-center">삭제</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1104,9 +1104,9 @@ export function EstimateForm({
                   <table className="w-full text-sm text-left min-w-[280px]">
                     <thead className="bg-gray-50 text-gray-600 border-b">
                       <tr>
-                        <th className="px-3 py-2 font-medium">차량 구분</th>
-                        <th className="px-3 py-2 font-medium w-24">대수</th>
-                        <th className="px-3 py-2 font-medium w-12 text-center">삭제</th>
+                        <th className="whitespace-nowrap px-3 py-2 font-medium">차량 구분</th>
+                        <th className="whitespace-nowrap px-3 py-2 font-medium w-24">대수</th>
+                        <th className="whitespace-nowrap px-3 py-2 font-medium w-12 text-center">삭제</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1167,19 +1167,19 @@ export function EstimateForm({
           <h2 className="text-base sm:text-lg font-bold text-blue-600 border-b pb-2">이사 비용 및 부가세</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">기본 이사 비용</label>
+              <label className="block text-sm font-medium text-gray-700 whitespace-nowrap">기본 이사 비용</label>
               <NumberInput name="movingCost" value={movingCost} onChange={v => { setMovingCost(v); setIsCostEdited(true); }} className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 text-right" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">가산 비용 (사다리차/거리 등)</label>
+              <label className="block text-sm font-medium text-gray-700 whitespace-nowrap">가산 비용 (사다리차/거리 등)</label>
               <NumberInput name="additionalCost" value={additionalCost} onChange={v => { setAdditionalCost(v); setIsCostEdited(true); }} className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 text-right" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">보관 비용</label>
+              <label className="block text-sm font-medium text-gray-700 whitespace-nowrap">보관 비용</label>
               <NumberInput name="storageCost" value={storageCost} onChange={v => { setStorageCost(v); setIsCostEdited(true); }} className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 text-right" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">부가세</label>
+              <label className="block text-sm font-medium text-gray-700 whitespace-nowrap">부가세</label>
               <NumberInput name="vat" value={vat} onChange={setVat} className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 text-right" />
             </div>
           </div>
@@ -1220,8 +1220,8 @@ export function EstimateForm({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-sm font-medium text-gray-700">계약금</label>
-                <label className="flex items-center gap-1 text-xs text-blue-700 font-medium cursor-pointer bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded">
+                <label className="text-sm font-medium text-gray-700 whitespace-nowrap">계약금</label>
+                <label className="flex items-center gap-1 text-xs text-blue-700 font-medium cursor-pointer bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded whitespace-nowrap">
                   <input type="checkbox" checked={downPaymentPaid} onChange={e => setDownPaymentPaid(e.target.checked)} className="rounded text-blue-600 focus:ring-blue-500 w-3 h-3" />
                   입금완료
                 </label>
@@ -1229,13 +1229,13 @@ export function EstimateForm({
               <NumberInput value={downPayment} onChange={setDownPayment} className="block w-full rounded-lg border border-gray-300 px-4 py-2 text-right" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">계약금 일자</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1 whitespace-nowrap">계약금 일자</label>
               <CustomDatePicker selected={downPaymentDate} onChange={setDownPaymentDate} className="block w-full rounded-lg border border-gray-300 px-4 py-2" />
             </div>
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-sm font-medium text-gray-700">중도금</label>
-                <label className="flex items-center gap-1 text-xs text-blue-700 font-medium cursor-pointer bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded">
+                <label className="text-sm font-medium text-gray-700 whitespace-nowrap">중도금</label>
+                <label className="flex items-center gap-1 text-xs text-blue-700 font-medium cursor-pointer bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded whitespace-nowrap">
                   <input type="checkbox" checked={intermediatePaymentPaid} onChange={e => setIntermediatePaymentPaid(e.target.checked)} className="rounded text-blue-600 focus:ring-blue-500 w-3 h-3" />
                   입금완료
                 </label>
@@ -1243,13 +1243,13 @@ export function EstimateForm({
               <NumberInput value={intermediatePayment} onChange={setIntermediatePayment} className="block w-full rounded-lg border border-gray-300 px-4 py-2 text-right" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">중도금 일자</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1 whitespace-nowrap">중도금 일자</label>
               <CustomDatePicker selected={intermediateDate} onChange={setIntermediateDate} className="block w-full rounded-lg border border-gray-300 px-4 py-2" />
             </div>
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-sm font-medium text-gray-700">잔금</label>
-                <label className="flex items-center gap-1 text-xs text-blue-700 font-medium cursor-pointer bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded">
+                <label className="text-sm font-medium text-gray-700 whitespace-nowrap">잔금</label>
+                <label className="flex items-center gap-1 text-xs text-blue-700 font-medium cursor-pointer bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded whitespace-nowrap">
                   <input type="checkbox" checked={balancePaid} onChange={e => setBalancePaid(e.target.checked)} className="rounded text-blue-600 focus:ring-blue-500 w-3 h-3" />
                   입금완료
                 </label>
@@ -1257,7 +1257,7 @@ export function EstimateForm({
               <NumberInput value={balance} onChange={setBalance} className="block w-full rounded-lg border border-gray-300 px-4 py-2 text-right" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">잔금 일자</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1 whitespace-nowrap">잔금 일자</label>
               <CustomDatePicker selected={balanceDate} onChange={setBalanceDate} className="block w-full rounded-lg border border-gray-300 px-4 py-2" />
             </div>
           </div>
