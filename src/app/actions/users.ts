@@ -85,3 +85,73 @@ export async function changePassword(prevState: any, formData: FormData) {
 
   redirect('/')
 }
+
+export async function changePasswordModal(prevState: any, formData: FormData) {
+  try {
+    const currentPassword = formData.get('currentPassword') as string
+    const newPassword = formData.get('newPassword') as string
+    const confirmPassword = formData.get('confirmPassword') as string
+
+    if (!currentPassword) {
+      return { error: '현재 비밀번호를 입력해주세요.' }
+    }
+
+    if (!newPassword) {
+      return { error: '새 비밀번호를 입력해주세요.' }
+    }
+
+    if (newPassword.length < 4) {
+      return { error: '새 비밀번호는 최소 4자 이상이어야 합니다.' }
+    }
+
+    if (newPassword !== confirmPassword) {
+      return { error: '새 비밀번호가 일치하지 않습니다.' }
+    }
+
+    const cookieStore = await cookies()
+    const cookie = cookieStore.get('session')?.value
+    const session = await decrypt(cookie)
+
+    if (!session?.userId) {
+      return { error: '로그인 정보가 만료되었습니다. 다시 로그인해주세요.' }
+    }
+
+    const user = await prisma.admin.findUnique({
+      where: { id: session.userId as string }
+    })
+
+    if (!user) {
+      return { error: '사용자 정보를 찾을 수 없습니다.' }
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password)
+    if (!isMatch) {
+      return { error: '현재 비밀번호가 올바르지 않습니다.' }
+    }
+
+    if (newPassword === user.userId) {
+      return { error: '새 비밀번호는 아이디와 같을 수 없습니다.' }
+    }
+
+    if (currentPassword === newPassword) {
+      return { error: '현재 사용 중인 비밀번호와 다른 비밀번호를 입력해주세요.' }
+    }
+
+    const salt = await bcrypt.genSalt(10)
+    const hashedPassword = await bcrypt.hash(newPassword, salt)
+
+    await prisma.admin.update({
+      where: { id: user.id },
+      data: { password: hashedPassword }
+    })
+
+    // 세션 갱신
+    await createSession(user.id, user.name, user.level, false)
+
+    return { success: true, message: '비밀번호가 성공적으로 변경되었습니다.' }
+  } catch (error) {
+    console.error('Password change error:', error)
+    return { error: '비밀번호 변경 처리 중 오류가 발생했습니다. 다시 시도해주세요.' }
+  }
+}
+

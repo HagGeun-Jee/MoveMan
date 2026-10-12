@@ -17,6 +17,8 @@ import {
   PlusCircle,
   KeyRound
 } from 'lucide-react'
+import { ChangePasswordModal } from './ChangePasswordModal'
+
 
 export function Sidebar({ 
   sessionName, 
@@ -31,7 +33,9 @@ export function Sidebar({
 }) {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false)
   const pathname = usePathname()
+
 
   // 경로 변경 시 모바일 드로어 자동 닫기
   useEffect(() => {
@@ -200,15 +204,19 @@ export function Sidebar({
                 <span className="font-bold text-blue-600">{sessionName}</span> 관리자님
               </div>
               <div className="flex gap-2">
-                <Link
-                  href="/change-password"
-                  onClick={() => setMobileOpen(false)}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileOpen(false)
+                    setPasswordModalOpen(true)
+                  }}
                   className="flex-1 py-2 px-2 text-center text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 flex items-center justify-center gap-1 transition-colors"
                 >
                   <KeyRound size={14} />
                   <span>비번변경</span>
-                </Link>
+                </button>
                 <form action={logoutAction} className="flex-1">
+
                   <button
                     type="submit"
                     className="w-full py-2 px-2 text-xs font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-1"
@@ -321,19 +329,69 @@ export function Sidebar({
           </ul>
         </nav>
 
-        <div className={`p-4 border-t ${collapsed ? 'flex flex-col items-center px-2' : ''}`}>
+        <div className={`p-3 border-t border-gray-100 ${collapsed ? 'flex flex-col items-center gap-1 px-2' : ''}`}>
           {!collapsed && (
-            <div className="text-sm text-gray-600 mb-4 px-4 truncate">
-              <span className="font-semibold">{sessionName}</span> 관리자님
+            <div className="flex items-center gap-2.5 px-3 py-2 bg-gray-50 rounded-xl mb-2 border border-gray-100/80">
+              <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                {sessionName ? sessionName.slice(0, 1) : '관'}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-gray-800 truncate">{sessionName} 관리자님</p>
+                <p className="text-[11px] text-gray-500 font-medium">관리자 (Lv.{userLevel})</p>
+              </div>
             </div>
           )}
-          <form action={logoutAction} className={collapsed ? 'w-full flex justify-center' : 'w-full'}>
-            <button className={`text-red-600 hover:bg-red-50 transition-colors flex items-center justify-center gap-2 ${collapsed ? 'p-2 rounded-lg w-full' : 'w-full text-left px-4 py-2 text-sm rounded-lg'}`} title="로그아웃">
-              {collapsed ? <LogOut size={18} /> : <span className="w-full">로그아웃</span>}
-            </button>
-          </form>
+
+          {collapsed ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setPasswordModalOpen(true)}
+                className="w-full p-2.5 rounded-xl text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center"
+                title="비밀번호 변경"
+              >
+                <KeyRound size={18} />
+              </button>
+              <form action={logoutAction} className="w-full flex justify-center">
+                <button
+                  type="submit"
+                  className="w-full p-2.5 rounded-xl text-red-600 hover:bg-red-50 transition-colors flex items-center justify-center"
+                  title="로그아웃"
+                >
+                  <LogOut size={18} />
+                </button>
+              </form>
+            </>
+          ) : (
+            <div className="space-y-1">
+              <button
+                type="button"
+                onClick={() => setPasswordModalOpen(true)}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors text-left"
+              >
+                <KeyRound size={16} className="text-gray-500 shrink-0" />
+                <span>비밀번호 변경</span>
+              </button>
+              <form action={logoutAction} className="w-full">
+                <button
+                  type="submit"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-xl transition-colors text-left"
+                >
+                  <LogOut size={16} className="text-red-500 shrink-0" />
+                  <span>로그아웃</span>
+                </button>
+              </form>
+            </div>
+          )}
         </div>
       </aside>
+
+      {/* 비밀번호 변경 팝업 모달 */}
+      <ChangePasswordModal 
+        isOpen={passwordModalOpen} 
+        onClose={() => setPasswordModalOpen(false)} 
+      />
     </>
   )
 }
+
