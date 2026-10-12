@@ -1246,13 +1246,13 @@ export function EstimateForm({
                 <tr className="hover:bg-gray-50/60 transition-colors">
                   <td className="px-3 py-2 font-bold text-gray-800 whitespace-nowrap">계약금</td>
                   <td className="px-3 py-2">
-                    <NumberInput value={downPayment} onChange={setDownPayment} className="w-full rounded border border-gray-300 px-2.5 py-1 text-right text-xs sm:text-sm font-semibold outline-none focus:border-blue-500" />
+                    <NumberInput value={downPayment} onChange={setDownPayment} className="w-full h-8 rounded border border-gray-300 px-2.5 text-right text-xs sm:text-sm font-semibold outline-none focus:border-blue-500" />
                   </td>
                   <td className="px-3 py-2">
-                    <CustomDatePicker selected={downPaymentDate} onChange={setDownPaymentDate} className="w-full rounded border border-gray-300 px-2 py-1 text-xs outline-none focus:border-blue-500" />
+                    <CustomDatePicker selected={downPaymentDate} onChange={setDownPaymentDate} className="w-full h-8 rounded border border-gray-300 px-2 text-xs outline-none focus:border-blue-500" />
                   </td>
                   <td className="px-3 py-2 text-center">
-                    <label className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold cursor-pointer transition-all border ${downPaymentPaid ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}>
+                    <label className={`inline-flex items-center gap-1.5 px-2.5 h-8 rounded-md text-xs font-semibold cursor-pointer transition-all border ${downPaymentPaid ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}>
                       <input type="checkbox" checked={downPaymentPaid} onChange={e => setDownPaymentPaid(e.target.checked)} className="rounded text-green-600 focus:ring-green-500 w-3.5 h-3.5" />
                       <span>{downPaymentPaid ? '입금완료' : '미입금'}</span>
                     </label>
@@ -1262,13 +1262,13 @@ export function EstimateForm({
                 <tr className="hover:bg-gray-50/60 transition-colors">
                   <td className="px-3 py-2 font-bold text-gray-800 whitespace-nowrap">중도금</td>
                   <td className="px-3 py-2">
-                    <NumberInput value={intermediatePayment} onChange={setIntermediatePayment} className="w-full rounded border border-gray-300 px-2.5 py-1 text-right text-xs sm:text-sm font-semibold outline-none focus:border-blue-500" />
+                    <NumberInput value={intermediatePayment} onChange={setIntermediatePayment} className="w-full h-8 rounded border border-gray-300 px-2.5 text-right text-xs sm:text-sm font-semibold outline-none focus:border-blue-500" />
                   </td>
                   <td className="px-3 py-2">
-                    <CustomDatePicker selected={intermediateDate} onChange={setIntermediateDate} className="w-full rounded border border-gray-300 px-2 py-1 text-xs outline-none focus:border-blue-500" />
+                    <CustomDatePicker selected={intermediateDate} onChange={setIntermediateDate} className="w-full h-8 rounded border border-gray-300 px-2 text-xs outline-none focus:border-blue-500" />
                   </td>
                   <td className="px-3 py-2 text-center">
-                    <label className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold cursor-pointer transition-all border ${intermediatePaymentPaid ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}>
+                    <label className={`inline-flex items-center gap-1.5 px-2.5 h-8 rounded-md text-xs font-semibold cursor-pointer transition-all border ${intermediatePaymentPaid ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}>
                       <input type="checkbox" checked={intermediatePaymentPaid} onChange={e => setIntermediatePaymentPaid(e.target.checked)} className="rounded text-green-600 focus:ring-green-500 w-3.5 h-3.5" />
                       <span>{intermediatePaymentPaid ? '입금완료' : '미입금'}</span>
                     </label>
@@ -1278,13 +1278,13 @@ export function EstimateForm({
                 <tr className="hover:bg-gray-50/60 transition-colors">
                   <td className="px-3 py-2 font-bold text-gray-800 whitespace-nowrap">잔금</td>
                   <td className="px-3 py-2">
-                    <NumberInput value={balance} onChange={setBalance} className="w-full rounded border border-gray-300 px-2.5 py-1 text-right text-xs sm:text-sm font-semibold outline-none focus:border-blue-500" />
+                    <NumberInput value={balance} onChange={setBalance} className="w-full h-8 rounded border border-gray-300 px-2.5 text-right text-xs sm:text-sm font-semibold outline-none focus:border-blue-500" />
                   </td>
                   <td className="px-3 py-2">
-                    <CustomDatePicker selected={balanceDate} onChange={setBalanceDate} className="w-full rounded border border-gray-300 px-2 py-1 text-xs outline-none focus:border-blue-500" />
+                    <CustomDatePicker selected={balanceDate} onChange={setBalanceDate} className="w-full h-8 rounded border border-gray-300 px-2 text-xs outline-none focus:border-blue-500" />
                   </td>
                   <td className="px-3 py-2 text-center">
-                    <label className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold cursor-pointer transition-all border ${balancePaid ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}>
+                    <label className={`inline-flex items-center gap-1.5 px-2.5 h-8 rounded-md text-xs font-semibold cursor-pointer transition-all border ${balancePaid ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}>
                       <input type="checkbox" checked={balancePaid} onChange={e => setBalancePaid(e.target.checked)} className="rounded text-green-600 focus:ring-green-500 w-3.5 h-3.5" />
                       <span>{balancePaid ? '입금완료' : '미입금'}</span>
                     </label>
