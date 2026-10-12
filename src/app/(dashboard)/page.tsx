@@ -1,9 +1,39 @@
 import prisma from '@/lib/prisma'
 import Link from 'next/link'
-import { format, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns'
+import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { EstimateRow } from './estimates/EstimateRow'
 import { formatPhoneNumber } from '@/lib/format'
+import { Calendar, CalendarDays, FilePlus } from 'lucide-react'
+
+// 한국 표준시(KST, Asia/Seoul) 기준 오늘 날짜 정보 구하기 (Vercel UTC 환경 대응)
+function getKoreaToday() {
+  const now = new Date()
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  })
+  const dateString = formatter.format(now) // "YYYY-MM-DD"
+  const [year, month, day] = dateString.split('-').map(Number)
+  
+  const dayFormatter = new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    weekday: 'long'
+  })
+  const dayOfWeekKorean = dayFormatter.format(now)
+
+  const shortFormatter = new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    weekday: 'short'
+  })
+  const dayOfWeekShort = shortFormatter.format(now)
+
+  const dayOfWeekNumber = new Date(Date.UTC(year, month - 1, day)).getUTCDay()
+
+  return { year, month, day, dateString, dayOfWeekKorean, dayOfWeekShort, dayOfWeekNumber }
+}
 
 export default async function DashboardPage() {
   const recentEstimates = await prisma.estimate.findMany({
@@ -11,13 +41,21 @@ export default async function DashboardPage() {
     take: 5,
   })
 
-  const today = new Date()
-  
+  const koreaToday = getKoreaToday()
+
+  // KST(UTC+9) 기준 당일 00:00:00 ~ 23:59:59.999
+  const kstStartOfDay = new Date(Date.UTC(koreaToday.year, koreaToday.month - 1, koreaToday.day, 0, 0, 0) - 9 * 3600 * 1000)
+  const kstEndOfDay = new Date(Date.UTC(koreaToday.year, koreaToday.month - 1, koreaToday.day, 23, 59, 59, 999) - 9 * 3600 * 1000)
+
+  // KST(UTC+9) 기준 당월 1일 00:00:00 ~ 말일 23:59:59.999
+  const kstStartOfMonth = new Date(Date.UTC(koreaToday.year, koreaToday.month - 1, 1, 0, 0, 0) - 9 * 3600 * 1000)
+  const kstEndOfMonth = new Date(Date.UTC(koreaToday.year, koreaToday.month, 0, 23, 59, 59, 999) - 9 * 3600 * 1000)
+
   const todayVisitsCount = await prisma.estimate.count({
     where: {
       visitDate: {
-        gte: startOfDay(today),
-        lte: endOfDay(today)
+        gte: kstStartOfDay,
+        lte: kstEndOfDay
       }
     }
   })
@@ -25,8 +63,8 @@ export default async function DashboardPage() {
   const thisMonthMovingsCount = await prisma.estimate.count({
     where: {
       movingDate: {
-        gte: startOfMonth(today),
-        lte: endOfMonth(today)
+        gte: kstStartOfMonth,
+        lte: kstEndOfMonth
       }
     }
   })
@@ -42,19 +80,63 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">대시보드</h1>
-        <Link 
-          href="/estimates/new" 
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-sm"
-        >
-          + 새 견적 작성
-        </Link>
+      {/* 대시보드 헤더 및 금일 날짜/요일 배너 */}
+      <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-xs border border-gray-200/90 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">대시보드</h1>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+              운영 현황
+            </span>
+          </div>
+
+          {/* 금일 날짜와 요일 강조 표기 */}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 pt-1">
+            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-50 to-indigo-50/60 px-3 py-1.5 rounded-xl border border-blue-200/80 shadow-2xs">
+              <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 shrink-0" />
+              <span className="text-xs sm:text-sm font-semibold text-gray-500">오늘 :</span>
+              <span className="text-sm sm:text-base font-black text-gray-900 tracking-tight">
+                {koreaToday.year}년 {koreaToday.month}월 {koreaToday.day}일
+              </span>
+              <span className={`px-2 py-0.5 rounded-md text-xs sm:text-sm font-bold shadow-2xs ${
+                koreaToday.dayOfWeekNumber === 0 
+                  ? 'bg-red-500 text-white' 
+                  : koreaToday.dayOfWeekNumber === 6 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-blue-600 text-white'
+              }`}>
+                {koreaToday.dayOfWeekKorean}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          <Link 
+            href="/calendar"
+            className="flex-1 md:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 transition-colors shadow-xs"
+          >
+            <CalendarDays size={16} className="text-blue-600" />
+            일정 캘린더 바로가기
+          </Link>
+          <Link 
+            href="/estimates/new" 
+            className="flex-1 md:flex-none inline-flex items-center justify-center gap-1.5 bg-blue-600 text-white px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm hover:bg-blue-700 transition-colors shadow-sm"
+          >
+            <FilePlus size={16} />
+            새 견적 작성
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-6">
         <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
-          <h2 className="text-gray-700 text-xs sm:text-sm font-semibold">오늘 예정된 방문견적</h2>
+          <div className="flex justify-between items-center">
+            <h2 className="text-gray-700 text-xs sm:text-sm font-semibold">오늘 예정된 방문견적</h2>
+            <span className="text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+              {koreaToday.month}.{koreaToday.day} ({koreaToday.dayOfWeekShort})
+            </span>
+          </div>
           <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">{todayVisitsCount}건</p>
         </div>
         <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
