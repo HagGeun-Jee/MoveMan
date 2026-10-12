@@ -61,7 +61,7 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
       {/* 인쇄용 헤더 */}
       <div className="hidden print:flex justify-between items-end border-b-2 border-gray-900 pb-4 mb-4">
         <div className="flex flex-col items-start">
-          <img src="/esti_image.png" alt="Logo" className="h-12 object-contain mb-1" />
+          <img src="/esti_image.png" alt="Logo" className="h-8 object-contain mb-1" />
         </div>
         <div className="text-right">
           <h1 className="text-2xl font-black">이사 견적서</h1>
