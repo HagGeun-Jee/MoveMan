@@ -34,12 +34,6 @@ body {
   overflow-wrap: break-word;
 }
 
-/* 이미지 및 캔버스 반응형 안전 처리 */
-img {
-  max-width: 100%;
-  height: auto;
-}
-
 /* 스크롤바 숨김 유틸리티 */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
