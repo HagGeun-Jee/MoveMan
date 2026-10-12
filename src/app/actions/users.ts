@@ -155,3 +155,45 @@ export async function changePasswordModal(prevState: any, formData: FormData) {
   }
 }
 
+/**
+ * 관리자 비밀번호 초기화 (아이디와 동일하게 초기화)
+ */
+export async function resetUserPassword(adminId: string) {
+  try {
+    const cookieStore = await cookies()
+    const cookie = cookieStore.get('session')?.value
+    const session = await decrypt(cookie)
+
+    if (!session || (session.level as number) < 9) {
+      return { error: '비밀번호를 초기화할 권한이 없습니다. (최고관리자 전용)' }
+    }
+
+    const admin = await prisma.admin.findUnique({
+      where: { id: adminId }
+    })
+
+    if (!admin) {
+      return { error: '사용자를 찾을 수 없습니다.' }
+    }
+
+    // 아이디와 동일한 비밀번호로 해시 생성 후 업데이트
+    const salt = await bcrypt.genSalt(10)
+    const hashedPassword = await bcrypt.hash(admin.userId, salt)
+
+    await prisma.admin.update({
+      where: { id: admin.id },
+      data: { password: hashedPassword }
+    })
+
+    revalidatePath('/users')
+    return { 
+      success: true, 
+      message: `'${admin.name}(${admin.userId})' 계정의 비밀번호가 아이디와 동일하게 초기화되었습니다.` 
+    }
+  } catch (error) {
+    console.error('Password reset error:', error)
+    return { error: '비밀번호 초기화 처리 중 오류가 발생했습니다.' }
+  }
+}
+
+

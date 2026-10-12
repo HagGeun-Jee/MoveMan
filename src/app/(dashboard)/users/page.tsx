@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
 import { UserRegisterForm } from './UserRegisterForm'
+import { ResetPasswordButton } from './ResetPasswordButton'
 
 export default async function UsersPage() {
   const cookieStore = await cookies()
@@ -80,8 +81,8 @@ export default async function UsersPage() {
                 <th className="px-4 py-3 border-b">이름</th>
                 <th className="px-4 py-3 border-b">아이디</th>
                 <th className="px-4 py-3 border-b">역할(Role)</th>
-                <th className="px-4 py-3 border-b">접근 레벨</th>
-                <th className="px-4 py-3 border-b">변경</th>
+                <th className="px-4 py-3 border-b">접근 레벨 설정</th>
+                <th className="px-4 py-3 border-b">비밀번호 관리</th>
               </tr>
             </thead>
             <tbody>
@@ -91,7 +92,7 @@ export default async function UsersPage() {
                   <td className="px-4 py-3 font-medium text-gray-900">{admin.userId}</td>
                   <td className="px-4 py-3 font-semibold text-blue-700">{admin.role}</td>
                   <td className="px-4 py-3">
-                    <form action={updateAdminLevel} className="flex gap-2">
+                    <form action={updateAdminLevel} className="flex gap-2 items-center">
                       <input type="hidden" name="id" value={admin.id} />
                       <input 
                         type="number" 
@@ -105,7 +106,13 @@ export default async function UsersPage() {
                       </button>
                     </form>
                   </td>
-                  <td className="px-4 py-3"></td>
+                  <td className="px-4 py-3">
+                    <ResetPasswordButton 
+                      adminId={admin.id}
+                      userName={admin.name}
+                      userId={admin.userId}
+                    />
+                  </td>
                 </tr>
               ))}
             </tbody>
