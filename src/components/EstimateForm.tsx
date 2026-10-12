@@ -6,10 +6,14 @@ const SignatureCanvas = dynamic(() => import('react-signature-canvas'), { ssr: f
 import { getStandardItems, getLocationCategories } from '@/app/actions/item'
 import { getVehicles } from '@/app/actions/vehicle'
 import { getLabors } from '@/app/actions/labor'
+import { getDistance } from '@/app/actions/distance'
+import { getLadderFares } from '@/app/actions/ladder'
+import type { LadderFareItem } from '@/types/ladder'
 import DaumPostcodeEmbed from 'react-daum-postcode'
-import { MapPin, Search, ChevronDown, ChevronUp } from 'lucide-react'
+import { MapPin, Search, ChevronDown, ChevronUp, Navigation, RefreshCw, Car, AlertCircle, CheckCircle2, Calculator, Truck, Plus } from 'lucide-react'
 import { CustomDatePicker } from '@/components/CustomDatePicker'
 import { format } from 'date-fns'
+import { formatPhoneNumber, handleSelectAllOnFocus } from '@/lib/format'
 
 const NumberInput = ({ value, onChange, className, name }: { value: number, onChange: (val: number) => void, className?: string, name?: string }) => {
   const [localVal, setLocalVal] = useState(value === 0 ? '' : value.toLocaleString())
@@ -34,7 +38,9 @@ const NumberInput = ({ value, onChange, className, name }: { value: number, onCh
       name={name}
       value={localVal}
       onChange={handleChange}
+      onFocus={handleSelectAllOnFocus}
       className={className}
+      data-select-on-focus="true"
     />
   )
 }
@@ -95,18 +101,215 @@ export function EstimateForm({
   const [postcodeTarget, setPostcodeTarget] = useState<'from' | 'to'>('from')
   const [movingType, setMovingType] = useState(initialData?.movingType || 'P')
   const [customerName, setCustomerName] = useState(initialData?.customerName || '')
-  const [contact, setContact] = useState(initialData?.contact || '')
+  const [contact, setContact] = useState(formatPhoneNumber(initialData?.contact || ''))
   const [organizeStatus, setOrganizeStatus] = useState<string>(envObj.organizeStatus || '')
   const [fromFloor, setFromFloor] = useState<string>(envObj.fromFloor || '')
   const [fromWorkTypes, setFromWorkTypes] = useState<string[]>(Array.isArray(envObj.fromWorkTypes) ? envObj.fromWorkTypes : [])
   const [toFloor, setToFloor] = useState<string>(envObj.toFloor || '')
   const [toWorkTypes, setToWorkTypes] = useState<string[]>(Array.isArray(envObj.toWorkTypes) ? envObj.toWorkTypes : [])
 
+  // 거리 관련 상태
+  const [distance, setDistance] = useState<number>(Number(envObj.distance) || 0)
+  const [distanceDuration, setDistanceDuration] = useState<string>(envObj.distanceDuration || '')
+  const [distanceDetail, setDistanceDetail] = useState<string>(envObj.distanceDetail || '')
+  const [isCalculatingDistance, setIsCalculatingDistance] = useState<boolean>(false)
+  const [distanceCalcError, setDistanceCalcError] = useState<string | null>(null)
+  const [distanceNotice, setDistanceNotice] = useState<string | null>(null)
+  
+  // 사다리차 표준 운임표 관련 상태
+  const [ladderFares, setLadderFares] = useState<LadderFareItem[]>([])
+  const [ladderTonnage, setLadderTonnage] = useState<string>(envObj.ladderTonnage || '5')
+
+  useEffect(() => {
+    getLadderFares().then(setLadderFares)
+  }, [])
+
+  // 층수와 톤수에 따른 사다리차 요금 계산
+  const calculateLadderFee = (floorStr: string, tonnage: string): { cost: number, tier: string } => {
+    const floor = parseInt(floorStr) || 0
+    if (floor <= 1 || ladderFares.length === 0) return { cost: 0, tier: '' }
+    const ton = parseFloat(tonnage) || 5
+    const matched = ladderFares.find(f => floor >= f.minFloor && floor <= f.maxFloor)
+      || ladderFares.find(f => floor <= f.maxFloor)
+      || ladderFares[ladderFares.length - 1]
+    if (!matched) return { cost: 0, tier: '' }
+    
+    let cost = matched.cost5Ton
+    if (ton <= 1.0) cost = matched.cost1Ton
+    else if (ton <= 2.5) cost = matched.cost2_5Ton
+    else if (ton <= 5.0) cost = matched.cost5Ton
+    else if (ton <= 6.0) cost = matched.cost6Ton
+    else if (ton <= 7.5) cost = matched.cost7_5Ton
+    else cost = matched.cost10Ton
+
+    return { cost, tier: matched.floorName }
+  }
+
+  const isFromLadder = fromWorkTypes.includes('사다리차')
+  const isToLadder = toWorkTypes.includes('사다리차')
+  const fromLadderCalc = isFromLadder ? calculateLadderFee(fromFloor, ladderTonnage) : { cost: 0, tier: '' }
+  const toLadderCalc = isToLadder ? calculateLadderFee(toFloor, ladderTonnage) : { cost: 0, tier: '' }
+  const totalLadderCost = fromLadderCalc.cost + toLadderCalc.cost
+
+  const initialLadderApplied = (initialData?.additionalCost && Number(initialData.additionalCost) > 0 && Number(envObj.ladderTotalCost) > 0)
+    ? Number(envObj.ladderTotalCost)
+    : 0
+
+  const initialDistanceApplied = (initialData?.additionalCost && Number(initialData.additionalCost) > 0 && Number(envObj.distanceExtraCost) > 0)
+    ? Number(envObj.distanceExtraCost)
+    : 0
+
+  const [appliedLadderCost, setAppliedLadderCost] = useState<number>(initialLadderApplied)
+  const [appliedDistanceCost, setAppliedDistanceCost] = useState<number>(initialDistanceApplied)
+
+  const isLadderApplied = appliedLadderCost > 0 && appliedLadderCost === totalLadderCost
+
+  const handleApplyLadderCost = () => {
+    if (totalLadderCost <= 0) {
+      if (appliedLadderCost > 0) {
+        setAdditionalCost((prev: number) => Math.max(0, (Number(prev) || 0) - appliedLadderCost))
+        setAppliedLadderCost(0)
+        setIsCostEdited(true)
+        alert('사다리차 작업이 해제되어 가산 비용에서 사다리차 운임이 제외되었습니다.')
+        return
+      }
+      alert('사다리차 작업이 선택되지 않았거나 층수(2층 이상)가 입력되지 않았습니다.')
+      return
+    }
+
+    if (appliedLadderCost === totalLadderCost) {
+      alert(`이미 사다리차 표준운임 (${totalLadderCost.toLocaleString()}원)이 가산 비용에 반영되어 있습니다. (중복 가산되지 않습니다)`)
+      return
+    }
+
+    const diff = totalLadderCost - appliedLadderCost
+    setAdditionalCost((prev: number) => Math.max(0, (Number(prev) || 0) + diff))
+    setAppliedLadderCost(totalLadderCost)
+    setIsCostEdited(true)
+
+    const detailMsg = [
+      isFromLadder && fromLadderCalc.cost > 0 ? `출발지(${fromFloor}층): ${fromLadderCalc.cost.toLocaleString()}원` : null,
+      isToLadder && toLadderCalc.cost > 0 ? `도착지(${toFloor}층): ${toLadderCalc.cost.toLocaleString()}원` : null,
+    ].filter(Boolean).join(' + ')
+
+    if (appliedLadderCost > 0) {
+      alert(`사다리차 표준 운임이 변경되어 가산 비용에 갱신되었습니다!\n(기존: ${appliedLadderCost.toLocaleString()}원 → 변경: ${totalLadderCost.toLocaleString()}원 / 차액: ${diff > 0 ? '+' : ''}${diff.toLocaleString()}원)`)
+    } else {
+      alert(`사다리차 표준 운임 (${detailMsg} = 총 ${totalLadderCost.toLocaleString()}원)이 가산 비용에 반영되었습니다!`)
+    }
+  }
+
+  // 거리 초과 운임 계산 설정 (기본거리 10km, km당 2,000원)
+  const [baseDistanceKm, setBaseDistanceKm] = useState<number>(Number(envObj.baseDistanceKm) || 10)
+  const [ratePerKm, setRatePerKm] = useState<number>(Number(envObj.ratePerKm) || 2000)
+
+  // 주행거리 자동/수동 계산 함수
+  const handleCalculateDistance = async (fromVal?: string, toVal?: string) => {
+    const from = (fromVal !== undefined ? fromVal : fromAddress).trim()
+    const to = (toVal !== undefined ? toVal : toAddress).trim()
+    if (!from || !to) {
+      setDistanceCalcError('출발지와 도착지 주소를 모두 입력해주세요.')
+      return
+    }
+    setIsCalculatingDistance(true)
+    setDistanceCalcError(null)
+    try {
+      const res = await getDistance(from, to)
+      if (res.success) {
+        setDistance(res.distanceKm)
+        setDistanceDuration(res.durationText)
+        setDistanceDetail(res.summary)
+        setDistanceNotice(`거리 계산 완료: ${res.distanceKm}km (${res.durationText})`)
+        setTimeout(() => setDistanceNotice(null), 4000)
+      } else {
+        setDistanceCalcError(res.error || '거리 계산에 실패했습니다. 거리를 직접 입력해주세요.')
+      }
+    } catch {
+      setDistanceCalcError('거리 계산 중 오류가 발생했습니다.')
+    } finally {
+      setIsCalculatingDistance(false)
+    }
+  }
+
   const handleComplete = (data: any) => {
     const fullAddress = data.address
-    if (postcodeTarget === 'from') setFromAddress(fullAddress)
-    else setToAddress(fullAddress)
+    if (postcodeTarget === 'from') {
+      setFromAddress(fullAddress)
+      if (toAddress) {
+        handleCalculateDistance(fullAddress, toAddress)
+      }
+    } else {
+      setToAddress(fullAddress)
+      if (fromAddress) {
+        handleCalculateDistance(fromAddress, fullAddress)
+      }
+    }
     setPostcodeOpen(false)
+  }
+
+  // 거리 초과 가산 요금 계산
+  const extraDistanceKm = Math.max(0, Math.round((distance - baseDistanceKm) * 10) / 10)
+  const calculatedExtraCost = Math.round(extraDistanceKm * ratePerKm)
+
+  const isDistanceApplied = appliedDistanceCost > 0 && appliedDistanceCost === calculatedExtraCost
+
+  const handleApplyDistanceCost = () => {
+    if (calculatedExtraCost <= 0) {
+      if (appliedDistanceCost > 0) {
+        setAdditionalCost((prev: number) => Math.max(0, (Number(prev) || 0) - appliedDistanceCost))
+        setAppliedDistanceCost(0)
+        setIsCostEdited(true)
+        alert('거리 초과 운임이 없으므로 가산 비용에서 이전 거리운임이 제외되었습니다.')
+        return
+      }
+      alert(`기본 거리(${baseDistanceKm}km) 이하이므로 추가 운임이 없습니다.`)
+      return
+    }
+
+    if (appliedDistanceCost === calculatedExtraCost) {
+      alert(`이미 거리 초과 운임 (${calculatedExtraCost.toLocaleString()}원)이 가산 비용에 반영되어 있습니다. (중복 가산되지 않습니다)`)
+      return
+    }
+
+    const diff = calculatedExtraCost - appliedDistanceCost
+    setAdditionalCost((prev: number) => Math.max(0, (Number(prev) || 0) + diff))
+    setAppliedDistanceCost(calculatedExtraCost)
+    setIsCostEdited(true)
+
+    if (appliedDistanceCost > 0) {
+      alert(`거리 초과 운임이 변경되어 가산 비용에 갱신되었습니다!\n(기존: ${appliedDistanceCost.toLocaleString()}원 → 변경: ${calculatedExtraCost.toLocaleString()}원 / 차액: ${diff > 0 ? '+' : ''}${diff.toLocaleString()}원)`)
+    } else {
+      alert(`거리 초과 운임(${extraDistanceKm}km 초과 × ${ratePerKm.toLocaleString()}원 = ${calculatedExtraCost.toLocaleString()}원)이 가산 비용에 반영되었습니다!`)
+    }
+  }
+
+  const totalExtraCost = totalLadderCost + calculatedExtraCost
+  const isAllApplied = (totalLadderCost > 0 ? isLadderApplied : true) && 
+                       (calculatedExtraCost > 0 ? isDistanceApplied : true) && 
+                       totalExtraCost > 0
+
+  const handleApplyAllAdditionalCosts = () => {
+    const totalExtra = totalLadderCost + calculatedExtraCost
+    if (totalExtra <= 0) {
+      alert('반영할 사다리차 운임이나 거리 초과 운임이 없습니다.')
+      return
+    }
+
+    if (appliedLadderCost === totalLadderCost && appliedDistanceCost === calculatedExtraCost) {
+      alert(`이미 사다리차 운임(${totalLadderCost.toLocaleString()}원) 및 거리가산운임(${calculatedExtraCost.toLocaleString()}원)이 가산 비용에 모두 반영되어 있습니다. (중복 가산되지 않습니다)`)
+      return
+    }
+
+    const ladderDiff = totalLadderCost - appliedLadderCost
+    const distanceDiff = calculatedExtraCost - appliedDistanceCost
+    const totalDiff = ladderDiff + distanceDiff
+
+    setAdditionalCost((prev: number) => Math.max(0, (Number(prev) || 0) + totalDiff))
+    setAppliedLadderCost(totalLadderCost)
+    setAppliedDistanceCost(calculatedExtraCost)
+    setIsCostEdited(true)
+
+    alert(`사다리차 운임(${totalLadderCost.toLocaleString()}원)과 거리가산운임(${calculatedExtraCost.toLocaleString()}원) 총 ${totalExtra.toLocaleString()}원이 가산 비용에 일괄 반영되었습니다!`)
   }
 
   const [items, setItems] = useState<any[]>(initialData?.cbmItems ? JSON.parse(initialData.cbmItems) : [])
@@ -448,7 +651,8 @@ export function EstimateForm({
                       type="tel" 
                       name="contact" 
                       value={contact} 
-                      onChange={e => setContact(e.target.value)} 
+                      onChange={e => setContact(formatPhoneNumber(e.target.value))} 
+                      onFocus={handleSelectAllOnFocus}
                       required 
                       className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-blue-500" 
                       placeholder="010-0000-0000" 
@@ -493,16 +697,23 @@ export function EstimateForm({
         <div className="bg-white p-3.5 sm:p-5 md:p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
           <div className="flex justify-between items-center border-b pb-2">
             <h2 className="text-base sm:text-lg font-bold text-blue-600">주소 및 일정</h2>
-            {fromAddress && toAddress && (
-              <a 
-                href={`https://map.kakao.com/?sName=${encodeURIComponent(fromAddress)}&eName=${encodeURIComponent(toAddress)}`} 
-                target="_blank" 
-                rel="noreferrer" 
-                className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 flex items-center gap-1 font-medium text-sm shadow-sm"
-              >
-                <MapPin size={16}/> 경로 길찾기
-              </a>
-            )}
+            <div className="flex items-center gap-2">
+              {distance > 0 && (
+                <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold border border-blue-200 shadow-sm">
+                  <Navigation size={13} className="text-blue-600" /> 주행거리: {distance}km
+                </span>
+              )}
+              {fromAddress && toAddress && (
+                <a 
+                  href={`https://map.kakao.com/?sName=${encodeURIComponent(fromAddress)}&eName=${encodeURIComponent(toAddress)}`} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 flex items-center gap-1 font-medium text-sm shadow-sm"
+                >
+                  <MapPin size={16}/> 경로 길찾기
+                </a>
+              )}
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse border border-gray-200 text-sm">
@@ -621,6 +832,7 @@ export function EstimateForm({
                           type="text" 
                           value={fromFloor} 
                           onChange={e => setFromFloor(e.target.value)} 
+                          onFocus={handleSelectAllOnFocus}
                           placeholder="예: 5" 
                           className="w-20 rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm text-center outline-none focus:border-blue-500 shadow-sm" 
                         />
@@ -704,6 +916,7 @@ export function EstimateForm({
                           type="text" 
                           value={toFloor} 
                           onChange={e => setToFloor(e.target.value)} 
+                          onFocus={handleSelectAllOnFocus}
                           placeholder="예: 12" 
                           className="w-20 rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm text-center outline-none focus:border-blue-500 shadow-sm" 
                         />
@@ -744,6 +957,304 @@ export function EstimateForm({
                     </div>
                   </td>
                 </tr>
+
+                {/* 사다리차 표준 운임표 연동 및 계산 */}
+                <tr className="bg-amber-50/20">
+                  <th className="whitespace-nowrap bg-amber-50/80 border border-gray-200 px-3 sm:px-4 py-3 text-left font-bold text-amber-950 align-top w-28 sm:w-36">
+                    <div className="flex items-center gap-1.5">
+                      <Truck size={16} className="text-amber-600" />
+                      <span>사다리차 운임</span>
+                    </div>
+                    <span className="block text-[11px] font-normal text-amber-700 mt-0.5">표준운임표 연동</span>
+                  </th>
+                  <td colSpan={3} className="border border-gray-200 p-3 space-y-3">
+                    <div className="bg-white rounded-xl border border-amber-200 p-3 sm:p-4 shadow-sm space-y-3">
+                      {/* 톤수 선택 및 운임표 바로가기 */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap">화물 기준 톤수:</span>
+                          <div className="flex flex-wrap items-center gap-1">
+                            {['1', '2.5', '5', '6', '7.5', '10'].map(ton => (
+                              <button
+                                key={ton}
+                                type="button"
+                                onClick={() => setLadderTonnage(ton)}
+                                className={`px-2.5 py-1 text-xs font-bold rounded-md border transition-all ${
+                                  ladderTonnage === ton
+                                    ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+                                    : 'bg-gray-50 text-gray-700 border-gray-300 hover:bg-gray-100'
+                                }`}
+                              >
+                                {ton}톤 {ton === '5' ? '(기본)' : ''}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <a 
+                          href="/ladders" 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1 self-end sm:self-auto hover:underline"
+                        >
+                          <span>사다리차 표준운임표 확인/수정 ↗</span>
+                        </a>
+                      </div>
+
+                      {/* 출발지 / 도착지 사다리차 적용 현황 */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {/* 출발지 */}
+                        <div className={`p-3 rounded-lg border text-xs space-y-1.5 ${
+                          isFromLadder 
+                            ? 'bg-amber-50/50 border-amber-200' 
+                            : 'bg-gray-50 border-gray-200 text-gray-400'
+                        }`}>
+                          <div className="flex justify-between items-center font-bold">
+                            <span className={isFromLadder ? 'text-amber-900' : 'text-gray-500'}>
+                              출발지 사다리차 {isFromLadder ? '✓ 선택됨' : '(미선택)'}
+                            </span>
+                            {isFromLadder && fromFloor && (
+                              <span className="text-gray-700 bg-white px-2 py-0.5 rounded border border-amber-200 font-bold">{fromFloor}층</span>
+                            )}
+                          </div>
+                          {isFromLadder ? (
+                            parseInt(fromFloor) >= 2 ? (
+                              <div className="flex justify-between items-center pt-1 border-t border-amber-200/60 font-semibold text-gray-800">
+                                <span>적용: {fromLadderCalc.tier} ({ladderTonnage}톤)</span>
+                                <span className="font-extrabold text-amber-700 text-sm">
+                                  {fromLadderCalc.cost.toLocaleString()} 원
+                                </span>
+                              </div>
+                            ) : (
+                              <p className="text-gray-500 pt-1">출발지 층수를 2층 이상 입력하면 표준 운임이 자동 계산됩니다.</p>
+                            )
+                          ) : (
+                            <p className="text-gray-400">출발지 작업조건에서 '사다리차'를 선택하면 자동 계산됩니다.</p>
+                          )}
+                        </div>
+
+                        {/* 도착지 */}
+                        <div className={`p-3 rounded-lg border text-xs space-y-1.5 ${
+                          isToLadder 
+                            ? 'bg-amber-50/50 border-amber-200' 
+                            : 'bg-gray-50 border-gray-200 text-gray-400'
+                        }`}>
+                          <div className="flex justify-between items-center font-bold">
+                            <span className={isToLadder ? 'text-amber-900' : 'text-gray-500'}>
+                              도착지 사다리차 {isToLadder ? '✓ 선택됨' : '(미선택)'}
+                            </span>
+                            {isToLadder && toFloor && (
+                              <span className="text-gray-700 bg-white px-2 py-0.5 rounded border border-amber-200 font-bold">{toFloor}층</span>
+                            )}
+                          </div>
+                          {isToLadder ? (
+                            parseInt(toFloor) >= 2 ? (
+                              <div className="flex justify-between items-center pt-1 border-t border-amber-200/60 font-semibold text-gray-800">
+                                <span>적용: {toLadderCalc.tier} ({ladderTonnage}톤)</span>
+                                <span className="font-extrabold text-amber-700 text-sm">
+                                  {toLadderCalc.cost.toLocaleString()} 원
+                                </span>
+                              </div>
+                            ) : (
+                              <p className="text-gray-500 pt-1">도착지 층수를 2층 이상 입력하면 표준 운임이 자동 계산됩니다.</p>
+                            )
+                          ) : (
+                            <p className="text-gray-400">도착지 작업조건에서 '사다리차'를 선택하면 자동 계산됩니다.</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* 합계 및 가산비용 반영 버튼 */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-gray-200 bg-gray-50/60 p-2.5 rounded-lg">
+                        <div className="flex items-center gap-2 text-xs sm:text-sm">
+                          <span className="text-gray-600 font-medium">총 사다리차 표준 운임:</span>
+                          <span className="font-black text-amber-700 text-base">
+                            {totalLadderCost.toLocaleString()} 원
+                          </span>
+                          {(fromLadderCalc.cost > 0 && toLadderCalc.cost > 0) && (
+                            <span className="text-gray-400 text-xs hidden sm:inline">
+                              (출발지 {fromLadderCalc.cost.toLocaleString()} + 도착지 {toLadderCalc.cost.toLocaleString()})
+                            </span>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={handleApplyLadderCost}
+                          disabled={totalLadderCost <= 0}
+                          className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 ${
+                            totalLadderCost <= 0
+                              ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                              : isLadderApplied
+                              ? 'bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200'
+                              : 'bg-amber-600 hover:bg-amber-700 text-white active:scale-95'
+                          }`}
+                        >
+                          {isLadderApplied ? <CheckCircle2 size={14} className="text-amber-700" /> : <Plus size={14} />}
+                          <span>{isLadderApplied ? '사다리차 운임 반영 완료' : '가산 비용에 반영하기'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+
+                {/* 이동 거리 계산 및 표시 (견적금액 영향) */}
+                <tr className="bg-blue-50/20">
+                  <th className="whitespace-nowrap bg-blue-50/80 border border-gray-200 px-3 sm:px-4 py-3 text-left font-bold text-blue-950 align-top w-28 sm:w-36">
+                    <div className="flex items-center gap-1.5">
+                      <Navigation size={16} className="text-blue-600" />
+                      <span>이동 거리</span>
+                    </div>
+                    <span className="block text-[11px] font-normal text-blue-700 mt-0.5">견적금액 연동</span>
+                  </th>
+                  <td colSpan={3} className="border border-gray-200 p-3 space-y-3">
+                    <div className="bg-white rounded-xl border border-blue-200 p-3 sm:p-4 shadow-sm space-y-3">
+                      {/* 1. 거리 및 시간 표시 / 수동 조정 영역 */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">실제 주행거리:</span>
+                            <div className="flex items-center gap-1 bg-blue-50/60 px-3 py-1 rounded-lg border border-blue-200">
+                              <input 
+                                type="number" 
+                                step="0.1" 
+                                min="0" 
+                                value={distance === 0 ? '' : distance} 
+                                onChange={e => {
+                                  const val = parseFloat(e.target.value) || 0
+                                  setDistance(val)
+                                }} 
+                                onFocus={handleSelectAllOnFocus}
+                                placeholder="0.0" 
+                                className="w-20 bg-transparent text-right font-black text-blue-700 text-base sm:text-lg outline-none focus:bg-white rounded px-1"
+                              />
+                              <span className="font-bold text-blue-900 text-sm sm:text-base">km</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 bg-gray-50 px-2.5 py-1.5 rounded-lg border border-gray-200">
+                            <span className="font-medium">예상 소요시간:</span>
+                            <span className="font-bold text-gray-800">
+                              {distanceDuration || (distance > 0 ? `약 ${Math.max(10, Math.round((distance / 45) * 60))}분` : '-')}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* 계산 버튼 & 안내 */}
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleCalculateDistance()}
+                            disabled={isCalculatingDistance || !fromAddress || !toAddress}
+                            className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-sm transition-all ${
+                              isCalculatingDistance
+                                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                : !fromAddress || !toAddress
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                                : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95'
+                            }`}
+                          >
+                            <RefreshCw size={14} className={isCalculatingDistance ? 'animate-spin' : ''} />
+                            <span>{isCalculatingDistance ? '경로 계산 중...' : '거리 재계산'}</span>
+                          </button>
+
+                          {fromAddress && toAddress && (
+                            <a
+                              href={`https://map.kakao.com/?sName=${encodeURIComponent(fromAddress)}&eName=${encodeURIComponent(toAddress)}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs sm:text-sm font-medium transition-colors border border-gray-300 flex items-center gap-1"
+                              title="카카오맵에서 실제 경로 및 지도 확인"
+                            >
+                              <MapPin size={14} /> 지도 확인
+                            </a>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* 상태 알림 배지 */}
+                      {distanceNotice && (
+                        <div className="flex items-center gap-1.5 text-xs text-green-700 bg-green-50 px-2.5 py-1 rounded-md border border-green-200">
+                          <CheckCircle2 size={13} className="text-green-600 shrink-0" />
+                          <span>{distanceNotice}</span>
+                        </div>
+                      )}
+
+                      {distanceCalcError && (
+                        <div className="flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200">
+                          <AlertCircle size={13} className="text-amber-600 shrink-0" />
+                          <span>{distanceCalcError}</span>
+                        </div>
+                      )}
+
+                      {/* 2. 견적금액 연동: 거리 가산 요금 산출 보조 섹션 */}
+                      <div className="mt-2 pt-2.5 border-t border-dashed border-gray-200 bg-gray-50/70 p-2.5 sm:p-3 rounded-lg space-y-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-gray-800">
+                            <Calculator size={15} className="text-blue-600" />
+                            <span>거리 가산 운임 계산기</span>
+                            <span className="text-[11px] font-normal text-gray-500">(견적 추가비용 반영)</span>
+                          </div>
+                          
+                          <div className="flex flex-wrap items-center gap-2 text-xs">
+                            <span className="text-gray-600 font-medium">기준 거리:</span>
+                            <div className="flex items-center">
+                              <input 
+                                type="number" 
+                                min="0" 
+                                value={baseDistanceKm} 
+                                onChange={e => setBaseDistanceKm(Number(e.target.value) || 0)} 
+                                onFocus={handleSelectAllOnFocus}
+                                className="w-12 text-center rounded border border-gray-300 bg-white py-0.5 px-1 font-bold text-gray-800 outline-none focus:border-blue-500" 
+                              />
+                              <span className="ml-1 text-gray-600">km 초과 시</span>
+                            </div>
+
+                            <span className="text-gray-600 font-medium ml-1">km당:</span>
+                            <div className="flex items-center">
+                              <input 
+                                type="number" 
+                                min="0" 
+                                step="500" 
+                                value={ratePerKm} 
+                                onChange={e => setRatePerKm(Number(e.target.value) || 0)} 
+                                onFocus={handleSelectAllOnFocus}
+                                className="w-16 text-right rounded border border-gray-300 bg-white py-0.5 px-1 font-bold text-gray-800 outline-none focus:border-blue-500" 
+                              />
+                              <span className="ml-1 text-gray-600">원</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-gray-200/80">
+                          <div className="text-xs text-gray-600 flex items-center gap-1.5 flex-wrap">
+                            <span>초과 거리:</span>
+                            <span className="font-bold text-gray-900">{extraDistanceKm}km</span>
+                            <span className="text-gray-300">|</span>
+                            <span>산출 가산금액:</span>
+                            <span className="font-extrabold text-blue-700 text-sm">+{calculatedExtraCost.toLocaleString()} 원</span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={handleApplyDistanceCost}
+                            disabled={calculatedExtraCost <= 0}
+                            className={`px-3 py-1 rounded-md text-xs font-bold transition-all shadow-sm flex items-center gap-1 ${
+                              calculatedExtraCost <= 0
+                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                : isDistanceApplied
+                                ? 'bg-indigo-100 text-indigo-800 border border-indigo-300 hover:bg-indigo-200'
+                                : 'bg-indigo-600 hover:bg-indigo-700 text-white active:scale-95'
+                            }`}
+                          >
+                            {isDistanceApplied ? <CheckCircle2 size={13} className="text-indigo-700" /> : <Plus size={13} />}
+                            <span>{isDistanceApplied ? '거리가산운임 반영 완료' : '+ 가산 비용에 반영하기'}</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -751,6 +1262,17 @@ export function EstimateForm({
           <input type="hidden" name="fromWorkTypes" value={JSON.stringify(fromWorkTypes)} />
           <input type="hidden" name="toFloor" value={toFloor} />
           <input type="hidden" name="toWorkTypes" value={JSON.stringify(toWorkTypes)} />
+          <input type="hidden" name="distance" value={distance} />
+          <input type="hidden" name="distanceDuration" value={distanceDuration} />
+          <input type="hidden" name="distanceDetail" value={distanceDetail} />
+          <input type="hidden" name="baseDistanceKm" value={baseDistanceKm} />
+          <input type="hidden" name="ratePerKm" value={ratePerKm} />
+          <input type="hidden" name="extraDistanceKm" value={extraDistanceKm} />
+          <input type="hidden" name="distanceExtraCost" value={calculatedExtraCost} />
+          <input type="hidden" name="ladderTonnage" value={ladderTonnage} />
+          <input type="hidden" name="ladderFromCost" value={fromLadderCalc.cost} />
+          <input type="hidden" name="ladderToCost" value={toLadderCalc.cost} />
+          <input type="hidden" name="ladderTotalCost" value={totalLadderCost} />
         </div>
 
         {/* 물품 및 작업 환경 */}
@@ -870,21 +1392,21 @@ export function EstimateForm({
                                     const newItems = [...items]
                                     newItems[idx].quantity = e.target.value === '' ? 0 : parseInt(e.target.value)
                                     setItems(newItems)
-                                  }} className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm outline-none focus:border-blue-500 text-right" />
+                                  }} onFocus={handleSelectAllOnFocus} className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm outline-none focus:border-blue-500 text-right" />
                                 </td>
                                 <td className="px-4 py-2">
                                   <input type="number" step="0.01" value={item.cbm} onChange={e => {
                                     const newItems = [...items]
                                     newItems[idx].cbm = parseFloat(e.target.value) || 0
                                     setItems(newItems)
-                                  }} className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm outline-none focus:border-blue-500 text-right" />
+                                  }} onFocus={handleSelectAllOnFocus} className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm outline-none focus:border-blue-500 text-right" />
                                 </td>
                                 <td className="px-4 py-2">
                                   <input type="number" step="0.01" value={item.innerBoxCbm} onChange={e => {
                                     const newItems = [...items]
                                     newItems[idx].innerBoxCbm = parseFloat(e.target.value) || 0
                                     setItems(newItems)
-                                  }} className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm outline-none focus:border-blue-500 text-right" />
+                                  }} onFocus={handleSelectAllOnFocus} className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm outline-none focus:border-blue-500 text-right" />
                                 </td>
                                 <td className="px-4 py-2 text-center">
                                   <button type="button" onClick={() => {
@@ -1037,7 +1559,7 @@ export function EstimateForm({
                               const newLabors = [...labors]
                               newLabors[idx].count = parseInt(e.target.value) || 1
                               setLabors(newLabors)
-                            }} className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm outline-none focus:border-blue-500 text-right" />
+                            }} onFocus={handleSelectAllOnFocus} className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm outline-none focus:border-blue-500 text-right" />
                           </td>
                           <td className="px-3 py-2 text-center">
                             <button type="button" onClick={() => setLabors(labors.filter((_, i) => i !== idx))} className="text-red-500 hover:text-red-700 font-bold">✕</button>
@@ -1128,7 +1650,7 @@ export function EstimateForm({
                               const newVehicles = [...vehicles]
                               newVehicles[idx].count = parseInt(e.target.value) || 1
                               setVehicles(newVehicles)
-                            }} className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm outline-none focus:border-blue-500 text-right" />
+                            }} onFocus={handleSelectAllOnFocus} className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm outline-none focus:border-blue-500 text-right" />
                           </td>
                           <td className="px-3 py-2 text-center">
                             <button type="button" onClick={() => setVehicles(vehicles.filter((_, i) => i !== idx))} className="text-red-500 hover:text-red-700 font-bold">✕</button>
@@ -1198,8 +1720,51 @@ export function EstimateForm({
               <NumberInput name="movingCost" value={movingCost} onChange={v => { setMovingCost(v); setIsCostEdited(true); }} className="block w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-right outline-none focus:border-blue-500" />
             </div>
             <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap mb-1">가산 비용 (사다리차 등)</label>
-              <NumberInput name="additionalCost" value={additionalCost} onChange={v => { setAdditionalCost(v); setIsCostEdited(true); }} className="block w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-right outline-none focus:border-blue-500" />
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap mb-1">가산비용 내역</label>
+              <NumberInput 
+                name="additionalCost" 
+                value={additionalCost} 
+                onChange={v => { 
+                  setAdditionalCost(v); 
+                  setIsCostEdited(true); 
+                  if (v === 0) {
+                    setAppliedLadderCost(0);
+                    setAppliedDistanceCost(0);
+                  }
+                }} 
+                className="block w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-right outline-none focus:border-blue-500" 
+              />
+              {/* 산출 가산운임 반영 버튼 및 내역 (한 가지로 통합) */}
+              {(totalLadderCost > 0 || calculatedExtraCost > 0) && (
+                <div className="mt-1.5 space-y-1">
+                  <button
+                    type="button"
+                    onClick={handleApplyAllAdditionalCosts}
+                    className={`text-[11px] font-bold px-2.5 py-1 rounded-md flex items-center gap-1 transition-colors w-full justify-center border shadow-xs ${
+                      isAllApplied
+                        ? 'bg-amber-100/80 text-amber-900 border-amber-300 hover:bg-amber-200/80'
+                        : 'bg-amber-500 hover:bg-amber-600 text-white active:scale-95'
+                    }`}
+                    title="산출된 사다리차 및 거리가산 운임 일괄 반영"
+                  >
+                    {isAllApplied ? <CheckCircle2 size={12} className="text-amber-800" /> : <Plus size={12} />}
+                    <span>
+                      {isAllApplied 
+                        ? `가산운임 반영 완료 (${totalExtraCost.toLocaleString()}원)` 
+                        : `산출 가산운임 (+${totalExtraCost.toLocaleString()}원) 반영`}
+                    </span>
+                  </button>
+                  <div className="text-[11px] text-gray-500 text-center truncate" title={[
+                    totalLadderCost > 0 ? `사다리차 ${totalLadderCost.toLocaleString()}원` : null,
+                    calculatedExtraCost > 0 ? `거리가산 ${calculatedExtraCost.toLocaleString()}원` : null,
+                  ].filter(Boolean).join(' + ')}>
+                    {[
+                      totalLadderCost > 0 ? `사다리차 ${totalLadderCost.toLocaleString()}원` : null,
+                      calculatedExtraCost > 0 ? `거리가산 ${calculatedExtraCost.toLocaleString()}원` : null,
+                    ].filter(Boolean).join(' + ')}
+                  </div>
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap mb-1">보관 비용</label>
@@ -1360,15 +1925,15 @@ export function EstimateForm({
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">가로 (cm)</label>
-                <input type="number" value={cbmLength} onChange={e => setCbmLength(e.target.value ? Number(e.target.value) : '')} className="w-full rounded-lg border border-gray-300 px-4 py-2 outline-none focus:border-blue-500" placeholder="예: 100" />
+                <input type="number" value={cbmLength} onChange={e => setCbmLength(e.target.value ? Number(e.target.value) : '')} onFocus={handleSelectAllOnFocus} className="w-full rounded-lg border border-gray-300 px-4 py-2 outline-none focus:border-blue-500" placeholder="예: 100" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">세로 (cm)</label>
-                <input type="number" value={cbmWidth} onChange={e => setCbmWidth(e.target.value ? Number(e.target.value) : '')} className="w-full rounded-lg border border-gray-300 px-4 py-2 outline-none focus:border-blue-500" placeholder="예: 50" />
+                <input type="number" value={cbmWidth} onChange={e => setCbmWidth(e.target.value ? Number(e.target.value) : '')} onFocus={handleSelectAllOnFocus} className="w-full rounded-lg border border-gray-300 px-4 py-2 outline-none focus:border-blue-500" placeholder="예: 50" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">높이 (cm)</label>
-                <input type="number" value={cbmHeight} onChange={e => setCbmHeight(e.target.value ? Number(e.target.value) : '')} className="w-full rounded-lg border border-gray-300 px-4 py-2 outline-none focus:border-blue-500" placeholder="예: 200" />
+                <input type="number" value={cbmHeight} onChange={e => setCbmHeight(e.target.value ? Number(e.target.value) : '')} onFocus={handleSelectAllOnFocus} className="w-full rounded-lg border border-gray-300 px-4 py-2 outline-none focus:border-blue-500" placeholder="예: 200" />
               </div>
               <div className="pt-4 border-t border-gray-100 flex justify-between items-center">
                 <span className="font-medium text-gray-700">계산 결과</span>

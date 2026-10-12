@@ -50,6 +50,31 @@ export async function createEstimate(formData: FormData) {
     fromWorkTypes: formData.get('fromWorkTypes') ? JSON.parse(formData.get('fromWorkTypes') as string) : [],
     toFloor: formData.get('toFloor') as string || '',
     toWorkTypes: formData.get('toWorkTypes') ? JSON.parse(formData.get('toWorkTypes') as string) : [],
+    distance: formData.get('distance') ? parseFloat(formData.get('distance') as string) : 0,
+    distanceDuration: formData.get('distanceDuration') as string || '',
+    distanceDetail: formData.get('distanceDetail') as string || '',
+    baseDistanceKm: formData.get('baseDistanceKm') ? parseFloat(formData.get('baseDistanceKm') as string) : 10,
+    ratePerKm: formData.get('ratePerKm') ? parseInt(formData.get('ratePerKm') as string, 10) : 2000,
+    extraDistanceKm: (() => {
+      const dist = formData.get('distance') ? parseFloat(formData.get('distance') as string) : 0
+      const base = formData.get('baseDistanceKm') ? parseFloat(formData.get('baseDistanceKm') as string) : 10
+      const raw = formData.get('extraDistanceKm') ? parseFloat(formData.get('extraDistanceKm') as string) : 0
+      return raw > 0 ? raw : Math.max(0, Math.round((dist - base) * 10) / 10)
+    })(),
+    distanceExtraCost: (() => {
+      const dist = formData.get('distance') ? parseFloat(formData.get('distance') as string) : 0
+      const base = formData.get('baseDistanceKm') ? parseFloat(formData.get('baseDistanceKm') as string) : 10
+      const rate = formData.get('ratePerKm') ? parseInt(formData.get('ratePerKm') as string, 10) : 2000
+      const rawCost = formData.get('distanceExtraCost') ? parseInt(formData.get('distanceExtraCost') as string, 10) : 0
+      if (rawCost > 0) return rawCost
+      const rawExtra = formData.get('extraDistanceKm') ? parseFloat(formData.get('extraDistanceKm') as string) : 0
+      const extra = rawExtra > 0 ? rawExtra : Math.max(0, Math.round((dist - base) * 10) / 10)
+      return Math.round(extra * rate)
+    })(),
+    ladderTonnage: formData.get('ladderTonnage') as string || '5',
+    ladderFromCost: parseInt(formData.get('ladderFromCost') as string || '0', 10),
+    ladderToCost: parseInt(formData.get('ladderToCost') as string || '0', 10),
+    ladderTotalCost: parseInt(formData.get('ladderTotalCost') as string || '0', 10),
   }
   const environment = JSON.stringify(environmentObj)
   
@@ -122,6 +147,31 @@ export async function updateEstimate(formData: FormData) {
     fromWorkTypes: formData.get('fromWorkTypes') ? JSON.parse(formData.get('fromWorkTypes') as string) : [],
     toFloor: formData.get('toFloor') as string || '',
     toWorkTypes: formData.get('toWorkTypes') ? JSON.parse(formData.get('toWorkTypes') as string) : [],
+    distance: formData.get('distance') ? parseFloat(formData.get('distance') as string) : 0,
+    distanceDuration: formData.get('distanceDuration') as string || '',
+    distanceDetail: formData.get('distanceDetail') as string || '',
+    baseDistanceKm: formData.get('baseDistanceKm') ? parseFloat(formData.get('baseDistanceKm') as string) : 10,
+    ratePerKm: formData.get('ratePerKm') ? parseInt(formData.get('ratePerKm') as string, 10) : 2000,
+    extraDistanceKm: (() => {
+      const dist = formData.get('distance') ? parseFloat(formData.get('distance') as string) : 0
+      const base = formData.get('baseDistanceKm') ? parseFloat(formData.get('baseDistanceKm') as string) : 10
+      const raw = formData.get('extraDistanceKm') ? parseFloat(formData.get('extraDistanceKm') as string) : 0
+      return raw > 0 ? raw : Math.max(0, Math.round((dist - base) * 10) / 10)
+    })(),
+    distanceExtraCost: (() => {
+      const dist = formData.get('distance') ? parseFloat(formData.get('distance') as string) : 0
+      const base = formData.get('baseDistanceKm') ? parseFloat(formData.get('baseDistanceKm') as string) : 10
+      const rate = formData.get('ratePerKm') ? parseInt(formData.get('ratePerKm') as string, 10) : 2000
+      const rawCost = formData.get('distanceExtraCost') ? parseInt(formData.get('distanceExtraCost') as string, 10) : 0
+      if (rawCost > 0) return rawCost
+      const rawExtra = formData.get('extraDistanceKm') ? parseFloat(formData.get('extraDistanceKm') as string) : 0
+      const extra = rawExtra > 0 ? rawExtra : Math.max(0, Math.round((dist - base) * 10) / 10)
+      return Math.round(extra * rate)
+    })(),
+    ladderTonnage: formData.get('ladderTonnage') as string || '5',
+    ladderFromCost: parseInt(formData.get('ladderFromCost') as string || '0', 10),
+    ladderToCost: parseInt(formData.get('ladderToCost') as string || '0', 10),
+    ladderTotalCost: parseInt(formData.get('ladderTotalCost') as string || '0', 10),
   }
   const environment = JSON.stringify(environmentObj)
   

@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma'
 import { format } from 'date-fns'
 import { MapPin } from 'lucide-react'
 import { PrintButton } from '@/components/PrintButton'
+import { formatPhoneNumber } from '@/lib/format'
 
 import { Metadata } from 'next'
 
@@ -30,6 +31,26 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
   const items = estimate.cbmItems ? JSON.parse(estimate.cbmItems) : []
   const labors = envObj.labors || []
   const vehicles = envObj.vehicles || []
+
+  // 사다리차 운임 세부 산출
+  const ladderTotalCost = Number(envObj.ladderTotalCost) || 0
+  const ladderFromCost = Number(envObj.ladderFromCost) || 0
+  const ladderToCost = Number(envObj.ladderToCost) || 0
+  const ladderTonnage = envObj.ladderTonnage || '5'
+
+  // 거리가산 운임 세부 산출
+  const distanceKm = Number(envObj.distance) || 0
+  const baseDistanceKm = Number(envObj.baseDistanceKm) || 10
+  const ratePerKm = Number(envObj.ratePerKm) || 2000
+  const extraDistanceKm = (envObj.extraDistanceKm !== undefined && Number(envObj.extraDistanceKm) > 0)
+    ? Number(envObj.extraDistanceKm) 
+    : Math.max(0, Math.round((distanceKm - baseDistanceKm) * 10) / 10)
+  const distanceExtraCost = (envObj.distanceExtraCost !== undefined && Number(envObj.distanceExtraCost) > 0)
+    ? Number(envObj.distanceExtraCost) 
+    : Math.round(extraDistanceKm * ratePerKm)
+
+  const knownAddCost = ladderTotalCost + distanceExtraCost
+  const otherAdditionalCost = Math.max(0, (estimate.additionalCost || 0) - knownAddCost)
 
   const groupedItems = items.reduce((acc: Record<string, any[]>, item: any) => {
     const locName = item.locationName || '기타/미지정'
@@ -73,7 +94,14 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
         {/* 기본 정보 및 주소/일정 */}
         <section>
           <div className="flex justify-between items-center border-b pb-2 mb-4 print:mb-2 print:pb-1">
-            <h2 className="text-lg font-bold text-blue-600 print:text-base">기본 정보 및 주소/일정</h2>
+            <div className="flex items-center gap-2.5">
+              <h2 className="text-lg font-bold text-blue-600 print:text-base">기본 정보 및 주소/일정</h2>
+              {envObj.distance ? (
+                <span className="px-2.5 py-0.5 bg-blue-50 text-blue-700 text-xs font-bold rounded-full border border-blue-200 print:hidden">
+                  주행거리: {envObj.distance}km
+                </span>
+              ) : null}
+            </div>
             {estimate.fromAddress && estimate.toAddress && (
               <a 
                 href={`https://map.kakao.com/?sName=${encodeURIComponent(estimate.fromAddress)}&eName=${encodeURIComponent(estimate.toAddress)}`} 
@@ -93,7 +121,7 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                 <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900 w-1/4 sm:w-1/6 whitespace-nowrap">고객명</th>
                 <td className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900 w-1/4 sm:w-2/6">{estimate.customerName}</td>
                 <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900 w-1/4 sm:w-1/6 whitespace-nowrap">연락처</th>
-                <td className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900 w-1/4 sm:w-2/6">{estimate.contact}</td>
+                <td className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900 w-1/4 sm:w-2/6">{formatPhoneNumber(estimate.contact)}</td>
               </tr>
               <tr>
                 <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900 whitespace-nowrap">이사종류</th>
@@ -167,6 +195,60 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                           </span>
                         ))}
                       </div>
+                    )}
+                  </div>
+                </td>
+              </tr>
+              {(envObj.ladderTotalCost > 0 || envObj.fromWorkTypes?.includes('사다리차') || envObj.toWorkTypes?.includes('사다리차')) && (
+                <tr>
+                  <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900 whitespace-nowrap">사다리차</th>
+                  <td colSpan={3} className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-amber-700 font-bold">
+                          {envObj.ladderTotalCost ? `${Number(envObj.ladderTotalCost).toLocaleString()} 원` : '작업 포함'}
+                        </span>
+                        <span className="text-xs text-gray-600 font-normal">
+                          ({envObj.ladderTonnage || '5'}톤 기준
+                          {envObj.ladderFromCost ? ` · 출발지: ${Number(envObj.ladderFromCost).toLocaleString()}원` : ''}
+                          {envObj.ladderToCost ? ` · 도착지: ${Number(envObj.ladderToCost).toLocaleString()}원` : ''})
+                        </span>
+                      </div>
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">
+                        표준 운임표 적용
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              )}
+              <tr>
+                <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900 whitespace-nowrap">이동 거리</th>
+                <td colSpan={3} className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-base text-blue-700 font-bold">
+                        {distanceKm > 0 ? `${distanceKm} km` : (envObj.distance ? `${envObj.distance} km` : '-')}
+                      </span>
+                      {envObj.distanceDuration && (
+                        <span className="text-xs text-gray-600 font-normal">
+                          ({envObj.distanceDuration})
+                        </span>
+                      )}
+                      {distanceExtraCost > 0 && (
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-200">
+                          거리가산운임 {distanceExtraCost.toLocaleString()}원 (+{extraDistanceKm}km 초과)
+                        </span>
+                      )}
+                    </div>
+                    {estimate.fromAddress && estimate.toAddress && (
+                      <a 
+                        href={`https://map.kakao.com/?sName=${encodeURIComponent(estimate.fromAddress)}&eName=${encodeURIComponent(estimate.toAddress)}`} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="px-2.5 py-1 bg-indigo-50 text-indigo-600 rounded-md hover:bg-indigo-100 inline-flex items-center gap-1 font-medium text-xs shadow-sm print:hidden"
+                      >
+                        <MapPin size={13}/> 카카오맵 경로보기
+                      </a>
                     )}
                   </div>
                 </td>
@@ -268,8 +350,19 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                 <span className="text-gray-800 font-medium">기본 이사 비용</span>
                 <span className="font-bold text-gray-900">{estimate.movingCost.toLocaleString()} 원</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-800 font-medium">가산 비용 (사다리차/거리 등)</span>
+              <div className="flex justify-between items-center">
+                <div className="flex flex-wrap items-baseline gap-1.5 sm:gap-2">
+                  <span className="text-gray-800 font-medium">가산비용 내역</span>
+                  {(ladderTotalCost > 0 || distanceExtraCost > 0) && (
+                    <span className="text-xs text-gray-500 font-normal">
+                      ({[
+                        ladderTotalCost > 0 ? `사다리차 ${ladderTotalCost.toLocaleString()}원` : null,
+                        distanceExtraCost > 0 ? `거리가산 ${distanceExtraCost.toLocaleString()}원` : null,
+                        otherAdditionalCost > 0 ? `기타 ${otherAdditionalCost.toLocaleString()}원` : null,
+                      ].filter(Boolean).join(' + ')})
+                    </span>
+                  )}
+                </div>
                 <span className="font-bold text-gray-900">{estimate.additionalCost.toLocaleString()} 원</span>
               </div>
               <div className="flex justify-between">

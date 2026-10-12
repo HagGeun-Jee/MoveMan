@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { format, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { EstimateRow } from './estimates/EstimateRow'
+import { formatPhoneNumber } from '@/lib/format'
 
 export default async function DashboardPage() {
   const recentEstimates = await prisma.estimate.findMany({
@@ -111,7 +112,7 @@ export default async function DashboardPage() {
                     <EstimateRow key={est.id} id={est.id}>
                       <td className="p-4 font-bold text-blue-600 hover:underline">{est.id}</td>
                       <td className="p-4 font-bold text-gray-900">{est.customerName}</td>
-                      <td className="p-4 font-medium text-gray-900">{est.contact}</td>
+                      <td className="p-4 font-medium text-gray-900">{formatPhoneNumber(est.contact)}</td>
                       <td className="p-4 font-medium text-gray-900">{format(new Date(est.estimateDate), 'yyyy-MM-dd', { locale: ko })}</td>
                       <td className="p-4">
                         <span className="px-2.5 py-1 bg-gray-100 text-gray-900 rounded-md text-xs font-bold border border-gray-200">

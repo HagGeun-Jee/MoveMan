@@ -185,6 +185,12 @@ export function Sidebar({
                     <span>인건비정보</span>
                   </Link>
                 )}
+                {canAccess('/ladders') && (
+                  <Link href="/ladders" onClick={() => setMobileOpen(false)} className={mobileLinkClass(isActive('/ladders'))}>
+                    <Settings size={18} className="shrink-0" />
+                    <span>사다리차운임</span>
+                  </Link>
+                )}
               </div>
             </nav>
 
@@ -301,6 +307,14 @@ export function Sidebar({
                 <Link href="/labors" className={subLinkClass(isActive('/labors'))} title="인건비정보">
                   <Settings size={18} className="shrink-0" />
                   {!collapsed && <span>인건비정보</span>}
+                </Link>
+              </li>
+            )}
+            {canAccess('/ladders') && (
+              <li>
+                <Link href="/ladders" className={subLinkClass(isActive('/ladders'))} title="사다리차운임">
+                  <Settings size={18} className="shrink-0" />
+                  {!collapsed && <span>사다리차운임</span>}
                 </Link>
               </li>
             )}

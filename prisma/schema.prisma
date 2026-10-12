@@ -94,3 +94,20 @@ model LaborMaster {
   defaultCost Int
   createdAt   DateTime @default(now())
 }
+
+model LadderTruckMaster {
+  id          String   @id @default(cuid())
+  floorName   String   // 층수 표시 (예: "2~5층", "6~7층")
+  minFloor    Int      // 최소 층수
+  maxFloor    Int      // 최대 층수
+  cost1Ton    Int      @default(0) // 1톤 운임 (원)
+  cost2_5Ton  Int      @default(0) // 2.5톤 운임 (원)
+  cost5Ton    Int      @default(0) // 5톤 운임 (원)
+  cost6Ton    Int      @default(0) // 6톤 운임 (원)
+  cost7_5Ton  Int      @default(0) // 7.5톤 운임 (원)
+  cost10Ton   Int      @default(0) // 10톤 운임 (원)
+  note        String?  @default("") // 비고 (특이사항 등)
+  order       Int      @default(0) // 정렬 순서
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { EstimateRow } from './EstimateRow'
+import { formatPhoneNumber } from '@/lib/format'
 
 export default async function EstimatesPage() {
   const estimates = await prisma.estimate.findMany({
@@ -73,15 +74,25 @@ export default async function EstimatesPage() {
                     paymentStatusClass = "bg-amber-100 text-amber-900 border border-amber-300"
                   }
 
+                  const envObj = est.environment ? JSON.parse(est.environment) : {}
+                  const estDistance = envObj.distance
+
                   return (
                     <EstimateRow key={est.id} id={est.id}>
                       <td className="p-4 font-bold text-blue-600">{est.id}</td>
                       <td className="p-4 font-bold text-gray-900">{est.customerName}</td>
-                      <td className="p-4 font-medium text-gray-900">{est.contact}</td>
+                      <td className="p-4 font-medium text-gray-900">{formatPhoneNumber(est.contact)}</td>
                       <td className="p-4">
-                        <span className="px-2.5 py-1 bg-gray-100 text-gray-900 rounded-md text-xs font-bold border border-gray-200">
-                          {est.movingType === 'P' ? '포장이사' : est.movingType === 'G' ? '일반이사' : '보관이사'}
-                        </span>
+                        <div className="flex flex-col gap-1 items-start">
+                          <span className="px-2.5 py-1 bg-gray-100 text-gray-900 rounded-md text-xs font-bold border border-gray-200">
+                            {est.movingType === 'P' ? '포장이사' : est.movingType === 'G' ? '일반이사' : '보관이사'}
+                          </span>
+                          {estDistance ? (
+                            <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
+                              {estDistance}km
+                            </span>
+                          ) : null}
+                        </div>
                       </td>
                       <td className="p-4 font-medium text-gray-900">{format(new Date(est.estimateDate), 'yyyy-MM-dd', { locale: ko })}</td>
                       <td className="p-4 font-medium text-gray-900">{est.movingDate ? format(new Date(est.movingDate), 'yyyy-MM-dd', { locale: ko }) : '-'}</td>
