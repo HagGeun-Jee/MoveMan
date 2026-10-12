@@ -413,15 +413,15 @@ export function EstimateForm({
   }, [initialData])
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-24">
-      <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+    <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 pb-28">
+      <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{title}</h1>
       
-      <form action={action} className="space-y-8">
+      <form action={action} className="space-y-6 sm:space-y-8">
         {initialData && <input type="hidden" name="id" value={initialData.id} />}
         
         {/* 기본 정보 */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
-          <h2 className="text-lg font-bold text-blue-600 border-b pb-2">기본 정보</h2>
+        <div className="bg-white p-3.5 sm:p-5 md:p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
+          <h2 className="text-base sm:text-lg font-bold text-blue-600 border-b pb-2">기본 정보</h2>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse border border-gray-200 text-sm">
               <tbody>
@@ -490,9 +490,9 @@ export function EstimateForm({
         </div>
 
         {/* 주소 및 일정 */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
+        <div className="bg-white p-3.5 sm:p-5 md:p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
           <div className="flex justify-between items-center border-b pb-2">
-            <h2 className="text-lg font-bold text-blue-600">주소 및 일정</h2>
+            <h2 className="text-base sm:text-lg font-bold text-blue-600">주소 및 일정</h2>
             {fromAddress && toAddress && (
               <a 
                 href={`https://map.kakao.com/?sName=${encodeURIComponent(fromAddress)}&eName=${encodeURIComponent(toAddress)}`} 
@@ -754,8 +754,8 @@ export function EstimateForm({
         </div>
 
         {/* 물품 및 작업 환경 */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
-          <h2 className="text-lg font-bold text-blue-600 border-b pb-2">물품 및 작업 환경</h2>
+        <div className="bg-white p-3.5 sm:p-5 md:p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
+          <h2 className="text-base sm:text-lg font-bold text-blue-600 border-b pb-2">물품 및 작업 환경</h2>
           
           <div className="space-y-2">
             <div className="flex justify-between items-center">
@@ -796,17 +796,18 @@ export function EstimateForm({
                       </span>
                     </div>
                     {isExpanded && (
-                      <table className="w-full text-sm text-left bg-white">
-                        <thead className="bg-gray-50 text-gray-600 border-b">
-                          <tr>
-                            <th className="px-4 py-2 font-medium">품목</th>
-                            <th className="px-4 py-2 font-medium">규격</th>
-                            <th className="px-4 py-2 font-medium w-20">수량</th>
-                            <th className="px-4 py-2 font-medium w-24">기본 CBM</th>
-                            <th className="px-4 py-2 font-medium w-24">추가 CBM</th>
-                            <th className="px-4 py-2 font-medium w-12 text-center">삭제</th>
-                          </tr>
-                        </thead>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left bg-white min-w-[500px]">
+                          <thead className="bg-gray-50 text-gray-600 border-b">
+                            <tr>
+                              <th className="px-3 sm:px-4 py-2 font-medium">품목</th>
+                              <th className="px-3 sm:px-4 py-2 font-medium">규격</th>
+                              <th className="px-3 sm:px-4 py-2 font-medium w-20">수량</th>
+                              <th className="px-3 sm:px-4 py-2 font-medium w-24">기본 CBM</th>
+                              <th className="px-3 sm:px-4 py-2 font-medium w-24">추가 CBM</th>
+                              <th className="px-3 sm:px-4 py-2 font-medium w-12 text-center">삭제</th>
+                            </tr>
+                          </thead>
                         <tbody>
                           {catItems.map((item, localIdx) => {
                             const idx = items.findIndex(i => i === item)
@@ -966,6 +967,7 @@ export function EstimateForm({
                           </tr>
                         </tbody>
                       </table>
+                      </div>
                     )}
                   </div>
                 )
@@ -1017,8 +1019,8 @@ export function EstimateForm({
                 )}
               </div>
               {labors.length > 0 && (
-                <div className="border border-gray-200 rounded-lg mb-2">
-                  <table className="w-full text-sm text-left">
+                <div className="border border-gray-200 rounded-lg mb-2 overflow-x-auto">
+                  <table className="w-full text-sm text-left min-w-[280px]">
                     <thead className="bg-gray-50 text-gray-600 border-b">
                       <tr>
                         <th className="px-3 py-2 font-medium">인력 구분</th>
@@ -1098,8 +1100,8 @@ export function EstimateForm({
               </div>
 
               {vehicles.length > 0 && (
-                <div className="border border-gray-200 rounded-lg mb-2">
-                  <table className="w-full text-sm text-left">
+                <div className="border border-gray-200 rounded-lg mb-2 overflow-x-auto">
+                  <table className="w-full text-sm text-left min-w-[280px]">
                     <thead className="bg-gray-50 text-gray-600 border-b">
                       <tr>
                         <th className="px-3 py-2 font-medium">차량 구분</th>
@@ -1161,9 +1163,9 @@ export function EstimateForm({
         </div>
 
         {/* 이사 비용 및 부가세 */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
-          <h2 className="text-lg font-bold text-blue-600 border-b pb-2">이사 비용 및 부가세</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white p-3.5 sm:p-5 md:p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
+          <h2 className="text-base sm:text-lg font-bold text-blue-600 border-b pb-2">이사 비용 및 부가세</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">기본 이사 비용</label>
               <NumberInput name="movingCost" value={movingCost} onChange={v => { setMovingCost(v); setIsCostEdited(true); }} className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 text-right" />
@@ -1195,10 +1197,10 @@ export function EstimateForm({
         </div>
 
         {/* 결제 플랜 */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
+        <div className="bg-white p-3.5 sm:p-5 md:p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-2 gap-2">
             <div className="flex items-center gap-6">
-              <h2 className="text-lg font-bold text-blue-600">결제 플랜</h2>
+              <h2 className="text-base sm:text-lg font-bold text-blue-600">결제 플랜</h2>
               <div className="flex items-center gap-3 text-sm text-gray-700">
                 <label className="flex items-center gap-1 cursor-pointer">
                   <input type="radio" name="paymentTarget" checked={paymentTarget === 'supply'} onChange={() => setPaymentTarget('supply')} className="w-4 h-4 text-blue-600" />
@@ -1211,11 +1213,11 @@ export function EstimateForm({
               </div>
             </div>
             <div className="text-sm font-bold text-gray-700">
-              초기 대상 금액: <span className="text-lg text-blue-600">{targetAmount.toLocaleString()} 원</span>
+              초기 대상 금액: <span className="text-base sm:text-lg text-blue-600">{targetAmount.toLocaleString()} 원</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="text-sm font-medium text-gray-700">계약금</label>
@@ -1271,21 +1273,21 @@ export function EstimateForm({
         </div>
 
         {/* 고객 서명 */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
+        <div className="bg-white p-3.5 sm:p-5 md:p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
           <div className="flex justify-between items-center border-b pb-2">
-            <h2 className="text-lg font-bold text-blue-600">고객 서명</h2>
+            <h2 className="text-base sm:text-lg font-bold text-blue-600">고객 서명</h2>
             {!isSigning && signature ? (
-              <button type="button" onClick={() => { setIsSigning(true); setSignature(''); }} className="text-sm text-red-600 hover:text-red-800 font-medium px-3 py-1 bg-red-50 rounded-lg">서명 다시하기</button>
+              <button type="button" onClick={() => { setIsSigning(true); setSignature(''); }} className="text-xs sm:text-sm text-red-600 hover:text-red-800 font-medium px-3 py-1 bg-red-50 rounded-lg">서명 다시하기</button>
             ) : (
-              <button type="button" onClick={() => { sigCanvas.current?.clear(); setSignature(''); }} className="text-sm text-gray-600 hover:text-gray-800 font-medium px-3 py-1 bg-gray-100 rounded-lg">초기화</button>
+              <button type="button" onClick={() => { sigCanvas.current?.clear(); setSignature(''); }} className="text-xs sm:text-sm text-gray-600 hover:text-gray-800 font-medium px-3 py-1 bg-gray-100 rounded-lg">초기화</button>
             )}
           </div>
           
-          <div className="border border-gray-300 rounded-lg overflow-hidden bg-gray-50 h-40 relative">
+          <div className="border border-gray-300 rounded-lg overflow-hidden bg-gray-50 h-40 sm:h-48 relative touch-none">
             {isSigning ? (
               <SignatureCanvas 
                 ref={sigCanvas}
-                canvasProps={{ className: 'w-full h-full' }}
+                canvasProps={{ className: 'w-full h-full touch-none cursor-crosshair' }}
                 onEnd={() => setSignature(sigCanvas.current?.getTrimmedCanvas().toDataURL('image/png'))}
               />
             ) : (
@@ -1295,9 +1297,9 @@ export function EstimateForm({
           <input type="hidden" name="signature" value={signature} />
         </div>
 
-        <div className="fixed bottom-0 left-0 right-0 md:left-64 bg-white border-t p-4 shadow-lg flex justify-end gap-4 z-10">
-          <button type="button" className="px-6 py-2 rounded-lg text-gray-600 font-medium hover:bg-gray-100 transition-colors">취소</button>
-          <button type="submit" className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-md">견적 저장하기</button>
+        <div className="fixed bottom-0 left-0 right-0 lg:left-64 bg-white border-t p-3 sm:p-4 shadow-lg flex justify-end gap-3 sm:gap-4 z-20">
+          <button type="button" className="px-5 sm:px-6 py-2 rounded-lg text-gray-600 font-medium hover:bg-gray-100 transition-colors text-sm sm:text-base">취소</button>
+          <button type="submit" className="px-5 sm:px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-md text-sm sm:text-base">견적 저장하기</button>
         </div>
       </form>
 

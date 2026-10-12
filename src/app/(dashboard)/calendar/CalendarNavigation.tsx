@@ -9,9 +9,9 @@ import "react-datepicker/dist/react-datepicker.css"
 import { ko } from 'date-fns/locale'
 
 const CustomTitleInput = forwardRef<HTMLButtonElement, any>(({ value, onClick }, ref) => (
-  <button onClick={onClick} ref={ref} className="flex items-center gap-2 hover:bg-gray-50 px-2 py-1 -ml-2 rounded-lg transition-colors outline-none focus:ring-2 focus:ring-blue-500/20" title="클릭하여 년도/월 선택">
-    <h1 className="text-2xl font-bold text-gray-900">{value} 일정 캘린더</h1>
-    <CalendarIcon size={24} className="text-blue-500" />
+  <button onClick={onClick} ref={ref} className="flex items-center gap-1.5 sm:gap-2 hover:bg-gray-50 px-2 py-1 -ml-2 rounded-lg transition-colors outline-none focus:ring-2 focus:ring-blue-500/20" title="클릭하여 년도/월 선택">
+    <h1 className="text-lg sm:text-2xl font-bold text-gray-900">{value} 일정 캘린더</h1>
+    <CalendarIcon size={20} className="text-blue-500 shrink-0" />
   </button>
 ))
 CustomTitleInput.displayName = 'CustomTitleInput'

@@ -125,95 +125,99 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-300 overflow-hidden">
-        <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-300">
-          {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => (
-            <div key={day} className={`p-4 text-center text-sm font-medium ${idx === 0 ? 'text-red-500' : idx === 6 ? 'text-blue-500' : 'text-gray-500'}`}>{day}</div>
-          ))}
-        </div>
-        <div className="grid grid-cols-7 auto-rows-[120px] divide-y divide-x divide-gray-300 border-l border-gray-300">
-          {prefixDays.map((_, i) => (
-            <div key={`empty-${i}`} className="bg-gray-50/50"></div>
-          ))}
-          {daysInMonth.map((date, i) => {
-            const dayEstimates = estimates.filter(e => e.visitDate && isSameDay(new Date(e.visitDate), date))
-            const dayMovings = estimates.filter(e => e.movingDate && isSameDay(new Date(e.movingDate), date))
-            
-            const solar = Solar.fromYmd(date.getFullYear(), date.getMonth() + 1, date.getDate())
-            const lunar = solar.getLunar()
+        <div className="overflow-x-auto">
+          <div className="min-w-[560px]">
+            <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-300">
+              {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => (
+                <div key={day} className={`p-2.5 sm:p-4 text-center text-xs sm:text-sm font-medium ${idx === 0 ? 'text-red-500' : idx === 6 ? 'text-blue-500' : 'text-gray-500'}`}>{day}</div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 auto-rows-[110px] sm:auto-rows-[120px] divide-y divide-x divide-gray-300 border-l border-gray-300">
+              {prefixDays.map((_, i) => (
+                <div key={`empty-${i}`} className="bg-gray-50/50"></div>
+              ))}
+              {daysInMonth.map((date, i) => {
+                const dayEstimates = estimates.filter(e => e.visitDate && isSameDay(new Date(e.visitDate), date))
+                const dayMovings = estimates.filter(e => e.movingDate && isSameDay(new Date(e.movingDate), date))
+                
+                const solar = Solar.fromYmd(date.getFullYear(), date.getMonth() + 1, date.getDate())
+                const lunar = solar.getLunar()
 
-            // 손없는 날 계산 (한국천문연구원 음력 기준)
-            const korCal = new KoreanLunarCalendar()
-            korCal.setSolarDate(date.getFullYear(), date.getMonth() + 1, date.getDate())
-            const korLunar = korCal.getLunarCalendar()
-            const isSonEobNeunNal = korLunar.day % 10 === 9 || korLunar.day % 10 === 0
+                // 손없는 날 계산 (한국천문연구원 음력 기준)
+                const korCal = new KoreanLunarCalendar()
+                korCal.setSolarDate(date.getFullYear(), date.getMonth() + 1, date.getDate())
+                const korLunar = korCal.getLunarCalendar()
+                const isSonEobNeunNal = korLunar.day % 10 === 9 || korLunar.day % 10 === 0
 
-            // 휴일 및 절기
-            const { holidayName, isRedDay, jieQi } = getKoreanHolidayAndJieQi(solar, lunar)
+                // 휴일 및 절기
+                const { holidayName, isRedDay, jieQi } = getKoreanHolidayAndJieQi(solar, lunar)
 
-            // 날씨 매칭
-            const dateStr = format(date, 'yyyy-MM-dd')
-            const weatherIndex = weatherData?.time?.indexOf(dateStr)
-            const weatherCode = weatherIndex !== undefined && weatherIndex !== -1 ? weatherData?.weathercode[weatherIndex] : null
-            
-            // 주말 및 휴일 색상 처리
-            const dayOfWeek = getDay(date)
-            const isRedColor = dayOfWeek === 0 || isRedDay
-            const dateColorClass = isToday(date) 
-              ? 'bg-blue-600 text-white' 
-              : isRedColor 
-                ? 'text-red-500' 
-                : dayOfWeek === 6 
-                  ? 'text-blue-500' 
-                  : 'text-gray-700'
+                // 날씨 매칭
+                const dateStr = format(date, 'yyyy-MM-dd')
+                const weatherIndex = weatherData?.time?.indexOf(dateStr)
+                const weatherCode = weatherIndex !== undefined && weatherIndex !== -1 ? weatherData?.weathercode[weatherIndex] : null
+                
+                // 주말 및 휴일 색상 처리
+                const dayOfWeek = getDay(date)
+                const isRedColor = dayOfWeek === 0 || isRedDay
+                const dateColorClass = isToday(date) 
+                  ? 'bg-blue-600 text-white' 
+                  : isRedColor 
+                    ? 'text-red-500' 
+                    : dayOfWeek === 6 
+                      ? 'text-blue-500' 
+                      : 'text-gray-700'
 
-            return (
-              <div key={i} className={`p-2 flex flex-col transition-colors hover:bg-gray-50 ${isToday(date) ? 'bg-blue-50/30' : ''}`}>
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex flex-col">
-                    <div className={`text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full ${dateColorClass}`}>
-                      {format(date, 'd')}
+                return (
+                  <div key={i} className={`p-1.5 sm:p-2 flex flex-col transition-colors hover:bg-gray-50 ${isToday(date) ? 'bg-blue-50/30' : ''}`}>
+                    <div className="flex justify-between items-start mb-1 sm:mb-2">
+                      <div className="flex flex-col">
+                        <div className={`text-xs sm:text-sm font-medium w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-full ${dateColorClass}`}>
+                          {format(date, 'd')}
+                        </div>
+                        {(holidayName || jieQi) && (
+                          <div className="flex flex-col mt-0.5 px-0.5 sm:px-1 leading-tight">
+                            {holidayName && <span className="text-[10px] text-red-500 font-bold break-keep">{holidayName}</span>}
+                            {jieQi && <span className="text-[10px] text-teal-600 font-medium break-keep">{jieQi}</span>}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-0.5 sm:gap-1">
+                        {isSonEobNeunNal && (
+                          <div title="손없는 날" className="flex items-center justify-center bg-yellow-100 text-yellow-600 p-0.5 sm:p-1 rounded-full shadow-sm">
+                            <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-yellow-500" />
+                          </div>
+                        )}
+                        {weatherCode !== null && weatherCode !== undefined && (
+                          <a 
+                            href="https://weather.naver.com/" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            title="네이버 날씨 예보 확인하기" 
+                            className="p-0.5 sm:p-1 bg-white rounded-full shadow-sm border border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer block"
+                          >
+                            {getWeatherIcon(weatherCode)}
+                          </a>
+                        )}
+                      </div>
                     </div>
-                    {(holidayName || jieQi) && (
-                      <div className="flex flex-col mt-0.5 px-1 leading-tight">
-                        {holidayName && <span className="text-[10px] text-red-500 font-bold break-keep">{holidayName}</span>}
-                        {jieQi && <span className="text-[10px] text-teal-600 font-medium break-keep">{jieQi}</span>}
-                      </div>
-                    )}
+                    <div className="flex-1 space-y-1 overflow-y-auto no-scrollbar">
+                      {dayEstimates.map(est => (
+                        <Link href={`/estimates/${est.id}`} key={`est-${est.id}`} className="block text-[11px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 bg-blue-100 text-blue-700 rounded truncate cursor-pointer hover:bg-blue-200 shadow-sm border border-blue-200/50">
+                          방문: {est.customerName}
+                        </Link>
+                      ))}
+                      {dayMovings.map(est => (
+                        <Link href={`/estimates/${est.id}`} key={`mov-${est.id}`} className="block text-[11px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 bg-red-100 text-red-700 rounded truncate cursor-pointer hover:bg-red-200 shadow-sm border border-red-200/50">
+                          이사: {est.customerName}
+                        </Link>
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    {isSonEobNeunNal && (
-                      <div title="손없는 날" className="flex items-center justify-center bg-yellow-100 text-yellow-600 p-1 rounded-full shadow-sm">
-                        <Star className="w-3.5 h-3.5 fill-yellow-500" />
-                      </div>
-                    )}
-                    {weatherCode !== null && weatherCode !== undefined && (
-                      <a 
-                        href="https://weather.naver.com/" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        title="네이버 날씨 예보 확인하기" 
-                        className="p-1 bg-white rounded-full shadow-sm border border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer block"
-                      >
-                        {getWeatherIcon(weatherCode)}
-                      </a>
-                    )}
-                  </div>
-                </div>
-                <div className="flex-1 space-y-1 overflow-y-auto no-scrollbar">
-                  {dayEstimates.map(est => (
-                    <Link href={`/estimates/${est.id}`} key={`est-${est.id}`} className="block text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded truncate cursor-pointer hover:bg-blue-200 shadow-sm border border-blue-200/50">
-                      방문: {est.customerName}
-                    </Link>
-                  ))}
-                  {dayMovings.map(est => (
-                    <Link href={`/estimates/${est.id}`} key={`mov-${est.id}`} className="block text-xs px-2 py-1 bg-red-100 text-red-700 rounded truncate cursor-pointer hover:bg-red-200 shadow-sm border border-red-200/50">
-                      이사: {est.customerName}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )
-          })}
+                )
+              })}
+            </div>
+          </div>
         </div>
       </div>
     </div>

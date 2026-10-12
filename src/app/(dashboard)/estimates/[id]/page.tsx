@@ -45,14 +45,14 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-24 print:max-w-none print:space-y-4 print:pb-0 print:m-0 print:pt-4">
-      <div className="flex justify-between items-center print:hidden">
-        <h1 className="text-2xl font-bold text-gray-900">견적 상세 - {estimate.id}</h1>
-        <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 print:hidden">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">견적 상세 - {estimate.id}</h1>
+        <div className="flex flex-wrap gap-2">
           <PrintButton />
-          <Link href="/estimates" className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors border border-gray-300 shadow-sm">
+          <Link href="/estimates" className="px-3.5 sm:px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm sm:text-base font-medium transition-colors border border-gray-300 shadow-sm">
             목록으로
           </Link>
-          <Link href={`/estimates/${estimate.id}/edit`} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm">
+          <Link href={`/estimates/${estimate.id}/edit`} className="px-3.5 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm sm:text-base font-medium transition-colors shadow-sm">
             수정하기
           </Link>
         </div>
@@ -69,7 +69,7 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-6 print:p-0 print:border-none print:shadow-none print:space-y-4">
+      <div className="bg-white p-3.5 sm:p-5 md:p-6 rounded-xl shadow-sm border border-gray-100 space-y-6 print:p-0 print:border-none print:shadow-none print:space-y-4">
         {/* 기본 정보 및 주소/일정 */}
         <section>
           <div className="flex justify-between items-center border-b pb-2 mb-4 print:mb-2 print:pb-1">
@@ -86,7 +86,8 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
             )}
           </div>
           
-          <table className="w-full text-sm border-collapse border border-gray-300 print:text-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border-collapse border border-gray-300 print:text-xs min-w-[500px] print:min-w-0">
             <tbody>
               <tr>
                 <th className="border border-gray-300 bg-gray-50 px-3 py-2 print:px-2 print:py-1 text-left font-medium text-gray-700 w-1/4 sm:w-1/6">고객명</th>
@@ -172,6 +173,7 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
               </tr>
             </tbody>
           </table>
+          </div>
         </section>
 
         {/* 물품 및 작업 환경 */}
@@ -190,7 +192,8 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                           {catItems.reduce((acc: number, item: any) => acc + ((Number(item.cbm) || 0) + (Number(item.innerBoxCbm) || 0)) * (item.quantity !== undefined ? Number(item.quantity) : 1), 0).toFixed(2)} CBM
                         </span>
                       </div>
-                      <table className="w-full text-sm text-left print:text-xs">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left print:text-xs min-w-[480px] print:min-w-0">
                         <thead className="bg-gray-50 text-gray-600 border-b print:bg-transparent">
                           <tr>
                             <th className="px-4 py-2 font-medium print:px-2 print:py-1">품목</th>
@@ -212,6 +215,7 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                           ))}
                         </tbody>
                       </table>
+                      </div>
                     </div>
                   ))}
                 </div>

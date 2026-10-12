@@ -51,25 +51,25 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h2 className="text-gray-500 text-sm font-medium">오늘 예정된 방문견적</h2>
-          <p className="text-3xl font-bold text-gray-900 mt-2">{todayVisitsCount}건</p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-6">
+        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
+          <h2 className="text-gray-500 text-xs sm:text-sm font-medium">오늘 예정된 방문견적</h2>
+          <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">{todayVisitsCount}건</p>
         </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h2 className="text-gray-500 text-sm font-medium">이번 달 이사 건수</h2>
-          <p className="text-3xl font-bold text-gray-900 mt-2">{thisMonthMovingsCount}건</p>
+        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
+          <h2 className="text-gray-500 text-xs sm:text-sm font-medium">이번 달 이사 건수</h2>
+          <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">{thisMonthMovingsCount}건</p>
         </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h2 className="text-gray-500 text-sm font-medium">대기 중인 견적 (미계약)</h2>
-          <p className="text-3xl font-bold text-gray-900 mt-2">{pendingCount}건</p>
+        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
+          <h2 className="text-gray-500 text-xs sm:text-sm font-medium">대기 중인 견적 (미계약)</h2>
+          <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">{pendingCount}건</p>
         </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-          <h2 className="text-lg font-bold text-gray-900">최근 작성된 견적</h2>
-          <Link href="/estimates" className="text-sm text-blue-600 hover:underline">전체 보기</Link>
+        <div className="p-4 sm:p-6 border-b border-gray-100 flex justify-between items-center">
+          <h2 className="text-base sm:text-lg font-bold text-gray-900">최근 작성된 견적</h2>
+          <Link href="/estimates" className="text-xs sm:text-sm text-blue-600 hover:underline">전체 보기</Link>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
