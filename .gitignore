@@ -43,4 +43,5 @@ next-env.d.ts
 # database
 *.db
 *.db-journal
+prisma/backup_*.json
 

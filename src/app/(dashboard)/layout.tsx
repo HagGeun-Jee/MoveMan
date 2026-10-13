@@ -32,7 +32,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto print:overflow-visible print:h-auto">
-        <div className="p-3 sm:p-4 md:p-6 lg:p-8">
+        <div className="p-3 sm:p-4 md:p-6 lg:p-8 print:p-0">
           {children}
         </div>
       </main>

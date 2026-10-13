@@ -25,7 +25,8 @@ import {
   RefreshCw,
   Edit2,
   Trash2,
-  FileText
+  FileText,
+  Printer
 } from 'lucide-react'
 
 import { TransferModal } from './TransferModal'
@@ -33,9 +34,11 @@ import { StockInOutModal } from './StockInOutModal'
 import { StockAuditModal } from './StockAuditModal'
 import { MaterialModal } from './MaterialModal'
 import { LocationModal } from './LocationModal'
+import { LocationInventoryReport } from './LocationInventoryReport'
 
 export default function InventoryPage() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'transfers' | 'audits' | 'settings'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'locationReport' | 'transfers' | 'audits' | 'settings'>('overview')
+  const [reportLocationId, setReportLocationId] = useState<string | undefined>(undefined)
   const [loading, setLoading] = useState(true)
 
   const [materials, setMaterials] = useState<any[]>([])
@@ -115,9 +118,9 @@ export default function InventoryPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16">
+    <div className="space-y-6 max-w-7xl mx-auto pb-16 print:space-y-0 print:max-w-none print:pb-0 print:m-0 print:p-0">
       {/* 1. 상단 타이틀 & 퀵 액션 */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-5 rounded-2xl shadow-xs border border-gray-100">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-5 rounded-2xl shadow-xs border border-gray-100 print:hidden">
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
@@ -135,6 +138,18 @@ export default function InventoryPage() {
 
         {/* 퀵 액션 버튼 그룹 */}
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('locationReport')
+            }}
+            className="px-3.5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors flex items-center gap-1.5 shadow-sm shadow-indigo-200"
+            title="차량 대여 시 적재된 자재 목록을 확인하고 PDF로 출력하거나 메신저로 공유합니다"
+          >
+            <Printer size={15} />
+            <span>차량 대여 / 거점 재고 (PDF)</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setIsTransferOpen(true)}
@@ -174,7 +189,7 @@ export default function InventoryPage() {
       </div>
 
       {/* 2. 핵심 요약 카드 4종 */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 print:hidden">
         <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-gray-100 flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold text-gray-500">관리 자재 품목</p>
@@ -228,22 +243,34 @@ export default function InventoryPage() {
       </div>
 
       {/* 3. 탭 네비게이션 */}
-      <div className="flex border-b border-gray-200 space-x-1 sm:space-x-3 bg-white px-4 pt-2 rounded-xl shadow-xs">
+      <div className="flex border-b border-gray-200 space-x-1 sm:space-x-3 bg-white px-4 pt-2 rounded-xl shadow-xs overflow-x-auto no-scrollbar print:hidden">
         <button
           onClick={() => setActiveTab('overview')}
-          className={`py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${
+          className={`py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
             activeTab === 'overview'
               ? 'border-blue-600 text-blue-600'
               : 'border-transparent text-gray-500 hover:text-gray-700'
           }`}
         >
           <Boxes size={16} />
-          <span>재고 현황 (위치별 x 자재별)</span>
+          <span>전체 현황 매트릭스</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('locationReport')}
+          className={`py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'locationReport'
+              ? 'border-indigo-600 text-indigo-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <Printer size={16} />
+          <span>거점별 재고 & PDF 공유 (차량 대여)</span>
         </button>
 
         <button
           onClick={() => setActiveTab('transfers')}
-          className={`py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${
+          className={`py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
             activeTab === 'transfers'
               ? 'border-blue-600 text-blue-600'
               : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -255,7 +282,7 @@ export default function InventoryPage() {
 
         <button
           onClick={() => setActiveTab('audits')}
-          className={`py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${
+          className={`py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
             activeTab === 'audits'
               ? 'border-blue-600 text-blue-600'
               : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -267,7 +294,7 @@ export default function InventoryPage() {
 
         <button
           onClick={() => setActiveTab('settings')}
-          className={`py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${
+          className={`py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
             activeTab === 'settings'
               ? 'border-blue-600 text-blue-600'
               : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -282,7 +309,7 @@ export default function InventoryPage() {
 
       {/* [TAB 1] 재고 현황 매트릭스 뷰 */}
       {activeTab === 'overview' && (
-        <div className="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden print:hidden">
           {/* 검색 및 필터 바 */}
           <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-gray-50/50">
             <div className="flex items-center gap-2 flex-1 w-full sm:w-auto">
@@ -328,14 +355,26 @@ export default function InventoryPage() {
 
                   {/* 위치별 열 헤더 */}
                   {locations.map(loc => (
-                    <th key={loc.id} className="px-3.5 py-3 text-center min-w-24">
-                      <div className="flex items-center justify-center gap-1">
+                    <th key={loc.id} className="px-3.5 py-3 text-center min-w-28">
+                      <div className="flex items-center justify-center gap-1.5">
                         {loc.type === 'WAREHOUSE' ? (
-                          <Warehouse size={13} className="text-blue-600" />
+                          <Warehouse size={13} className="text-blue-600 shrink-0" />
                         ) : (
-                          <Truck size={13} className="text-emerald-600" />
+                          <Truck size={13} className="text-emerald-600 shrink-0" />
                         )}
-                        <span>{loc.name}</span>
+                        <span className="truncate">{loc.name}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setReportLocationId(loc.id)
+                            setActiveTab('locationReport')
+                          }}
+                          title={`${loc.name} 인수인계서 및 PDF 출력`}
+                          className="p-1 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+                        >
+                          <Printer size={12} />
+                        </button>
                       </div>
                     </th>
                   ))}
@@ -426,9 +465,19 @@ export default function InventoryPage() {
         </div>
       )}
 
+      {/* [TAB: 거점별 재고 & PDF 공유 (차량 대여)] */}
+      {activeTab === 'locationReport' && (
+        <LocationInventoryReport
+          locations={locations}
+          materials={materials}
+          initialLocationId={reportLocationId}
+          onOpenTransfer={() => setIsTransferOpen(true)}
+        />
+      )}
+
       {/* [TAB 2] 이고 및 입출고 이력 뷰 */}
       {activeTab === 'transfers' && (
-        <div className="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden print:hidden">
           <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
             <h3 className="text-xs font-bold text-gray-800">최근 재고 이동(이고) 및 입출고 전표</h3>
             <span className="text-xs text-gray-500">최근 {transfers.length}건 표시</span>
@@ -520,7 +569,7 @@ export default function InventoryPage() {
 
       {/* [TAB 3] 재고 실사 이력 뷰 */}
       {activeTab === 'audits' && (
-        <div className="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden print:hidden">
           <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
             <h3 className="text-xs font-bold text-gray-800">현장 재고 실사 이력 및 오차 보정 기록</h3>
             <span className="text-xs text-gray-500">최근 {audits.length}건 표시</span>
@@ -601,7 +650,7 @@ export default function InventoryPage() {
 
       {/* [TAB 4] 자재 및 거점 설정 뷰 */}
       {activeTab === 'settings' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:hidden">
           {/* 1. 자재 품목 마스터 관리 */}
           <div className="bg-white rounded-2xl shadow-xs border border-gray-100 p-5">
             <div className="flex justify-between items-center mb-4">
