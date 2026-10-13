@@ -290,8 +290,14 @@ export async function recordStockIn(payload: {
     if (!targetLocId) {
       return { error: '입고할 위치(창고/차량)를 선택해주세요.' }
     }
-    if (!items || items.length === 0) {
-      return { error: '입고할 자재를 1개 이상 입력해주세요.' }
+
+    // 유효한 자재 및 수량만 필터링
+    const validItems = (items || []).filter(
+      it => it.materialId && typeof it.materialId === 'string' && it.materialId.trim() !== '' && it.quantity > 0
+    )
+
+    if (validItems.length === 0) {
+      return { error: '입고할 자재를 선택하고 1개 이상의 수량을 입력해주세요.' }
     }
 
     const adminName = await getAdminName()
@@ -299,7 +305,8 @@ export async function recordStockIn(payload: {
     await prisma.$transaction(async (tx) => {
       const todayStr = new Date().toISOString().slice(2, 10).replace(/-/g, '')
       const count = await tx.materialTransfer.count()
-      const transferNo = `IN${todayStr}-${String(count + 1).padStart(4, '0')}`
+      const rand = Math.floor(100 + Math.random() * 900)
+      const transferNo = `IN${todayStr}-${String(count + 1).padStart(4, '0')}-${rand}`
 
       const transfer = await tx.materialTransfer.create({
         data: {
@@ -311,9 +318,7 @@ export async function recordStockIn(payload: {
         }
       })
 
-      for (const item of items) {
-        if (item.quantity <= 0) continue
-
+      for (const item of validItems) {
         await tx.materialStock.upsert({
           where: {
             locationId_materialId: {
@@ -363,16 +368,21 @@ export async function recordStockOut(payload: {
     if (!sourceLocId) {
       return { error: '출고(폐기)할 위치를 선택해주세요.' }
     }
-    if (!items || items.length === 0) {
-      return { error: '출고할 자재를 1개 이상 입력해주세요.' }
+
+    // 유효한 자재 및 수량만 필터링
+    const validItems = (items || []).filter(
+      it => it.materialId && typeof it.materialId === 'string' && it.materialId.trim() !== '' && it.quantity > 0
+    )
+
+    if (validItems.length === 0) {
+      return { error: '출고할 자재를 선택하고 1개 이상의 수량을 입력해주세요.' }
     }
 
     const adminName = await getAdminName()
 
     await prisma.$transaction(async (tx) => {
       // 재고 확인
-      for (const item of items) {
-        if (item.quantity <= 0) continue
+      for (const item of validItems) {
         const stock = await tx.materialStock.findUnique({
           where: {
             locationId_materialId: {
@@ -384,13 +394,14 @@ export async function recordStockOut(payload: {
         const cur = stock?.quantity || 0
         if (cur < item.quantity) {
           const mat = await tx.materialItem.findUnique({ where: { id: item.materialId } })
-          throw new Error(`[${mat?.name}] 보유 수량보다 많은 수량을 출고할 수 없습니다. (현재: ${cur}개)`)
+          throw new Error(`[${mat?.name || '자재'}] 보유 수량보다 많은 수량을 출고할 수 없습니다. (현재: ${cur}개)`)
         }
       }
 
       const todayStr = new Date().toISOString().slice(2, 10).replace(/-/g, '')
       const count = await tx.materialTransfer.count()
-      const transferNo = `OUT${todayStr}-${String(count + 1).padStart(4, '0')}`
+      const rand = Math.floor(100 + Math.random() * 900)
+      const transferNo = `OUT${todayStr}-${String(count + 1).padStart(4, '0')}-${rand}`
 
       const transfer = await tx.materialTransfer.create({
         data: {
@@ -402,9 +413,7 @@ export async function recordStockOut(payload: {
         }
       })
 
-      for (const item of items) {
-        if (item.quantity <= 0) continue
-
+      for (const item of validItems) {
         await tx.materialStock.update({
           where: {
             locationId_materialId: {

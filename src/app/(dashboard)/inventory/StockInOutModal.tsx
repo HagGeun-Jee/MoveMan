@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { recordStockIn, recordStockOut } from '@/app/actions/inventory'
 import { X, Plus, Trash2, Loader2, AlertCircle, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react'
 
@@ -20,13 +20,24 @@ export function StockInOutModal({ isOpen, onClose, locations, materials, onSucce
   const [error, setError] = useState<string | null>(null)
 
   const [items, setItems] = useState<{ materialId: string; quantity: number }[]>([
-    { materialId: materials[0]?.id || '', quantity: 10 }
+    { materialId: '', quantity: 10 }
   ])
+
+  // 모달 열릴 때 초기화
+  useEffect(() => {
+    if (isOpen) {
+      const defaultLoc = locations.find(l => l.type === 'WAREHOUSE')?.id || locations[0]?.id || ''
+      setTargetLocationId(defaultLoc)
+      setItems([{ materialId: '', quantity: 10 }])
+      setMemo('')
+      setError(null)
+    }
+  }, [isOpen, locations])
 
   if (!isOpen) return null
 
   const handleAddItem = () => {
-    setItems(prev => [...prev, { materialId: materials[0]?.id || '', quantity: 1 }])
+    setItems(prev => [...prev, { materialId: '', quantity: 1 }])
   }
 
   const handleRemoveItem = (index: number) => {
@@ -46,9 +57,9 @@ export function StockInOutModal({ isOpen, onClose, locations, materials, onSucce
       return
     }
 
-    const validItems = items.filter(it => it.quantity > 0)
+    const validItems = items.filter(it => it.materialId && it.materialId.trim() !== '' && it.quantity > 0)
     if (validItems.length === 0) {
-      setError('수량을 1개 이상 입력해주세요.')
+      setError(type === 'IN' ? '입고할 자재를 선택하고 수량을 입력해주세요.' : '출고할 자재를 선택하고 수량을 입력해주세요.')
       return
     }
 
@@ -69,7 +80,7 @@ export function StockInOutModal({ isOpen, onClose, locations, materials, onSucce
     }
     setLoading(false)
 
-    if (res.error) {
+    if (res?.error) {
       setError(res.error)
     } else {
       alert(type === 'IN' ? '신규 자재 입고가 완료되었습니다.' : '자재 출고(폐기) 처리가 완료되었습니다.')
