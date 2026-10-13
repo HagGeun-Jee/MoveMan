@@ -1301,14 +1301,14 @@ export function EstimateForm({
                 return (
                   <div key={cat.id} className="border border-gray-200 rounded-lg overflow-hidden">
                     <div 
-                      className="bg-gray-100 px-4 py-2 font-bold text-gray-700 flex justify-between items-center cursor-pointer hover:bg-gray-200 transition-colors"
+                      className="bg-blue-50/80 px-4 py-2.5 font-bold text-gray-800 flex justify-between items-center cursor-pointer hover:bg-blue-100/70 transition-colors border-b border-blue-100"
                       onClick={() => setExpandedCategories(prev => ({ ...prev, [cat.id]: !isExpanded }))}
                     >
                       <div className="flex items-center gap-2">
-                        {isExpanded ? <ChevronUp size={20} className="text-gray-500" /> : <ChevronDown size={20} className="text-gray-500" />}
-                        <span>{cat.name}</span>
+                        {isExpanded ? <ChevronUp size={20} className="text-blue-600" /> : <ChevronDown size={20} className="text-gray-400" />}
+                        <span className="text-gray-900 font-bold">{cat.name}</span>
                       </div>
-                      <span className="text-sm font-medium text-blue-600">
+                      <span className="text-sm font-semibold text-blue-700 bg-white/90 px-2.5 py-0.5 rounded-full border border-blue-200 shadow-2xs">
                         {catItems.reduce((acc, item) => acc + ((Number(item.cbm) || 0) + (Number(item.innerBoxCbm) || 0)) * (item.quantity !== undefined ? Number(item.quantity) : 1), 0).toFixed(2)} CBM
                       </span>
                     </div>

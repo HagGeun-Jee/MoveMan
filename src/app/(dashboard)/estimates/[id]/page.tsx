@@ -275,15 +275,18 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                 <div className="space-y-4 print:space-y-2">
                   {Object.entries(groupedItems).map(([locName, catItems]: [string, any]) => (
                     <div key={locName} className="border border-gray-200 rounded-lg overflow-hidden print:border-gray-300">
-                      <div className="bg-gray-100 px-4 py-2 font-bold text-gray-900 flex justify-between items-center print:bg-gray-50 print:py-1">
-                        <span>{locName}</span>
-                        <span className="text-sm font-bold text-blue-700">
+                      <div className="bg-blue-50/80 px-4 py-2.5 font-bold text-gray-900 flex justify-between items-center border-b border-blue-100 print:bg-gray-100 print:border-gray-300 print:py-1">
+                        <div className="flex items-center gap-2">
+                          <span className="w-1.5 h-4 bg-blue-600 rounded-sm inline-block print:hidden"></span>
+                          <span className="text-gray-900 font-bold">{locName}</span>
+                        </div>
+                        <span className="text-sm font-bold text-blue-700 bg-white/90 px-2.5 py-0.5 rounded-full border border-blue-200 shadow-2xs print:bg-transparent print:border-none print:p-0 print:text-black">
                           {catItems.reduce((acc: number, item: any) => acc + ((Number(item.cbm) || 0) + (Number(item.innerBoxCbm) || 0)) * (item.quantity !== undefined ? Number(item.quantity) : 1), 0).toFixed(2)} CBM
                         </span>
                       </div>
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left print:text-xs min-w-[480px] print:min-w-0">
-                        <thead className="bg-gray-100 text-gray-800 font-bold border-b border-gray-200 print:bg-transparent">
+                        <thead className="bg-gray-50 text-gray-700 font-semibold border-b border-gray-200 print:bg-transparent">
                           <tr>
                             <th className="px-4 py-2 print:px-2 print:py-1">품목</th>
                             <th className="px-4 py-2 print:px-2 print:py-1">규격</th>
