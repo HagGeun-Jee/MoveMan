@@ -111,3 +111,112 @@ model LadderTruckMaster {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+// ==================== 자재 재고관리 모델 ====================
+
+// 1. 자재 품목 마스터
+model MaterialItem {
+  id          String   @id @default(cuid())
+  code        String   @unique // 자재코드 (예: MAT-001)
+  name        String   // 자재명 (예: 단프라박스 대형, 이사용 바구니)
+  category    String   @default("REUSABLE") // REUSABLE(회수용), CONSUMABLE(소모용), TOOL(도구/장비)
+  unit        String   @default("개") // 단위 (개, 롤, 매 등)
+  safetyStock Int      @default(0) // 안전재고 (최소 필요 수량)
+  unitPrice   Int      @default(0) // 단가 (원)
+  memo        String?  @default("") // 비고
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  stocks        MaterialStock[]
+  transferItems MaterialTransferItem[]
+  auditItems    MaterialAuditItem[]
+}
+
+// 2. 재고 보관 위치 (창고 및 차량)
+model InventoryLocation {
+  id          String   @id @default(cuid())
+  name        String   @unique // 위치명 (예: 본사 메인창고, 1호차 (5톤탑차))
+  type        String   @default("WAREHOUSE") // WAREHOUSE(창고), VEHICLE(차량)
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  memo        String?  @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  stocks          MaterialStock[]
+  sourceTransfers MaterialTransfer[] @relation("SourceLocation")
+  targetTransfers MaterialTransfer[] @relation("TargetLocation")
+  audits          MaterialAudit[]
+}
+
+// 3. 위치별 자재 보유 재고 (Location x Item)
+model MaterialStock {
+  id          String            @id @default(cuid())
+  locationId  String
+  materialId  String
+  quantity    Int               @default(0) // 현재 수량
+  updatedAt   DateTime          @updatedAt
+
+  location    InventoryLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  material    MaterialItem      @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@unique([locationId, materialId])
+}
+
+// 4. 재고 이동(이고) 및 입출고 전표
+model MaterialTransfer {
+  id              String   @id @default(cuid())
+  transferNo      String   @unique // 전표번호 (예: TR261013-0001)
+  type            String   // TRANSFER(이고: 위치간 이동), IN(신규구매입고), OUT(폐기/손망실)
+  sourceLocId     String?  // 출발 위치 (IN일 경우 null)
+  targetLocId     String?  // 도착 위치 (OUT일 경우 null)
+  adminName       String   // 작업자/담당자
+  memo            String?  @default("")
+  transferDate    DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  sourceLocation  InventoryLocation? @relation("SourceLocation", fields: [sourceLocId], references: [id], onDelete: SetNull)
+  targetLocation  InventoryLocation? @relation("TargetLocation", fields: [targetLocId], references: [id], onDelete: SetNull)
+  items           MaterialTransferItem[]
+}
+
+// 4-1. 전표 품목
+model MaterialTransferItem {
+  id          String           @id @default(cuid())
+  transferId  String
+  materialId  String
+  quantity    Int              // 이동/입출고 수량
+
+  transfer    MaterialTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  material    MaterialItem     @relation(fields: [materialId], references: [id], onDelete: Cascade)
+}
+
+// 5. 재고 실사 전표
+model MaterialAudit {
+  id          String            @id @default(cuid())
+  auditNo     String            @unique // 실사번호 (예: AUD261013-0001)
+  locationId  String            // 실사 대상 위치 (창고 또는 특정 차량)
+  adminName   String            // 실사 진행자
+  memo        String?           @default("")
+  auditDate   DateTime          @default(now())
+  createdAt   DateTime          @default(now())
+
+  location    InventoryLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  items       MaterialAuditItem[]
+}
+
+// 5-1. 실사 품목 상세 (전산 수량 vs 현장 실사 수량)
+model MaterialAuditItem {
+  id          String        @id @default(cuid())
+  auditId     String
+  materialId  String
+  systemQty   Int           // 실사 시점 전산 수량
+  actualQty   Int           // 실제 카운트 수량
+  diffQty     Int           // 차이 수량 (actualQty - systemQty)
+  reason      String?       @default("") // 오차 사유
+
+  audit       MaterialAudit @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  material    MaterialItem  @relation(fields: [materialId], references: [id], onDelete: Cascade)
+}
+

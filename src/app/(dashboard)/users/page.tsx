@@ -37,6 +37,8 @@ export default async function UsersPage() {
     { path: '/items', name: '물품정보' },
     { path: '/vehicles', name: '차량정보' },
     { path: '/labors', name: '인건비정보' },
+    { path: '/ladders', name: '사다리차운임' },
+    { path: '/inventory', name: '자재재고관리' },
   ]
 
   async function updateAdminLevel(formData: FormData) {

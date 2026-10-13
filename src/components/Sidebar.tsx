@@ -15,9 +15,11 @@ import {
   Menu, 
   X,
   PlusCircle,
-  KeyRound
+  KeyRound,
+  Boxes
 } from 'lucide-react'
 import { ChangePasswordModal } from './ChangePasswordModal'
+
 
 
 export function Sidebar({ 
@@ -195,7 +197,14 @@ export function Sidebar({
                     <span>사다리차운임</span>
                   </Link>
                 )}
+                {canAccess('/inventory') && (
+                  <Link href="/inventory" onClick={() => setMobileOpen(false)} className={mobileLinkClass(isActive('/inventory'))}>
+                    <Boxes size={18} className="shrink-0 text-blue-600" />
+                    <span>자재재고관리</span>
+                  </Link>
+                )}
               </div>
+
             </nav>
 
             {/* 드로어 하단 사용자 정보 및 로그아웃 */}
@@ -326,7 +335,16 @@ export function Sidebar({
                 </Link>
               </li>
             )}
+            {canAccess('/inventory') && (
+              <li>
+                <Link href="/inventory" className={subLinkClass(isActive('/inventory'))} title="자재재고관리">
+                  <Boxes size={18} className="shrink-0 text-blue-600" />
+                  {!collapsed && <span>자재재고관리</span>}
+                </Link>
+              </li>
+            )}
           </ul>
+
         </nav>
 
         <div className={`p-3 border-t border-gray-100 ${collapsed ? 'flex flex-col items-center gap-1 px-2' : ''}`}>
