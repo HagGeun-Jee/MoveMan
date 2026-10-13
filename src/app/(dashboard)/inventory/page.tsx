@@ -728,13 +728,15 @@ export default function InventoryPage() {
         onSuccess={loadData}
       />
 
-      <StockAuditModal
-        isOpen={isAuditOpen}
-        onClose={() => setIsAuditOpen(false)}
-        locations={locations}
-        materials={materials}
-        onSuccess={loadData}
-      />
+      {isAuditOpen && (
+        <StockAuditModal
+          isOpen={isAuditOpen}
+          onClose={() => setIsAuditOpen(false)}
+          locations={locations}
+          materials={materials}
+          onSuccess={loadData}
+        />
+      )}
 
       {isMaterialOpen && (
         <MaterialModal

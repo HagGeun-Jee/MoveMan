@@ -472,7 +472,8 @@ export async function recordAuditAndAdjust(payload: {
     await prisma.$transaction(async (tx) => {
       const todayStr = new Date().toISOString().slice(2, 10).replace(/-/g, '')
       const count = await tx.materialAudit.count()
-      const auditNo = `AUD${todayStr}-${String(count + 1).padStart(4, '0')}`
+      const rand = Math.floor(100 + Math.random() * 900)
+      const auditNo = `AUD${todayStr}-${String(count + 1).padStart(4, '0')}-${rand}`
 
       const audit = await tx.materialAudit.create({
         data: {

@@ -28,9 +28,19 @@ export function StockAuditModal({ isOpen, onClose, locations, materials, onSucce
     reason: string
   }[]>([])
 
+  // 모달 열릴 때 기본 위치(창고) 세팅 및 폼 초기화
+  useEffect(() => {
+    if (isOpen) {
+      const defaultLoc = locations.find(l => l.type === 'WAREHOUSE')?.id || locations[0]?.id || ''
+      setSelectedLocationId(defaultLoc)
+      setMemo('')
+      setError(null)
+    }
+  }, [isOpen, locations])
+
   // 위치 선택 시 해당 위치의 전산 수량으로 기본 세팅
   useEffect(() => {
-    if (selectedLocationId) {
+    if (selectedLocationId && materials.length > 0) {
       const rows = materials.map(m => {
         const sysQty = m.stocks?.[selectedLocationId] || 0
         return {
@@ -46,7 +56,7 @@ export function StockAuditModal({ isOpen, onClose, locations, materials, onSucce
     } else {
       setAuditRows([])
     }
-  }, [selectedLocationId, materials])
+  }, [selectedLocationId])
 
   if (!isOpen) return null
 
@@ -61,8 +71,8 @@ export function StockAuditModal({ isOpen, onClose, locations, materials, onSucce
   // 전체 오차 개수 집계
   const diffCount = auditRows.filter(r => r.actualQty !== r.systemQty).length
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
     setError(null)
 
     if (!selectedLocationId) {
@@ -70,34 +80,38 @@ export function StockAuditModal({ isOpen, onClose, locations, materials, onSucce
       return
     }
 
-    if (diffCount > 0) {
-      const confirmProceed = window.confirm(
-        `전산 수량과 차이가 있는 품목이 ${diffCount}건 있습니다.\n실사 수량으로 해당 위치의 전산 재고를 일괄 보정하시겠습니까?`
-      )
-      if (!confirmProceed) return
+    if (auditRows.length === 0) {
+      setError('실사 대상 자재 품목이 없습니다.')
+      return
     }
 
     setLoading(true)
-    const payloadItems = auditRows.map(r => ({
-      materialId: r.materialId,
-      systemQty: r.systemQty,
-      actualQty: r.actualQty,
-      reason: r.reason || (r.actualQty !== r.systemQty ? '실사 차이 보정' : '')
-    }))
+    try {
+      const payloadItems = auditRows.map(r => ({
+        materialId: r.materialId,
+        systemQty: Number(r.systemQty) || 0,
+        actualQty: Number(r.actualQty) || 0,
+        reason: r.reason || (r.actualQty !== r.systemQty ? '실사 차이 보정' : '정상')
+      }))
 
-    const res = await recordAuditAndAdjust({
-      locationId: selectedLocationId,
-      auditItems: payloadItems,
-      memo
-    })
-    setLoading(false)
+      const res = await recordAuditAndAdjust({
+        locationId: selectedLocationId,
+        auditItems: payloadItems,
+        memo
+      })
 
-    if (res.error) {
-      setError(res.error)
-    } else {
-      alert('재고 실사가 완료되었으며, 전산 재고가 실사 수량으로 보정되었습니다.')
-      onSuccess()
-      onClose()
+      if (res?.error) {
+        setError(res.error)
+      } else {
+        alert('재고 실사가 완료되었으며, 전산 재고가 실사 수량으로 보정되었습니다.')
+        onSuccess()
+        onClose()
+      }
+    } catch (err: any) {
+      console.error('Audit submit error:', err)
+      setError('실사 처리 중 오류가 발생했습니다.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -259,9 +273,10 @@ export function StockAuditModal({ isOpen, onClose, locations, materials, onSucce
               취소
             </button>
             <button
-              type="submit"
+              type="button"
+              onClick={() => handleSubmit()}
               disabled={loading || !selectedLocationId}
-              className="flex-1 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50"
+              className="flex-1 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50 cursor-pointer"
             >
               {loading ? (
                 <>
