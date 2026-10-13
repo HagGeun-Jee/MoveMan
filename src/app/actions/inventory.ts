@@ -207,7 +207,8 @@ export async function transferStock(payload: {
       // 2. 전표 번호 생성
       const todayStr = new Date().toISOString().slice(2, 10).replace(/-/g, '')
       const count = await tx.materialTransfer.count()
-      const transferNo = `TR${todayStr}-${String(count + 1).padStart(4, '0')}`
+      const rand = Math.floor(100 + Math.random() * 900)
+      const transferNo = `TR${todayStr}-${String(count + 1).padStart(4, '0')}-${rand}`
 
       const transfer = await tx.materialTransfer.create({
         data: {
@@ -220,52 +221,58 @@ export async function transferStock(payload: {
         }
       })
 
-      // 3. 재고 차감 및 가산 + 전표 상세 품목 등록
-      for (const item of items) {
-        if (item.quantity <= 0) continue
-
-        // 출발지 차감
-        await tx.materialStock.update({
-          where: {
-            locationId_materialId: {
-              locationId: sourceLocId,
-              materialId: item.materialId
+      // 3. 재고 차감 및 가산 (병렬 처리)
+      const validItems = items.filter(it => it.quantity > 0)
+      await Promise.all(
+        validItems.map(async item => {
+          // 출발지 차감
+          await tx.materialStock.update({
+            where: {
+              locationId_materialId: {
+                locationId: sourceLocId,
+                materialId: item.materialId
+              }
+            },
+            data: {
+              quantity: { decrement: item.quantity }
             }
-          },
-          data: {
-            quantity: { decrement: item.quantity }
-          }
-        })
+          })
 
-        // 도착지 가산 (없으면 생성)
-        await tx.materialStock.upsert({
-          where: {
-            locationId_materialId: {
+          // 도착지 가산 (없으면 생성)
+          await tx.materialStock.upsert({
+            where: {
+              locationId_materialId: {
+                locationId: targetLocId,
+                materialId: item.materialId
+              }
+            },
+            update: {
+              quantity: { increment: item.quantity }
+            },
+            create: {
               locationId: targetLocId,
-              materialId: item.materialId
+              materialId: item.materialId,
+              quantity: item.quantity
             }
-          },
-          update: {
-            quantity: { increment: item.quantity }
-          },
-          create: {
-            locationId: targetLocId,
-            materialId: item.materialId,
-            quantity: item.quantity
-          }
+          })
         })
+      )
 
-        // 품목 상세 저장
-        await tx.materialTransferItem.create({
-          data: {
+      // 품목 상세 일괄 저장 (createMany)
+      if (validItems.length > 0) {
+        await tx.materialTransferItem.createMany({
+          data: validItems.map(item => ({
             transferId: transfer.id,
             materialId: item.materialId,
             quantity: item.quantity
-          }
+          }))
         })
       }
 
       return transfer
+    }, {
+      maxWait: 15000,
+      timeout: 30000
     })
 
     revalidatePath('/inventory')
@@ -302,49 +309,57 @@ export async function recordStockIn(payload: {
 
     const adminName = await getAdminName()
 
-    await prisma.$transaction(async (tx) => {
-      const todayStr = new Date().toISOString().slice(2, 10).replace(/-/g, '')
-      const count = await tx.materialTransfer.count()
-      const rand = Math.floor(100 + Math.random() * 900)
-      const transferNo = `IN${todayStr}-${String(count + 1).padStart(4, '0')}-${rand}`
+    await prisma.$transaction(
+      async (tx) => {
+        const todayStr = new Date().toISOString().slice(2, 10).replace(/-/g, '')
+        const count = await tx.materialTransfer.count()
+        const rand = Math.floor(100 + Math.random() * 900)
+        const transferNo = `IN${todayStr}-${String(count + 1).padStart(4, '0')}-${rand}`
 
-      const transfer = await tx.materialTransfer.create({
-        data: {
-          transferNo,
-          type: 'IN',
-          targetLocId,
-          adminName,
-          memo: memo || '신규 구매 입고'
-        }
-      })
-
-      for (const item of validItems) {
-        await tx.materialStock.upsert({
-          where: {
-            locationId_materialId: {
-              locationId: targetLocId,
-              materialId: item.materialId
-            }
-          },
-          update: {
-            quantity: { increment: item.quantity }
-          },
-          create: {
-            locationId: targetLocId,
-            materialId: item.materialId,
-            quantity: item.quantity
+        const transfer = await tx.materialTransfer.create({
+          data: {
+            transferNo,
+            type: 'IN',
+            targetLocId,
+            adminName,
+            memo: memo || '신규 구매 입고'
           }
         })
 
-        await tx.materialTransferItem.create({
-          data: {
+        await Promise.all(
+          validItems.map(item =>
+            tx.materialStock.upsert({
+              where: {
+                locationId_materialId: {
+                  locationId: targetLocId,
+                  materialId: item.materialId
+                }
+              },
+              update: {
+                quantity: { increment: item.quantity }
+              },
+              create: {
+                locationId: targetLocId,
+                materialId: item.materialId,
+                quantity: item.quantity
+              }
+            })
+          )
+        )
+
+        await tx.materialTransferItem.createMany({
+          data: validItems.map(item => ({
             transferId: transfer.id,
             materialId: item.materialId,
             quantity: item.quantity
-          }
+          }))
         })
+      },
+      {
+        maxWait: 15000,
+        timeout: 30000
       }
-    })
+    )
 
     revalidatePath('/inventory')
     return { success: true }
@@ -380,61 +395,69 @@ export async function recordStockOut(payload: {
 
     const adminName = await getAdminName()
 
-    await prisma.$transaction(async (tx) => {
-      // 재고 확인
-      for (const item of validItems) {
-        const stock = await tx.materialStock.findUnique({
-          where: {
-            locationId_materialId: {
-              locationId: sourceLocId,
-              materialId: item.materialId
+    await prisma.$transaction(
+      async (tx) => {
+        // 재고 확인
+        for (const item of validItems) {
+          const stock = await tx.materialStock.findUnique({
+            where: {
+              locationId_materialId: {
+                locationId: sourceLocId,
+                materialId: item.materialId
+              }
             }
+          })
+          const cur = stock?.quantity || 0
+          if (cur < item.quantity) {
+            const mat = await tx.materialItem.findUnique({ where: { id: item.materialId } })
+            throw new Error(`[${mat?.name || '자재'}] 보유 수량보다 많은 수량을 출고할 수 없습니다. (현재: ${cur}개)`)
           }
-        })
-        const cur = stock?.quantity || 0
-        if (cur < item.quantity) {
-          const mat = await tx.materialItem.findUnique({ where: { id: item.materialId } })
-          throw new Error(`[${mat?.name || '자재'}] 보유 수량보다 많은 수량을 출고할 수 없습니다. (현재: ${cur}개)`)
         }
-      }
 
-      const todayStr = new Date().toISOString().slice(2, 10).replace(/-/g, '')
-      const count = await tx.materialTransfer.count()
-      const rand = Math.floor(100 + Math.random() * 900)
-      const transferNo = `OUT${todayStr}-${String(count + 1).padStart(4, '0')}-${rand}`
+        const todayStr = new Date().toISOString().slice(2, 10).replace(/-/g, '')
+        const count = await tx.materialTransfer.count()
+        const rand = Math.floor(100 + Math.random() * 900)
+        const transferNo = `OUT${todayStr}-${String(count + 1).padStart(4, '0')}-${rand}`
 
-      const transfer = await tx.materialTransfer.create({
-        data: {
-          transferNo,
-          type: 'OUT',
-          sourceLocId,
-          adminName,
-          memo: memo || '손망실/폐기 출고'
-        }
-      })
-
-      for (const item of validItems) {
-        await tx.materialStock.update({
-          where: {
-            locationId_materialId: {
-              locationId: sourceLocId,
-              materialId: item.materialId
-            }
-          },
+        const transfer = await tx.materialTransfer.create({
           data: {
-            quantity: { decrement: item.quantity }
+            transferNo,
+            type: 'OUT',
+            sourceLocId,
+            adminName,
+            memo: memo || '손망실/폐기 출고'
           }
         })
 
-        await tx.materialTransferItem.create({
-          data: {
+        await Promise.all(
+          validItems.map(item =>
+            tx.materialStock.update({
+              where: {
+                locationId_materialId: {
+                  locationId: sourceLocId,
+                  materialId: item.materialId
+                }
+              },
+              data: {
+                quantity: { decrement: item.quantity }
+              }
+            })
+          )
+        )
+
+        await tx.materialTransferItem.createMany({
+          data: validItems.map(item => ({
             transferId: transfer.id,
             materialId: item.materialId,
             quantity: item.quantity
-          }
+          }))
         })
+      },
+      {
+        maxWait: 15000,
+        timeout: 30000
       }
-    })
+    )
 
     revalidatePath('/inventory')
     return { success: true }
@@ -469,27 +492,26 @@ export async function recordAuditAndAdjust(payload: {
 
     const adminName = await getAdminName()
 
-    await prisma.$transaction(async (tx) => {
-      const todayStr = new Date().toISOString().slice(2, 10).replace(/-/g, '')
-      const count = await tx.materialAudit.count()
-      const rand = Math.floor(100 + Math.random() * 900)
-      const auditNo = `AUD${todayStr}-${String(count + 1).padStart(4, '0')}-${rand}`
+    await prisma.$transaction(
+      async (tx) => {
+        const todayStr = new Date().toISOString().slice(2, 10).replace(/-/g, '')
+        const count = await tx.materialAudit.count()
+        const rand = Math.floor(100 + Math.random() * 900)
+        const auditNo = `AUD${todayStr}-${String(count + 1).padStart(4, '0')}-${rand}`
 
-      const audit = await tx.materialAudit.create({
-        data: {
-          auditNo,
-          locationId,
-          adminName,
-          memo: memo || '현장 재고 실사 및 보정'
-        }
-      })
-
-      for (const item of auditItems) {
-        const diffQty = item.actualQty - item.systemQty
-
-        // 실사 품목 이력 저장
-        await tx.materialAuditItem.create({
+        const audit = await tx.materialAudit.create({
           data: {
+            auditNo,
+            locationId,
+            adminName,
+            memo: memo || '현장 재고 실사 및 보정'
+          }
+        })
+
+        // 1. 실사 상세 품목 데이터 일괄 벌크 생성 (createMany)
+        const auditItemsData = auditItems.map(item => {
+          const diffQty = item.actualQty - item.systemQty
+          return {
             auditId: audit.id,
             materialId: item.materialId,
             systemQty: item.systemQty,
@@ -499,25 +521,39 @@ export async function recordAuditAndAdjust(payload: {
           }
         })
 
-        // 해당 위치의 재고를 실제 수량(actualQty)으로 보정
-        await tx.materialStock.upsert({
-          where: {
-            locationId_materialId: {
-              locationId,
-              materialId: item.materialId
-            }
-          },
-          update: {
-            quantity: item.actualQty
-          },
-          create: {
-            locationId,
-            materialId: item.materialId,
-            quantity: item.actualQty
-          }
-        })
+        if (auditItemsData.length > 0) {
+          await tx.materialAuditItem.createMany({
+            data: auditItemsData
+          })
+        }
+
+        // 2. 해당 위치의 재고를 실제 수량(actualQty)으로 병렬 보정
+        await Promise.all(
+          auditItems.map(item =>
+            tx.materialStock.upsert({
+              where: {
+                locationId_materialId: {
+                  locationId,
+                  materialId: item.materialId
+                }
+              },
+              update: {
+                quantity: item.actualQty
+              },
+              create: {
+                locationId,
+                materialId: item.materialId,
+                quantity: item.actualQty
+              }
+            })
+          )
+        )
+      },
+      {
+        maxWait: 15000,
+        timeout: 30000
       }
-    })
+    )
 
     revalidatePath('/inventory')
     return { success: true }
