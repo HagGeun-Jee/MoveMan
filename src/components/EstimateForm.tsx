@@ -45,6 +45,25 @@ const NumberInput = ({ value, onChange, className, name }: { value: number, onCh
   )
 }
 
+const filterValidCbmItems = (itemsList: any[]): any[] => {
+  if (!Array.isArray(itemsList)) return []
+  return itemsList.filter((item: any) => {
+    const qty = item.quantity !== undefined ? Number(item.quantity) : 1
+    const unitCbm = (Number(item.cbm) || 0) + (Number(item.innerBoxCbm) || 0)
+    return unitCbm > 0 && qty > 0
+  })
+}
+
+const parseAndFilterCbmItems = (cbmItemsStr: string | null | undefined): any[] => {
+  if (!cbmItemsStr) return []
+  try {
+    const parsed = JSON.parse(cbmItemsStr)
+    return filterValidCbmItems(parsed)
+  } catch {
+    return []
+  }
+}
+
 export function EstimateForm({ 
   initialData, 
   action, 
@@ -312,7 +331,7 @@ export function EstimateForm({
     alert(`사다리차 운임(${totalLadderCost.toLocaleString()}원)과 거리가산운임(${calculatedExtraCost.toLocaleString()}원) 총 ${totalExtra.toLocaleString()}원이 가산 비용에 일괄 반영되었습니다!`)
   }
 
-  const [items, setItems] = useState<any[]>(initialData?.cbmItems ? JSON.parse(initialData.cbmItems) : [])
+  const [items, setItems] = useState<any[]>(() => parseAndFilterCbmItems(initialData?.cbmItems))
   const [standardItems, setStandardItems] = useState<any[]>([])
   const [categories, setCategories] = useState<any[]>([])
   
@@ -568,29 +587,7 @@ export function EstimateForm({
       setCategories(catsRes)
 
       if (!initialData?.cbmItems) {
-        const initialItems: any[] = []
-        const grouped: Record<string, boolean> = {}
-
-        itemsRes.forEach((item: any) => {
-          const locations = item.locations && item.locations.length > 0 ? item.locations : [{ id: '', name: '기타/미지정' }]
-          
-          locations.forEach((loc: any) => {
-            const key = `${loc.id}_${item.name}`
-            if (!grouped[key]) {
-              grouped[key] = true
-              initialItems.push({
-                locationId: loc.id,
-                locationName: loc.name,
-                name: item.name,
-                spec: '',
-                quantity: 0,
-                cbm: 0,
-                innerBoxCbm: 0
-              })
-            }
-          })
-        })
-        setItems(initialItems)
+        setItems([])
 
         const initialExpanded: Record<string, boolean> = {}
         catsRes.forEach((c: any) => {
@@ -599,17 +596,15 @@ export function EstimateForm({
         initialExpanded[''] = false
         setExpandedCategories(initialExpanded)
       } else {
-        const parsedItems = JSON.parse(initialData.cbmItems)
+        const validItems = parseAndFilterCbmItems(initialData.cbmItems)
+        setItems(validItems)
+
         const initialExpanded: Record<string, boolean> = {}
         catsRes.forEach((c: any) => {
-          const catItems = parsedItems.filter((i: any) => (i.locationId || '') === c.id)
-          const hasCbm = catItems.some((i: any) => {
-            const qty = i.quantity !== undefined ? Number(i.quantity) : 1
-            return ((Number(i.cbm) || 0) + (Number(i.innerBoxCbm) || 0)) * qty > 0
-          })
-          initialExpanded[c.id] = hasCbm
+          const catItems = validItems.filter((i: any) => (i.locationId || '') === c.id)
+          initialExpanded[c.id] = catItems.length > 0
         })
-        initialExpanded[''] = false
+        initialExpanded[''] = validItems.some((i: any) => !i.locationId)
         setExpandedCategories(initialExpanded)
       }
     })
@@ -1495,7 +1490,7 @@ export function EstimateForm({
                 )
               })}
             </div>
-            <input type="hidden" name="cbmItems" value={JSON.stringify(items)} />
+            <input type="hidden" name="cbmItems" value={JSON.stringify(filterValidCbmItems(items))} />
           </div>
 
           <div className="pt-4 border-t border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -28,7 +28,14 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
 
   const envObj = estimate.environment ? JSON.parse(estimate.environment) : {}
   const payPlanObj = estimate.paymentPlan ? JSON.parse(estimate.paymentPlan) : {}
-  const items = estimate.cbmItems ? JSON.parse(estimate.cbmItems) : []
+  const rawItems = estimate.cbmItems ? JSON.parse(estimate.cbmItems) : []
+  const items = Array.isArray(rawItems)
+    ? rawItems.filter((item: any) => {
+        const qty = item.quantity !== undefined ? Number(item.quantity) : 1
+        const unitCbm = (Number(item.cbm) || 0) + (Number(item.innerBoxCbm) || 0)
+        return unitCbm > 0 && qty > 0
+      })
+    : []
   const labors = envObj.labors || []
   const vehicles = envObj.vehicles || []
 

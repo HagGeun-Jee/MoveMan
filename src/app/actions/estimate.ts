@@ -6,6 +6,22 @@ import { cookies } from 'next/headers'
 import { decrypt } from '@/lib/session'
 import { format } from 'date-fns'
 
+function sanitizeCbmItems(raw: string | null | undefined): string {
+  if (!raw) return '[]'
+  try {
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return '[]'
+    const filtered = parsed.filter((item: any) => {
+      const qty = item.quantity !== undefined ? Number(item.quantity) : 1
+      const unitCbm = (Number(item.cbm) || 0) + (Number(item.innerBoxCbm) || 0)
+      return unitCbm > 0 && qty > 0
+    })
+    return JSON.stringify(filtered)
+  } catch {
+    return '[]'
+  }
+}
+
 export async function createEstimate(formData: FormData) {
   // 인증 확인
   const cookieStore = await cookies()
@@ -37,7 +53,7 @@ export async function createEstimate(formData: FormData) {
   const id = `${prefix}${seq.toString().padStart(4, '0')}`
 
   // CBM 항목 및 결제 정보
-  const cbmItems = formData.get('cbmItems') as string
+  const cbmItems = sanitizeCbmItems(formData.get('cbmItems') as string)
   const materials = formData.get('materials') as string
   const paymentPlan = formData.get('paymentPlan') as string
   
@@ -134,7 +150,7 @@ export async function updateEstimate(formData: FormData) {
   const estimateDate = new Date(estimateDateStr)
   
   // CBM 항목 및 결제 정보
-  const cbmItems = formData.get('cbmItems') as string
+  const cbmItems = sanitizeCbmItems(formData.get('cbmItems') as string)
   const materials = formData.get('materials') as string
   const paymentPlan = formData.get('paymentPlan') as string
   
