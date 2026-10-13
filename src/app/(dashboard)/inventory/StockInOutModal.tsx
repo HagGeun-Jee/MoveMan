@@ -171,30 +171,41 @@ export function StockInOutModal({ isOpen, onClose, locations, materials, onSucce
             <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
               {items.map((item, idx) => (
                 <div key={idx} className="flex items-center gap-2 p-2 bg-gray-50 border border-gray-200 rounded-xl">
-                  <div className="flex-1 min-w-0">
-                    <select
-                      value={item.materialId}
-                      onChange={(e) => handleItemChange(idx, 'materialId', e.target.value)}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-medium focus:border-blue-500 outline-none"
-                    >
-                      {materials.map(m => (
-                        <option key={m.id} value={m.id}>
-                          {m.name} ({m.unit})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                    <div className="flex-1 min-w-0">
+                      <select
+                        value={item.materialId}
+                        onChange={(e) => handleItemChange(idx, 'materialId', e.target.value)}
+                        className="w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-medium focus:border-blue-500 outline-none"
+                      >
+                        <option value="">-- 자재를 선택하세요 --</option>
+                        {materials.map(m => {
+                          const stockQty = targetLocationId ? (m.stocks?.[targetLocationId] ?? 0) : null
+                          return (
+                            <option key={m.id} value={m.id}>
+                              {m.name} ({m.unit}){stockQty !== null ? ` [보유: ${stockQty}${m.unit}]` : ''}
+                            </option>
+                          )
+                        })}
+                      </select>
 
-                  <div className="w-24">
-                    <input
-                      type="number"
-                      min="1"
-                      value={item.quantity}
-                      onChange={(e) => handleItemChange(idx, 'quantity', parseInt(e.target.value) || 0)}
-                      placeholder="수량"
-                      className="w-full text-center rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs font-bold text-gray-800 focus:border-blue-500 outline-none"
-                    />
-                  </div>
+                      {targetLocationId && item.materialId && (
+                        <p className="text-[11px] text-gray-500 mt-1 ml-1 font-medium">
+                          해당 위치 보유: <span className="font-bold text-blue-600">{materials.find(m => m.id === item.materialId)?.stocks?.[targetLocationId] || 0}</span>개
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="w-24">
+                      <input
+                        type="number"
+                        min="1"
+                        value={item.quantity || ''}
+                        disabled={!item.materialId}
+                        onChange={(e) => handleItemChange(idx, 'quantity', parseInt(e.target.value) || 0)}
+                        placeholder="수량"
+                        className="w-full text-center rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs font-bold text-gray-800 focus:border-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-400"
+                      />
+                    </div>
 
                   {items.length > 1 && (
                     <button

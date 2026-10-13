@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { transferStock } from '@/app/actions/inventory'
 import { X, ArrowRight, Plus, Trash2, Loader2, AlertCircle } from 'lucide-react'
 
@@ -21,13 +21,26 @@ export function TransferModal({ isOpen, onClose, locations, materials, onSuccess
 
   // 이동할 품목 목록 [{ materialId, quantity }]
   const [items, setItems] = useState<{ materialId: string; quantity: number }[]>([
-    { materialId: materials[0]?.id || '', quantity: 10 }
+    { materialId: '', quantity: 1 }
   ])
+
+  // 모달 오픈 시 기본 출발지(창고) 및 도착지(차량) 자동 세팅 및 폼 초기화
+  useEffect(() => {
+    if (isOpen) {
+      const defaultSource = locations.find(l => l.type === 'WAREHOUSE')?.id || locations[0]?.id || ''
+      const defaultTarget = locations.find(l => l.type === 'VEHICLE')?.id || locations[1]?.id || ''
+      setSourceLocId(defaultSource)
+      setTargetLocId(defaultTarget)
+      setItems([{ materialId: '', quantity: 1 }])
+      setMemo('')
+      setError(null)
+    }
+  }, [isOpen, locations])
 
   if (!isOpen) return null
 
   const handleAddItem = () => {
-    setItems(prev => [...prev, { materialId: materials[0]?.id || '', quantity: 1 }])
+    setItems(prev => [...prev, { materialId: '', quantity: 1 }])
   }
 
   const handleRemoveItem = (index: number) => {
@@ -40,7 +53,7 @@ export function TransferModal({ isOpen, onClose, locations, materials, onSuccess
 
   // 선택한 출발 위치의 자재별 현재 재고 조회 함수
   const getAvailableStock = (matId: string) => {
-    if (!sourceLocId) return 0
+    if (!sourceLocId || !matId) return 0
     const mat = materials.find(m => m.id === matId)
     return mat?.stocks?.[sourceLocId] || 0
   }
@@ -58,9 +71,9 @@ export function TransferModal({ isOpen, onClose, locations, materials, onSuccess
       return
     }
 
-    const validItems = items.filter(it => it.quantity > 0)
+    const validItems = items.filter(it => it.materialId && it.quantity > 0)
     if (validItems.length === 0) {
-      setError('이동할 자재 수량을 1개 이상 입력해주세요.')
+      setError('이동할 자재를 선택하고 수량을 1개 이상 입력해주세요.')
       return
     }
 
@@ -174,15 +187,29 @@ export function TransferModal({ isOpen, onClose, locations, materials, onSuccess
                         onChange={(e) => handleItemChange(idx, 'materialId', e.target.value)}
                         className="w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-medium focus:border-blue-500 outline-none"
                       >
-                        {materials.map(m => (
-                          <option key={m.id} value={m.id}>
-                            {m.name} ({m.unit})
-                          </option>
-                        ))}
+                        <option value="">-- 자재를 선택하세요 --</option>
+                        {materials.map(m => {
+                          const stockQty = sourceLocId ? (m.stocks?.[sourceLocId] ?? 0) : null
+                          return (
+                            <option key={m.id} value={m.id}>
+                              {m.name} ({m.unit}){stockQty !== null ? ` [보유: ${stockQty}${m.unit}]` : ''}
+                            </option>
+                          )
+                        })}
                       </select>
-                      {sourceLocId && (
-                        <p className="text-[11px] text-gray-500 mt-0.5 ml-1">
-                          출발지 보유: <span className="font-bold text-blue-600">{avail}</span>개
+                      
+                      {!sourceLocId ? (
+                        <p className="text-[11px] text-amber-600 mt-1 ml-1 font-medium">
+                          출발 위치를 먼저 선택해주세요.
+                        </p>
+                      ) : !item.materialId ? (
+                        <p className="text-[11px] text-gray-500 mt-1 ml-1 font-medium">
+                          이동할 자재를 선택하세요.
+                        </p>
+                      ) : (
+                        <p className="text-[11px] mt-1 ml-1 font-medium">
+                          출발지 보유: <span className={`font-bold ${avail > 0 ? 'text-blue-600' : 'text-rose-600'}`}>{avail}</span>개
+                          {avail <= 0 && <span className="text-rose-600 font-bold ml-1.5">(출발지 재고 없음)</span>}
                         </p>
                       )}
                     </div>
@@ -191,11 +218,12 @@ export function TransferModal({ isOpen, onClose, locations, materials, onSuccess
                       <input
                         type="number"
                         min="1"
-                        max={sourceLocId ? avail : 9999}
-                        value={item.quantity}
+                        max={sourceLocId ? Math.max(1, avail) : 9999}
+                        value={item.quantity || ''}
+                        disabled={!item.materialId || avail <= 0}
                         onChange={(e) => handleItemChange(idx, 'quantity', parseInt(e.target.value) || 0)}
                         placeholder="수량"
-                        className="w-full text-center rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs font-bold text-gray-800 focus:border-blue-500 outline-none"
+                        className="w-full text-center rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs font-bold text-gray-800 focus:border-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-400"
                       />
                     </div>
 
