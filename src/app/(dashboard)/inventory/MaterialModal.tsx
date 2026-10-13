@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createMaterialItem, updateMaterialItem, deleteMaterialItem } from '@/app/actions/inventory'
 import { X, Loader2, AlertCircle } from 'lucide-react'
 
@@ -21,6 +21,28 @@ export function MaterialModal({ isOpen, onClose, materialToEdit, onSuccess }: Ma
   const [memo, setMemo] = useState(materialToEdit?.memo || '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // 수정 대상 또는 오픈 상태 변경 시 폼 필드 동기화
+  useEffect(() => {
+    if (materialToEdit) {
+      setCode(materialToEdit.code || '')
+      setName(materialToEdit.name || '')
+      setCategory(materialToEdit.category || 'REUSABLE')
+      setUnit(materialToEdit.unit || '개')
+      setSafetyStock(materialToEdit.safetyStock ?? 0)
+      setUnitPrice(materialToEdit.unitPrice ?? 0)
+      setMemo(materialToEdit.memo || '')
+    } else {
+      setCode('')
+      setName('')
+      setCategory('REUSABLE')
+      setUnit('개')
+      setSafetyStock(0)
+      setUnitPrice(0)
+      setMemo('')
+    }
+    setError(null)
+  }, [materialToEdit, isOpen])
 
   if (!isOpen) return null
 

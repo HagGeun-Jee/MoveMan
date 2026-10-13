@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createInventoryLocation, updateInventoryLocation } from '@/app/actions/inventory'
 import { X, Loader2, AlertCircle } from 'lucide-react'
 
@@ -17,6 +17,20 @@ export function LocationModal({ isOpen, onClose, locationToEdit, onSuccess }: Lo
   const [memo, setMemo] = useState(locationToEdit?.memo || '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // 수정 대상 또는 오픈 상태 변경 시 폼 필드 동기화
+  useEffect(() => {
+    if (locationToEdit) {
+      setName(locationToEdit.name || '')
+      setType(locationToEdit.type || 'WAREHOUSE')
+      setMemo(locationToEdit.memo || '')
+    } else {
+      setName('')
+      setType('WAREHOUSE')
+      setMemo('')
+    }
+    setError(null)
+  }, [locationToEdit, isOpen])
 
   if (!isOpen) return null
 

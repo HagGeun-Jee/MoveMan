@@ -736,19 +736,25 @@ export default function InventoryPage() {
         onSuccess={loadData}
       />
 
-      <MaterialModal
-        isOpen={isMaterialOpen}
-        onClose={() => { setIsMaterialOpen(false); setEditingMaterial(null); }}
-        materialToEdit={editingMaterial}
-        onSuccess={loadData}
-      />
+      {isMaterialOpen && (
+        <MaterialModal
+          key={editingMaterial?.id || 'new-material'}
+          isOpen={isMaterialOpen}
+          onClose={() => { setIsMaterialOpen(false); setEditingMaterial(null); }}
+          materialToEdit={editingMaterial}
+          onSuccess={loadData}
+        />
+      )}
 
-      <LocationModal
-        isOpen={isLocationOpen}
-        onClose={() => { setIsLocationOpen(false); setEditingLocation(null); }}
-        locationToEdit={editingLocation}
-        onSuccess={loadData}
-      />
+      {isLocationOpen && (
+        <LocationModal
+          key={editingLocation?.id || 'new-location'}
+          isOpen={isLocationOpen}
+          onClose={() => { setIsLocationOpen(false); setEditingLocation(null); }}
+          locationToEdit={editingLocation}
+          onSuccess={loadData}
+        />
+      )}
     </div>
   )
 }
