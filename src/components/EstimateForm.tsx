@@ -262,8 +262,8 @@ export function EstimateForm({
     }
   }
 
-  // 거리 초과 운임 계산 설정 (기본거리 20km, km당 2,000원)
-  const [baseDistanceKm, setBaseDistanceKm] = useState<number>(Number(envObj.baseDistanceKm) || 20)
+  // 거리 초과 운임 계산 설정 (기본거리 30km, km당 2,000원)
+  const [baseDistanceKm, setBaseDistanceKm] = useState<number>(Number(envObj.baseDistanceKm) || 30)
   const [ratePerKm, setRatePerKm] = useState<number>(Number(envObj.ratePerKm) || 2000)
 
   // 주행거리 자동/수동 계산 함수
@@ -656,6 +656,8 @@ export function EstimateForm({
           if (draft.distance !== undefined) setDistance(draft.distance)
           if (draft.distanceDuration !== undefined) setDistanceDuration(draft.distanceDuration)
           if (draft.distanceDetail !== undefined) setDistanceDetail(draft.distanceDetail)
+          if (draft.baseDistanceKm !== undefined) setBaseDistanceKm(draft.baseDistanceKm)
+          if (draft.ratePerKm !== undefined) setRatePerKm(draft.ratePerKm)
           if (draft.ladderTonnage !== undefined) setLadderTonnage(draft.ladderTonnage)
           if (draft.appliedLadderCost !== undefined) setAppliedLadderCost(draft.appliedLadderCost)
           if (draft.appliedDistanceCost !== undefined) setAppliedDistanceCost(draft.appliedDistanceCost)
@@ -869,6 +871,8 @@ export function EstimateForm({
           distance,
           distanceDuration,
           distanceDetail,
+          baseDistanceKm,
+          ratePerKm,
           ladderTonnage,
           appliedLadderCost,
           appliedDistanceCost,
@@ -919,6 +923,8 @@ export function EstimateForm({
     distance,
     distanceDuration,
     distanceDetail,
+    baseDistanceKm,
+    ratePerKm,
     ladderTonnage,
     appliedLadderCost,
     appliedDistanceCost,
