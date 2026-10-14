@@ -46,6 +46,11 @@ const NumberInput = ({ value, onChange, className, name }: { value: number, onCh
   )
 }
 
+export const isBoxItem = (name: string): boolean => {
+  const upper = (name || '').trim().toUpperCase()
+  return upper === 'BOX' || upper.startsWith('BOX') || upper === '박스'
+}
+
 const sortCbmItems = (list: any[]): any[] => {
   return [...list].sort((a: any, b: any) => {
     const nameComp = (a.name || '').localeCompare(b.name || '', 'ko')
@@ -85,6 +90,14 @@ export function EstimateForm({
 }) {
   const envObj = initialData?.environment ? JSON.parse(initialData.environment) : {}
   const payPlanObj = initialData?.paymentPlan ? JSON.parse(initialData.paymentPlan) : {}
+
+  // 임시 저장 키 (신규 견적 작성 또는 특정 견적 수정 구분)
+  const storageKey = initialData?.id 
+    ? `meman_estimate_draft_edit_${initialData.id}` 
+    : 'meman_estimate_draft_new'
+
+  const [draftRestoredTime, setDraftRestoredTime] = useState<string | null>(null)
+  const isDraftLoadedRef = useRef(false)
 
   const [movingCost, setMovingCost] = useState(initialData?.movingCost || 0)
   const [isCostModalOpen, setIsCostModalOpen] = useState(false)
@@ -605,6 +618,90 @@ export function EstimateForm({
   const [signature, setSignature] = useState(initialData?.signature || '')
   const [isSigning, setIsSigning] = useState(!initialData?.signature)
 
+  // 1. 컴포넌트 마운트 시 localStorage에서 작성 중이던 draft 복원
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(storageKey)
+      if (saved) {
+        const draft = JSON.parse(saved)
+        const hasContent = Boolean(
+          draft && (
+            draft.customerName ||
+            draft.contact ||
+            draft.fromAddress ||
+            draft.toAddress ||
+            draft.movingCost > 0 ||
+            draft.additionalCost > 0 ||
+            (draft.items && draft.items.some((i: any) => (i.quantity || 0) > 0))
+          )
+        )
+
+        if (hasContent) {
+          if (draft.customerName !== undefined) setCustomerName(draft.customerName)
+          if (draft.contact !== undefined) setContact(draft.contact)
+          if (draft.movingType !== undefined) setMovingType(draft.movingType)
+          if (draft.estimateDate) setEstimateDate(new Date(draft.estimateDate))
+          if (draft.visitDate) setVisitDate(new Date(draft.visitDate))
+          if (draft.movingDate) setMovingDate(new Date(draft.movingDate))
+          if (draft.organizeDate) setOrganizeDate(new Date(draft.organizeDate))
+          if (draft.organizeStatus !== undefined) setOrganizeStatus(draft.organizeStatus)
+
+          if (draft.fromAddress !== undefined) setFromAddress(draft.fromAddress)
+          if (draft.toAddress !== undefined) setToAddress(draft.toAddress)
+          if (draft.fromFloor !== undefined) setFromFloor(draft.fromFloor)
+          if (draft.fromWorkTypes) setFromWorkTypes(draft.fromWorkTypes)
+          if (draft.toFloor !== undefined) setToFloor(draft.toFloor)
+          if (draft.toWorkTypes) setToWorkTypes(draft.toWorkTypes)
+
+          if (draft.distance !== undefined) setDistance(draft.distance)
+          if (draft.distanceDuration !== undefined) setDistanceDuration(draft.distanceDuration)
+          if (draft.distanceDetail !== undefined) setDistanceDetail(draft.distanceDetail)
+          if (draft.ladderTonnage !== undefined) setLadderTonnage(draft.ladderTonnage)
+          if (draft.appliedLadderCost !== undefined) setAppliedLadderCost(draft.appliedLadderCost)
+          if (draft.appliedDistanceCost !== undefined) setAppliedDistanceCost(draft.appliedDistanceCost)
+
+          if (draft.vehicles) setVehicles(draft.vehicles)
+          if (draft.labors) setLabors(draft.labors)
+          if (draft.items && draft.items.length > 0) setItems(draft.items)
+          if (draft.deadSpaceRatio !== undefined) setDeadSpaceRatio(draft.deadSpaceRatio)
+
+          if (draft.movingCost !== undefined) setMovingCost(draft.movingCost)
+          if (draft.additionalCost !== undefined) setAdditionalCost(draft.additionalCost)
+          if (draft.storageCost !== undefined) setStorageCost(draft.storageCost)
+          if (draft.vat !== undefined) setVat(draft.vat)
+          if (draft.paymentTarget !== undefined) setPaymentTarget(draft.paymentTarget)
+
+          if (draft.downPayment !== undefined) setDownPayment(draft.downPayment)
+          if (draft.downPaymentDate) setDownPaymentDate(new Date(draft.downPaymentDate))
+          if (draft.downPaymentPaid !== undefined) setDownPaymentPaid(draft.downPaymentPaid)
+
+          if (draft.intermediatePayment !== undefined) setIntermediatePayment(draft.intermediatePayment)
+          if (draft.intermediateDate) setIntermediateDate(new Date(draft.intermediateDate))
+          if (draft.intermediatePaymentPaid !== undefined) setIntermediatePaymentPaid(draft.intermediatePaymentPaid)
+
+          if (draft.balance !== undefined) setBalance(draft.balance)
+          if (draft.balanceDate) setBalanceDate(new Date(draft.balanceDate))
+          if (draft.balancePaid !== undefined) setBalancePaid(draft.balancePaid)
+
+          if (draft.isCostEdited !== undefined) setIsCostEdited(draft.isCostEdited)
+          if (draft.signature !== undefined) setSignature(draft.signature)
+
+          if (draft.savedAt) {
+            setDraftRestoredTime(format(new Date(draft.savedAt), 'yyyy-MM-dd HH:mm:ss'))
+          } else {
+            setDraftRestoredTime('이전 작업 내용')
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Draft restore error:', e)
+    } finally {
+      setTimeout(() => {
+        isDraftLoadedRef.current = true
+      }, 600)
+    }
+  }, [storageKey])
+
   useEffect(() => {
     Promise.all([
       getStandardItems(),
@@ -653,10 +750,14 @@ export function EstimateForm({
           })
         })
 
-        // 위치가 지정되지 않은 물품이 있으면 기타/미지정에 배치 (품목, 규격 순 정렬)
+        // 위치가 지정되지 않은 물품이 있으면 기타/미지정에 배치 (BOX 최상단 우선, 그 외 품목, 규격 순 정렬)
         const unlocatedItems = sortedStandardItems
           .filter((item: any) => !item.locations || item.locations.length === 0)
           .sort((a: any, b: any) => {
+            const aBox = isBoxItem(a.name)
+            const bBox = isBoxItem(b.name)
+            if (aBox && !bBox) return -1
+            if (!aBox && bBox) return 1
             const nameComp = (a.name || '').localeCompare(b.name || '', 'ko')
             if (nameComp !== 0) return nameComp
             return (a.spec || '').localeCompare(b.spec || '', 'ko')
@@ -677,34 +778,238 @@ export function EstimateForm({
           }
         })
 
-        setItems(initialItems)
+        // draft items가 저장되어 있는지 검사하여 병합 (작성 중이던 수량 및 추가 품목 유지)
+        let finalItems = initialItems
+        try {
+          const saved = localStorage.getItem(storageKey)
+          if (saved) {
+            const draft = JSON.parse(saved)
+            if (draft.items && draft.items.length > 0) {
+              finalItems = [...draft.items]
+              // 누락된 기본 품목 추가
+              initialItems.forEach(initItem => {
+                const exists = finalItems.some(f => (f.locationId || '') === (initItem.locationId || '') && f.name === initItem.name)
+                if (!exists) {
+                  finalItems.push(initItem)
+                }
+              })
+            }
+          }
+        } catch {}
+
+        setItems(finalItems)
 
         const initialExpanded: Record<string, boolean> = {}
         catsRes.forEach((c: any) => {
-          initialExpanded[c.id] = c.name === '안방'
+          const catItems = finalItems.filter((i: any) => (i.locationId || '') === c.id)
+          initialExpanded[c.id] = c.name === '안방' || catItems.some(i => (i.quantity || 0) > 0)
         })
-        initialExpanded[''] = false
+        initialExpanded[''] = finalItems.some(i => !i.locationId && (i.quantity || 0) > 0)
         setExpandedCategories(initialExpanded)
       } else {
         const validItems = parseAndFilterCbmItems(initialData.cbmItems)
-        setItems(validItems)
+        
+        let finalItems = validItems
+        try {
+          const saved = localStorage.getItem(storageKey)
+          if (saved) {
+            const draft = JSON.parse(saved)
+            if (draft.items && draft.items.length > 0) {
+              finalItems = draft.items
+            }
+          }
+        } catch {}
+
+        setItems(finalItems)
 
         const initialExpanded: Record<string, boolean> = {}
         catsRes.forEach((c: any) => {
-          const catItems = validItems.filter((i: any) => (i.locationId || '') === c.id)
+          const catItems = finalItems.filter((i: any) => (i.locationId || '') === c.id)
           initialExpanded[c.id] = catItems.length > 0
         })
-        initialExpanded[''] = validItems.some((i: any) => !i.locationId)
+        initialExpanded[''] = finalItems.some((i: any) => !i.locationId)
         setExpandedCategories(initialExpanded)
       }
     })
-  }, [initialData])
+  }, [initialData, storageKey])
+
+  // 2. 폼 값 변경 시 localStorage에 실시간 자동 저장 (Debounce 400ms)
+  useEffect(() => {
+    if (!isDraftLoadedRef.current) return
+
+    const hasContent = Boolean(
+      customerName || 
+      contact || 
+      fromAddress || 
+      toAddress || 
+      movingCost > 0 || 
+      additionalCost > 0 ||
+      (items && items.some(i => (i.quantity || 0) > 0))
+    )
+    if (!hasContent) return
+
+    const timer = setTimeout(() => {
+      try {
+        const draftData = {
+          savedAt: new Date().toISOString(),
+          customerName,
+          contact,
+          movingType,
+          estimateDate: estimateDate ? estimateDate.toISOString() : null,
+          visitDate: visitDate ? visitDate.toISOString() : null,
+          movingDate: movingDate ? movingDate.toISOString() : null,
+          organizeDate: organizeDate ? organizeDate.toISOString() : null,
+          organizeStatus,
+          fromAddress,
+          toAddress,
+          fromFloor,
+          fromWorkTypes,
+          toFloor,
+          toWorkTypes,
+          distance,
+          distanceDuration,
+          distanceDetail,
+          ladderTonnage,
+          appliedLadderCost,
+          appliedDistanceCost,
+          vehicles,
+          labors,
+          items,
+          deadSpaceRatio,
+          movingCost,
+          additionalCost,
+          storageCost,
+          vat,
+          paymentTarget,
+          downPayment,
+          downPaymentDate: downPaymentDate ? downPaymentDate.toISOString() : null,
+          downPaymentPaid,
+          intermediatePayment,
+          intermediateDate: intermediateDate ? intermediateDate.toISOString() : null,
+          intermediatePaymentPaid,
+          balance,
+          balanceDate: balanceDate ? balanceDate.toISOString() : null,
+          balancePaid,
+          isCostEdited,
+          signature
+        }
+        localStorage.setItem(storageKey, JSON.stringify(draftData))
+      } catch (e) {
+        console.error('Auto-save draft error:', e)
+      }
+    }, 400)
+
+    return () => clearTimeout(timer)
+  }, [
+    storageKey,
+    customerName,
+    contact,
+    movingType,
+    estimateDate,
+    visitDate,
+    movingDate,
+    organizeDate,
+    organizeStatus,
+    fromAddress,
+    toAddress,
+    fromFloor,
+    fromWorkTypes,
+    toFloor,
+    toWorkTypes,
+    distance,
+    distanceDuration,
+    distanceDetail,
+    ladderTonnage,
+    appliedLadderCost,
+    appliedDistanceCost,
+    vehicles,
+    labors,
+    items,
+    deadSpaceRatio,
+    movingCost,
+    additionalCost,
+    storageCost,
+    vat,
+    paymentTarget,
+    downPayment,
+    downPaymentDate,
+    downPaymentPaid,
+    intermediatePayment,
+    intermediateDate,
+    intermediatePaymentPaid,
+    balance,
+    balanceDate,
+    balancePaid,
+    isCostEdited,
+    signature
+  ])
+
+  // 임시 저장 삭제 및 초기화
+  const handleClearDraft = () => {
+    if (confirm('작성 중이던 임시 저장 데이터를 모두 삭제하고 새로 작성하시겠습니까?')) {
+      try {
+        localStorage.removeItem(storageKey)
+      } catch {}
+      window.location.reload()
+    }
+  }
+
+  // 폼 제출 시 임시 저장 삭제
+  const handleFormSubmit = async (formData: FormData) => {
+    try {
+      localStorage.removeItem(storageKey)
+    } catch {}
+    await action(formData)
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-3 sm:space-y-5 pb-20">
-      <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{title}</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{title}</h1>
+        {draftRestoredTime && (
+          <button
+            type="button"
+            onClick={handleClearDraft}
+            className="text-xs text-gray-500 hover:text-red-600 underline transition-colors"
+          >
+            임시 저장 비우고 새로 쓰기
+          </button>
+        )}
+      </div>
+
+      {/* 임시 저장 복원 알림 배너 */}
+      {draftRestoredTime && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-xs">
+          <div className="flex items-center gap-2.5 text-amber-900 text-xs sm:text-sm">
+            <span className="text-lg">💾</span>
+            <div>
+              <span className="font-bold">작성 중이던 데이터가 안전하게 유지/복원되었습니다.</span>
+              <span className="block sm:inline sm:ml-1.5 text-amber-700 text-xs font-normal">
+                (저장일시: {draftRestoredTime})
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
+            <button
+              type="button"
+              onClick={handleClearDraft}
+              className="px-3 py-1.5 bg-white hover:bg-amber-100 text-amber-800 text-xs font-bold rounded-lg border border-amber-300 transition-colors shadow-2xs"
+            >
+              새로 작성 (입력 초기화)
+            </button>
+            <button
+              type="button"
+              onClick={() => setDraftRestoredTime(null)}
+              className="p-1 text-amber-600 hover:text-amber-800 rounded text-xs"
+              title="닫기"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
       
-      <form action={action} className="space-y-4 sm:space-y-5">
+      <form action={handleFormSubmit} className="space-y-4 sm:space-y-5">
         {initialData && <input type="hidden" name="id" value={initialData.id} />}
         
         {/* 기본 정보 */}
@@ -1385,6 +1690,12 @@ export function EstimateForm({
                 const catItems = items
                   .filter(i => (i.locationId || '') === cat.id)
                   .sort((a, b) => {
+                    if (cat.id === '') {
+                      const aBox = isBoxItem(a.name)
+                      const bBox = isBoxItem(b.name)
+                      if (aBox && !bBox) return -1
+                      if (!aBox && bBox) return 1
+                    }
                     const nameComp = (a.name || '').localeCompare(b.name || '', 'ko')
                     if (nameComp !== 0) return nameComp
                     return (a.spec || '').localeCompare(b.spec || '', 'ko')
@@ -1527,19 +1838,31 @@ export function EstimateForm({
                                 >
                                   <option value="">+ 품목 선택</option>
                                   {(() => {
-                                    // 1. 현재 위치(카테고리)와 일치하는 품목명 목록 (가나다순 정렬)
+                                    // 1. 현재 위치(카테고리)와 일치하는 품목명 목록 (BOX 최상단 우선, 그 외 가나다순 정렬)
                                     const matchedNames = Array.from(new Set(
                                       standardItems
                                         .filter(i => cat.id && i.locations?.some((l: any) => l.id === cat.id))
                                         .map(i => i.name)
-                                    )).sort((a, b) => a.localeCompare(b, 'ko'))
+                                    )).sort((a, b) => {
+                                      const aBox = isBoxItem(a)
+                                      const bBox = isBoxItem(b)
+                                      if (aBox && !bBox) return -1
+                                      if (!aBox && bBox) return 1
+                                      return a.localeCompare(b, 'ko')
+                                    })
 
-                                    // 2. 미지정 품목(위치 미지정 또는 타 위치 포함) 중 matchedNames에 없는 품목명 목록 (가나다순 정렬)
+                                    // 2. 미지정 품목(위치 미지정 또는 타 위치 포함) 중 matchedNames에 없는 품목명 목록 (BOX 최상단 우선, 그 외 가나다순)
                                     const otherNames = Array.from(new Set(
                                       standardItems
                                         .filter(i => !matchedNames.includes(i.name))
                                         .map(i => i.name)
-                                    )).sort((a, b) => a.localeCompare(b, 'ko'))
+                                    )).sort((a, b) => {
+                                      const aBox = isBoxItem(a)
+                                      const bBox = isBoxItem(b)
+                                      if (aBox && !bBox) return -1
+                                      if (!aBox && bBox) return 1
+                                      return a.localeCompare(b, 'ko')
+                                    })
 
                                     return (
                                       <>
@@ -2041,7 +2364,17 @@ export function EstimateForm({
         </div>
 
         <div className="fixed bottom-0 left-0 right-0 lg:left-64 bg-white border-t p-3 sm:p-4 shadow-lg flex justify-end gap-3 sm:gap-4 z-20">
-          <button type="button" className="px-5 sm:px-6 py-2 rounded-lg text-gray-600 font-medium hover:bg-gray-100 transition-colors text-sm sm:text-base">취소</button>
+          <button 
+            type="button" 
+            onClick={() => {
+              if (confirm('견적 작성을 중단하고 목록으로 이동하시겠습니까?\n(작성 중이던 내용은 안전하게 임시 보관됩니다)')) {
+                window.location.href = '/estimates'
+              }
+            }}
+            className="px-5 sm:px-6 py-2 rounded-lg text-gray-600 font-medium hover:bg-gray-100 transition-colors text-sm sm:text-base"
+          >
+            취소
+          </button>
           <button type="submit" className="px-5 sm:px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-md text-sm sm:text-base">견적 저장하기</button>
         </div>
       </form>
