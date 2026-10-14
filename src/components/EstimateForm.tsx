@@ -111,6 +111,26 @@ export function EstimateForm({
   const [movingDate, setMovingDate] = useState<Date | null>(initialData?.movingDate ? new Date(initialData.movingDate) : null)
   const [organizeDate, setOrganizeDate] = useState<Date | null>(initialData?.organizeDate ? new Date(initialData.organizeDate) : null)
 
+  // 이사날짜 경과 여부 판정 (오늘 자정 이전 날짜인지 검사)
+  const isPastMovingDate = Boolean(
+    movingDate && (() => {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const mDate = new Date(movingDate)
+      mDate.setHours(0, 0, 0, 0)
+      return mDate < today
+    })()
+  )
+
+  const handleOpenCostModal = () => {
+    if (isPastMovingDate) {
+      const formattedDate = movingDate ? format(movingDate, 'yyyy-MM-dd') : ''
+      alert(`이사날짜(${formattedDate})가 이미 지난 견적 건은 이사비용 산출 기능을 사용할 수 없습니다.`)
+      return
+    }
+    setIsCostModalOpen(true)
+  }
+
   const [paymentTarget, setPaymentTarget] = useState<'supply' | 'total'>(payPlanObj.targetType || 'supply')
   const targetAmount = paymentTarget === 'supply' ? supplyAmount : totalAmount
   const paidAmount = downPayment + intermediatePayment + balance
@@ -1748,12 +1768,21 @@ export function EstimateForm({
               <h2 className="text-base sm:text-lg font-bold text-blue-600">이사 비용 및 결제 플랜</h2>
               <button
                 type="button"
-                onClick={() => setIsCostModalOpen(true)}
-                className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1 active:scale-95"
-                title="CBM별 가이드, 캘린더 할증, 특수물품 분해조립 비용을 종합하여 이사비용 산출"
+                onClick={handleOpenCostModal}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1 ${
+                  isPastMovingDate 
+                    ? 'bg-gray-400 hover:bg-gray-500 text-white opacity-70 cursor-not-allowed' 
+                    : 'bg-blue-600 hover:bg-blue-700 text-white active:scale-95'
+                }`}
+                title={
+                  isPastMovingDate 
+                    ? `이사날짜(${movingDate ? format(movingDate, 'yyyy-MM-dd') : ''})가 지난 건은 이사비용 산출이 비활성화됩니다.`
+                    : "CBM별 가이드, 캘린더 할증, 특수물품 분해조립 비용을 종합하여 이사비용 산출"
+                }
               >
                 <Calculator size={13} />
                 <span>이사비용 산출</span>
+                {isPastMovingDate && <span className="text-[10px] bg-gray-600 px-1 rounded ml-0.5">기한만료</span>}
               </button>
             </div>
             <div className="flex items-center gap-3 text-xs sm:text-sm text-gray-700 bg-gray-50 px-2.5 py-1 rounded-lg border border-gray-200">
@@ -1788,8 +1817,13 @@ export function EstimateForm({
                 <label className="text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap">기본 이사 비용</label>
                 <button
                   type="button"
-                  onClick={() => setIsCostModalOpen(true)}
-                  className="text-[11px] text-blue-600 hover:text-blue-800 font-bold flex items-center gap-0.5 hover:underline"
+                  onClick={handleOpenCostModal}
+                  className={`text-[11px] font-bold flex items-center gap-0.5 ${
+                    isPastMovingDate 
+                      ? 'text-gray-400 cursor-not-allowed' 
+                      : 'text-blue-600 hover:text-blue-800 hover:underline'
+                  }`}
+                  title={isPastMovingDate ? "이사날짜가 경과하여 산출이 불가합니다." : "산출 팝업"}
                 >
                   <Calculator size={11} />
                   <span>산출</span>
@@ -2040,6 +2074,13 @@ export function EstimateForm({
           onApply={(calculatedCost) => {
             setMovingCost(calculatedCost)
             setIsCostEdited(true)
+            const newSupply = calculatedCost + additionalCost + storageCost
+            const newVat = Math.floor(newSupply * 0.1)
+            const newTotal = newSupply + newVat
+            const newTarget = paymentTarget === 'supply' ? newSupply : newTotal
+            const newBalance = Math.max(0, newTarget - downPayment - intermediatePayment)
+            setBalance(newBalance)
+            alert(`산출된 이사비용 (${calculatedCost.toLocaleString()}원)이 기본 이사 비용에 반영되었습니다!\n(총 공급대가: ${newTotal.toLocaleString()}원 / 잔금: ${newBalance.toLocaleString()}원)`)
           }}
         />
       )}
