@@ -371,61 +371,64 @@ export default function InventoryPage() {
             <table className="w-full text-xs text-left">
               <thead className="bg-gray-100/80 text-gray-700 font-bold border-b border-gray-200">
                 <tr>
-                  <th className="px-3.5 py-3 sticky left-0 bg-gray-100 z-10 w-24">코드</th>
-                  <th className="px-3.5 py-3 sticky left-24 bg-gray-100 z-10 min-w-36">자재 품명</th>
-                  <th className="px-3 py-3 text-center w-16">구분</th>
-                  <th className="px-3 py-3 text-center w-14">단위</th>
+                  <th className="px-3.5 py-3 sticky left-0 bg-gray-100 z-10 min-w-32 sm:min-w-40 shadow-[1px_0_0_0_rgba(0,0,0,0.06)]">자재 품명</th>
+                  <th className="px-2.5 py-3 text-center w-14 whitespace-nowrap">구분</th>
+                  <th className="px-2 py-3 text-center w-12 whitespace-nowrap">단위</th>
 
-                  {/* 위치별 열 헤더 */}
+                  {/* 위치별 열 헤더 (줄바꿈 허용 및 컴팩트 배치) */}
                   {locations.map(loc => (
-                    <th key={loc.id} className="px-3.5 py-3 text-center min-w-28">
-                      <div className="flex items-center justify-center gap-1.5">
-                        {loc.type === 'WAREHOUSE' ? (
-                          <Warehouse size={13} className="text-blue-600 shrink-0" />
-                        ) : (
-                          <Truck size={13} className="text-emerald-600 shrink-0" />
-                        )}
-                        <span className="truncate">{loc.name}</span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setReportLocationId(loc.id)
-                            setActiveTab('locationReport')
-                          }}
-                          title={`${loc.name} 인수인계서 및 PDF 출력`}
-                          className="p-1 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
-                        >
-                          <Printer size={12} />
-                        </button>
+                    <th key={loc.id} className="px-2 py-2 text-center min-w-[72px] sm:min-w-[85px] max-w-[100px]">
+                      <div className="flex flex-col items-center justify-center gap-0.5">
+                        <div className="flex items-center gap-1">
+                          {loc.type === 'WAREHOUSE' ? (
+                            <Warehouse size={12} className="text-blue-600 shrink-0" />
+                          ) : (
+                            <Truck size={12} className="text-emerald-600 shrink-0" />
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setReportLocationId(loc.id)
+                              setActiveTab('locationReport')
+                            }}
+                            title={`${loc.name} 인수인계서 및 PDF 출력`}
+                            className="p-0.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+                          >
+                            <Printer size={11} />
+                          </button>
+                        </div>
+                        <span className="text-[11px] font-semibold text-gray-800 leading-tight text-center break-keep">
+                          {loc.name}
+                        </span>
                       </div>
                     </th>
                   ))}
 
                   {/* 총재고 및 안전재고 열 */}
-                  <th className="px-4 py-3 text-center bg-blue-50/80 text-blue-900 font-black min-w-24 border-l border-r border-blue-100">
-                    총재고 (합계)
+                  <th className="px-3 py-3 text-center bg-blue-50/80 text-blue-900 font-black min-w-20 border-l border-r border-blue-100 whitespace-nowrap">
+                    총재고
                   </th>
-                  <th className="px-3.5 py-3 text-center w-20">안전재고</th>
-                  <th className="px-3.5 py-3 text-center w-20">상태</th>
+                  <th className="px-2.5 py-3 text-center w-16 whitespace-nowrap">안전재고</th>
+                  <th className="px-2.5 py-3 text-center w-16 whitespace-nowrap">상태</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filteredMaterials.map(m => (
                   <tr key={m.id} className="hover:bg-gray-50/80 transition-colors">
-                    {/* 코드 */}
-                    <td className="px-3.5 py-3 text-gray-500 font-mono sticky left-0 bg-white">
-                      {m.code}
-                    </td>
-
-                    {/* 자재명 */}
-                    <td className="px-3.5 py-3 font-bold text-gray-900 sticky left-24 bg-white">
-                      {m.name}
-                      {m.memo && <span className="block text-[11px] font-normal text-gray-400">{m.memo}</span>}
+                    {/* 자재 품명 (코드 및 비고 포함) */}
+                    <td className="px-3.5 py-2 font-bold text-gray-900 sticky left-0 bg-white z-10 shadow-[1px_0_0_0_rgba(0,0,0,0.06)]">
+                      <div className="flex flex-col">
+                        <span className="text-gray-900 font-bold leading-tight">{m.name}</span>
+                        <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-gray-400 font-normal">
+                          <span className="font-mono text-gray-500">{m.code}</span>
+                          {m.memo && <span className="truncate max-w-[140px]">· {m.memo}</span>}
+                        </div>
+                      </div>
                     </td>
 
                     {/* 카테고리 */}
-                    <td className="px-3 py-3 text-center">
+                    <td className="px-2.5 py-2 text-center whitespace-nowrap">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                         m.category === 'REUSABLE' 
                           ? 'bg-blue-50 text-blue-700 border border-blue-200' 
@@ -438,7 +441,7 @@ export default function InventoryPage() {
                     </td>
 
                     {/* 단위 */}
-                    <td className="px-3 py-3 text-center text-gray-500 font-medium">
+                    <td className="px-2 py-2 text-center text-gray-500 font-medium whitespace-nowrap">
                       {m.unit}
                     </td>
 
@@ -446,7 +449,7 @@ export default function InventoryPage() {
                     {locations.map(loc => {
                       const qty = m.stocks?.[loc.id] || 0
                       return (
-                        <td key={loc.id} className="px-3.5 py-3 text-center font-semibold text-gray-700">
+                        <td key={loc.id} className="px-2 py-2 text-center font-semibold text-gray-700">
                           {qty > 0 ? (
                             <span className={loc.type === 'WAREHOUSE' ? 'text-gray-900' : 'text-emerald-700'}>
                               {qty}
@@ -459,12 +462,12 @@ export default function InventoryPage() {
                     })}
 
                     {/* 총재고 합계 */}
-                    <td className="px-4 py-3 text-center font-black text-sm bg-blue-50/50 text-blue-900 border-l border-r border-blue-100">
+                    <td className="px-3 py-2 text-center font-black text-sm bg-blue-50/50 text-blue-900 border-l border-r border-blue-100 whitespace-nowrap">
                       {m.totalQty.toLocaleString()}
                     </td>
 
                     {/* 안전재고 */}
-                    <td className="px-3.5 py-3 text-center text-gray-500 font-medium">
+                    <td className="px-2.5 py-2 text-center text-gray-500 font-medium whitespace-nowrap">
                       {m.safetyStock > 0 ? m.safetyStock : '-'}
                     </td>
 

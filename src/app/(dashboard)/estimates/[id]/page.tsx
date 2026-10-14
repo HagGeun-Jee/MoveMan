@@ -66,9 +66,13 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
     return acc
   }, {})
 
-  // 각 위치별로 품목명 기준 가나다순 정렬
+  // 각 위치별로 품목, 규격 순 가나다 정렬
   for (const locName in groupedItems) {
-    groupedItems[locName].sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''))
+    groupedItems[locName].sort((a: any, b: any) => {
+      const nameComp = (a.name || '').localeCompare(b.name || '', 'ko')
+      if (nameComp !== 0) return nameComp
+      return (a.spec || '').localeCompare(b.spec || '', 'ko')
+    })
   }
 
   return (

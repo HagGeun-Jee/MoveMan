@@ -46,13 +46,22 @@ const NumberInput = ({ value, onChange, className, name }: { value: number, onCh
   )
 }
 
+const sortCbmItems = (list: any[]): any[] => {
+  return [...list].sort((a: any, b: any) => {
+    const nameComp = (a.name || '').localeCompare(b.name || '', 'ko')
+    if (nameComp !== 0) return nameComp
+    return (a.spec || '').localeCompare(b.spec || '', 'ko')
+  })
+}
+
 const filterValidCbmItems = (itemsList: any[]): any[] => {
   if (!Array.isArray(itemsList)) return []
-  return itemsList.filter((item: any) => {
+  const filtered = itemsList.filter((item: any) => {
     const qty = item.quantity !== undefined ? Number(item.quantity) : 1
     const unitCbm = (Number(item.cbm) || 0) + (Number(item.innerBoxCbm) || 0)
     return unitCbm > 0 && qty > 0
   })
+  return sortCbmItems(filtered)
 }
 
 const parseAndFilterCbmItems = (cbmItemsStr: string | null | undefined): any[] => {
@@ -603,7 +612,12 @@ export function EstimateForm({
       getLabors(),
       getLocationCategories()
     ]).then(([itemsRes, vehiclesRes, laborsRes, catsRes]) => {
-      setStandardItems(itemsRes)
+      const sortedStandardItems = [...itemsRes].sort((a: any, b: any) => {
+        const nameComp = (a.name || '').localeCompare(b.name || '', 'ko')
+        if (nameComp !== 0) return nameComp
+        return (a.spec || '').localeCompare(b.spec || '', 'ko')
+      })
+      setStandardItems(sortedStandardItems)
       setStandardVehicles(vehiclesRes)
       setStandardLabors(laborsRes)
       setCategories(catsRes)
@@ -612,11 +626,15 @@ export function EstimateForm({
         const initialItems: any[] = []
         const grouped: Record<string, boolean> = {}
 
-        // 각 위치(카테고리)별로 지정된 표준 물품들을 기본 목록으로 세팅
+        // 각 위치(카테고리)별로 지정된 표준 물품들을 기본 목록으로 세팅 (품목, 규격 순 정렬)
         catsRes.forEach((cat: any) => {
-          const catStandardItems = itemsRes.filter((item: any) => 
-            item.locations && item.locations.some((l: any) => l.id === cat.id)
-          )
+          const catStandardItems = sortedStandardItems
+            .filter((item: any) => item.locations && item.locations.some((l: any) => l.id === cat.id))
+            .sort((a: any, b: any) => {
+              const nameComp = (a.name || '').localeCompare(b.name || '', 'ko')
+              if (nameComp !== 0) return nameComp
+              return (a.spec || '').localeCompare(b.spec || '', 'ko')
+            })
 
           catStandardItems.forEach((item: any) => {
             const key = `${cat.id}_${item.name}`
@@ -635,8 +653,14 @@ export function EstimateForm({
           })
         })
 
-        // 위치가 지정되지 않은 물품이 있으면 기타/미지정에 배치
-        const unlocatedItems = itemsRes.filter((item: any) => !item.locations || item.locations.length === 0)
+        // 위치가 지정되지 않은 물품이 있으면 기타/미지정에 배치 (품목, 규격 순 정렬)
+        const unlocatedItems = sortedStandardItems
+          .filter((item: any) => !item.locations || item.locations.length === 0)
+          .sort((a: any, b: any) => {
+            const nameComp = (a.name || '').localeCompare(b.name || '', 'ko')
+            if (nameComp !== 0) return nameComp
+            return (a.spec || '').localeCompare(b.spec || '', 'ko')
+          })
         unlocatedItems.forEach((item: any) => {
           const key = `_${item.name}`
           if (!grouped[key]) {
@@ -1358,7 +1382,13 @@ export function EstimateForm({
             </div>
             <div className="space-y-4">
               {[...categories, { id: '', name: '기타/미지정' }].map(cat => {
-                const catItems = items.filter(i => (i.locationId || '') === cat.id)
+                const catItems = items
+                  .filter(i => (i.locationId || '') === cat.id)
+                  .sort((a, b) => {
+                    const nameComp = (a.name || '').localeCompare(b.name || '', 'ko')
+                    if (nameComp !== 0) return nameComp
+                    return (a.spec || '').localeCompare(b.spec || '', 'ko')
+                  })
                 // Hide '기타/미지정' if it has no items
                 if (cat.id === '' && catItems.length === 0) return null
                 
@@ -1405,8 +1435,10 @@ export function EstimateForm({
                                 </td>
                                 <td className="px-4 py-2">
                                   {(() => {
-                                    // 해당 품목명(name)을 가진 기준정보 항목들을 찾음
-                                    const availableSpecs = standardItems.filter(i => i.name === item.name)
+                                    // 해당 품목명(name)을 가진 기준정보 항목들을 찾음 (규격순 정렬)
+                                    const availableSpecs = standardItems
+                                      .filter(i => i.name === item.name)
+                                      .sort((a, b) => (a.spec || '').localeCompare(b.spec || '', 'ko'))
                                     
                                     if (availableSpecs.length > 0) {
                                       return (
@@ -1495,19 +1527,19 @@ export function EstimateForm({
                                 >
                                   <option value="">+ 품목 선택</option>
                                   {(() => {
-                                    // 1. 현재 위치(카테고리)와 일치하는 품목명 목록
+                                    // 1. 현재 위치(카테고리)와 일치하는 품목명 목록 (가나다순 정렬)
                                     const matchedNames = Array.from(new Set(
                                       standardItems
                                         .filter(i => cat.id && i.locations?.some((l: any) => l.id === cat.id))
                                         .map(i => i.name)
-                                    )).sort()
+                                    )).sort((a, b) => a.localeCompare(b, 'ko'))
 
-                                    // 2. 미지정 품목(위치 미지정 또는 타 위치 포함) 중 matchedNames에 없는 품목명 목록
+                                    // 2. 미지정 품목(위치 미지정 또는 타 위치 포함) 중 matchedNames에 없는 품목명 목록 (가나다순 정렬)
                                     const otherNames = Array.from(new Set(
                                       standardItems
                                         .filter(i => !matchedNames.includes(i.name))
                                         .map(i => i.name)
-                                    )).sort()
+                                    )).sort((a, b) => a.localeCompare(b, 'ko'))
 
                                     return (
                                       <>
@@ -1546,6 +1578,7 @@ export function EstimateForm({
                                     <option value="">+ 규격 선택</option>
                                     {standardItems
                                       .filter(i => i.name === selectedItemNames[cat.id])
+                                      .sort((a, b) => (a.spec || '').localeCompare(b.spec || '', 'ko'))
                                       .map(i => (
                                         <option key={i.id} value={i.id}>
                                           {i.spec ? `${i.spec} (${i.defaultCbm} CBM)` : `기본 규격 (${i.defaultCbm} CBM)`}

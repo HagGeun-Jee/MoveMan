@@ -79,7 +79,10 @@ export async function updateStandardItem(id: string, formData: FormData) {
 export async function getStandardItems() {
   return await prisma.standardItem.findMany({
     include: { locations: true },
-    orderBy: { name: 'asc' }
+    orderBy: [
+      { name: 'asc' },
+      { spec: 'asc' }
+    ]
   })
 }
 

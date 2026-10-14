@@ -49,7 +49,12 @@ export default function ItemsPage() {
       getStandardItems(),
       getLocationCategories()
     ])
-    setItems(itemsData)
+    const sortedItems = [...itemsData].sort((a, b) => {
+      const nameComp = (a.name || '').localeCompare(b.name || '', 'ko')
+      if (nameComp !== 0) return nameComp
+      return (a.spec || '').localeCompare(b.spec || '', 'ko')
+    })
+    setItems(sortedItems)
     setCategories(categoriesData)
     setLoading(false)
   }
@@ -118,21 +123,27 @@ export default function ItemsPage() {
     }
   }
 
-  const filteredItems = items.filter(item => {
-    let locationMatch = true
-    if (filterLocationId === 'none') {
-      locationMatch = !item.locations || item.locations.length === 0
-    } else if (filterLocationId !== 'all') {
-      locationMatch = item.locations?.some((l: any) => l.id === filterLocationId)
-    }
+  const filteredItems = items
+    .filter(item => {
+      let locationMatch = true
+      if (filterLocationId === 'none') {
+        locationMatch = !item.locations || item.locations.length === 0
+      } else if (filterLocationId !== 'all') {
+        locationMatch = item.locations?.some((l: any) => l.id === filterLocationId)
+      }
 
-    let nameMatch = true
-    if (filterName.trim() !== '') {
-      nameMatch = item.name.toLowerCase().includes(filterName.toLowerCase())
-    }
+      let nameMatch = true
+      if (filterName.trim() !== '') {
+        nameMatch = item.name.toLowerCase().includes(filterName.toLowerCase())
+      }
 
-    return locationMatch && nameMatch
-  })
+      return locationMatch && nameMatch
+    })
+    .sort((a, b) => {
+      const nameComp = (a.name || '').localeCompare(b.name || '', 'ko')
+      if (nameComp !== 0) return nameComp
+      return (a.spec || '').localeCompare(b.spec || '', 'ko')
+    })
 
   return (
     <div className="space-y-6 max-w-7xl">
