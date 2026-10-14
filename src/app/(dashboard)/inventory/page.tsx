@@ -26,7 +26,8 @@ import {
   Edit2,
   Trash2,
   FileText,
-  Printer
+  Printer,
+  Copy
 } from 'lucide-react'
 
 import { TransferModal } from './TransferModal'
@@ -106,6 +107,18 @@ export default function InventoryPage() {
     }
   }
 
+  // 자재 복사 등록 (기존 자재 정보를 기초로 신규 등록 폼 오픈)
+  const handleCopyMaterial = (m: any) => {
+    setEditingMaterial({
+      ...m,
+      id: undefined,
+      _isCopy: true,
+      code: `${m.code}-COPY`,
+      name: `${m.name} (복사본)`
+    })
+    setIsMaterialOpen(true)
+  }
+
   // 위치 삭제
   const handleDeleteLocation = async (id: string, name: string) => {
     if (!confirm(`'${name}' 위치를 삭제하시겠습니까?\n해당 위치에 등록된 재고 데이터도 함께 삭제됩니다.`)) return
@@ -118,190 +131,200 @@ export default function InventoryPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16 print:space-y-0 print:max-w-none print:pb-0 print:m-0 print:p-0">
-      {/* 1. 상단 타이틀 & 퀵 액션 */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-5 rounded-2xl shadow-xs border border-gray-100 print:hidden">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
-              <Boxes className="text-blue-600" size={26} />
-              <span>자재 재고관리</span>
-            </h1>
-            <span className="bg-blue-50 text-blue-700 text-xs font-bold px-2.5 py-0.5 rounded-full border border-blue-200">
-              창고 & 차량 통합재고
-            </span>
+    <div className="space-y-3.5 sm:space-y-4 max-w-7xl mx-auto pb-16 print:space-y-0 print:max-w-none print:pb-0 print:m-0 print:p-0">
+      {/* 1. 상단 타이틀 & 퀵 액션 (아래로 스크롤 시에도 상단 고정 유지) */}
+      <div className="sticky -top-3 sm:-top-4 md:-top-6 lg:-top-8 z-30 pt-3 sm:pt-4 md:pt-6 lg:pt-8 -mt-3 sm:-mt-4 md:-mt-6 lg:-mt-8 pb-1.5 bg-gray-100 print:hidden">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-2.5 sm:gap-3 bg-white px-4 py-2.5 sm:px-5 sm:py-3 rounded-2xl shadow-sm border border-gray-200/80 transition-all">
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg sm:text-xl font-black text-gray-900 flex items-center gap-2">
+                <Boxes className="text-blue-600" size={22} />
+                <span>자재 재고관리</span>
+              </h1>
+              <span className="bg-blue-50 text-blue-700 text-[11px] font-bold px-2 py-0.5 rounded-full border border-blue-200">
+                창고 & 차량 통합재고
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-500 mt-0.5">
+              창고 및 현장 차량별 자재 재고를 실시간 파악하고, 상차/하차 이고 및 실사를 손쉽게 관리합니다.
+            </p>
           </div>
-          <p className="text-xs text-gray-500 mt-1">
-            창고 및 현장 차량별 자재 재고를 실시간 파악하고, 상차/하차 이고 및 실사를 손쉽게 관리합니다.
-          </p>
-        </div>
 
-        {/* 퀵 액션 버튼 그룹 */}
-        <div className="flex flex-wrap items-center gap-2">
+          {/* 퀵 액션 버튼 그룹 (태블릿/모바일 한줄 정렬 최적화) */}
+          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto w-full lg:w-auto pb-0.5 lg:pb-0 scrollbar-none">
           <button
             type="button"
             onClick={() => {
               setActiveTab('locationReport')
             }}
-            className="px-3.5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors flex items-center gap-1.5 shadow-sm shadow-indigo-200"
+            className="px-2.5 sm:px-3 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors flex items-center gap-1.5 shadow-sm shadow-indigo-200 shrink-0 whitespace-nowrap"
             title="차량 대여 시 적재된 자재 목록을 확인하고 PDF로 출력하거나 메신저로 공유합니다"
           >
-            <Printer size={15} />
-            <span>차량 대여 / 거점 재고 (PDF)</span>
+            <Printer size={14} className="shrink-0" />
+            <span>차량/거점 재고 PDF</span>
           </button>
 
           <button
             type="button"
             onClick={() => setIsTransferOpen(true)}
-            className="px-3.5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors flex items-center gap-1.5 shadow-sm shadow-blue-200"
+            className="px-2.5 sm:px-3 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors flex items-center gap-1.5 shadow-sm shadow-blue-200 shrink-0 whitespace-nowrap"
           >
-            <ArrowLeftRight size={15} />
+            <ArrowLeftRight size={14} className="shrink-0" />
             <span>자재 이고(이동)</span>
           </button>
 
           <button
             type="button"
             onClick={() => setIsStockInOutOpen(true)}
-            className="px-3.5 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-colors flex items-center gap-1.5"
+            className="px-2.5 sm:px-3 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-colors flex items-center gap-1.5 shrink-0 whitespace-nowrap"
           >
-            <ArrowDownToLine size={15} />
+            <ArrowDownToLine size={14} className="shrink-0" />
             <span>입고 / 폐기 출고</span>
           </button>
 
           <button
             type="button"
             onClick={() => setIsAuditOpen(true)}
-            className="px-3.5 py-2 text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-xl transition-colors flex items-center gap-1.5"
+            className="px-2.5 sm:px-3 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-xl transition-colors flex items-center gap-1.5 shrink-0 whitespace-nowrap"
           >
-            <ClipboardCheck size={15} />
+            <ClipboardCheck size={14} className="shrink-0" />
             <span>재고 실사</span>
           </button>
 
           <button
             type="button"
             onClick={loadData}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl border border-gray-200 transition-colors"
+            className="p-1.5 sm:p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl border border-gray-200 transition-colors shrink-0"
             title="새로고침"
           >
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
       </div>
+    </div>
 
-      {/* 2. 핵심 요약 카드 4종 */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 print:hidden">
-        <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-gray-100 flex items-center justify-between">
+      {/* 2. 핵심 요약 카드 4종 (상하 폭 컴팩트 최적화) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 print:hidden">
+        <div className="bg-white px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-xl shadow-xs border border-gray-100 flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-gray-500">관리 자재 품목</p>
-            <p className="text-2xl font-black text-gray-900 mt-1">{totalItemsCount}<span className="text-xs font-normal text-gray-500 ml-1">종류</span></p>
+            <p className="text-[11px] font-semibold text-gray-500">관리 자재 품목</p>
+            <p className="text-lg sm:text-xl font-black text-gray-900 mt-0.5">
+              {totalItemsCount}
+              <span className="text-[11px] font-normal text-gray-500 ml-1">종류</span>
+            </p>
           </div>
-          <div className="w-11 h-11 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
-            <Package size={22} />
+          <div className="w-8 h-8 sm:w-9 sm:h-9 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center shrink-0">
+            <Package size={18} />
           </div>
         </div>
 
-        <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-gray-100 flex items-center justify-between">
+        <div className="bg-white px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-xl shadow-xs border border-gray-100 flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-gray-500">보관 거점 / 차량</p>
-            <p className="text-2xl font-black text-gray-900 mt-1">
+            <p className="text-[11px] font-semibold text-gray-500">보관 거점 / 차량</p>
+            <p className="text-lg sm:text-xl font-black text-gray-900 mt-0.5">
               {warehouseCount + vehicleCount}
-              <span className="text-xs font-normal text-gray-500 ml-1">
+              <span className="text-[11px] font-normal text-gray-500 ml-1">
                 (창고 {warehouseCount} / 차량 {vehicleCount})
               </span>
             </p>
           </div>
-          <div className="w-11 h-11 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
-            <Truck size={22} />
+          <div className="w-8 h-8 sm:w-9 sm:h-9 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center shrink-0">
+            <Truck size={18} />
           </div>
         </div>
 
-        <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-gray-100 flex items-center justify-between">
+        <div className="bg-white px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-xl shadow-xs border border-gray-100 flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-gray-500">전체 자재 총재고</p>
-            <p className="text-2xl font-black text-gray-900 mt-1">
+            <p className="text-[11px] font-semibold text-gray-500">전체 자재 총재고</p>
+            <p className="text-lg sm:text-xl font-black text-gray-900 mt-0.5">
               {totalStockQuantity.toLocaleString()}
-              <span className="text-xs font-normal text-gray-500 ml-1">개/롤</span>
+              <span className="text-[11px] font-normal text-gray-500 ml-1">개/롤</span>
             </p>
           </div>
-          <div className="w-11 h-11 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
-            <Boxes size={22} />
+          <div className="w-8 h-8 sm:w-9 sm:h-9 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center shrink-0">
+            <Boxes size={18} />
           </div>
         </div>
 
-        <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-gray-100 flex items-center justify-between">
+        <div className="bg-white px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-xl shadow-xs border border-gray-100 flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-gray-500">안전재고 부족 경고</p>
-            <p className={`text-2xl font-black mt-1 ${lowStockCount > 0 ? 'text-amber-600' : 'text-gray-900'}`}>
+            <p className="text-[11px] font-semibold text-gray-500">안전재고 부족 경고</p>
+            <p className={`text-lg sm:text-xl font-black mt-0.5 ${lowStockCount > 0 ? 'text-amber-600' : 'text-gray-900'}`}>
               {lowStockCount}
-              <span className="text-xs font-normal text-gray-500 ml-1">품목</span>
+              <span className="text-[11px] font-normal text-gray-500 ml-1">품목</span>
             </p>
           </div>
-          <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${lowStockCount > 0 ? 'bg-amber-50 text-amber-600' : 'bg-gray-50 text-gray-400'}`}>
-            <AlertTriangle size={22} />
+          <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center shrink-0 ${lowStockCount > 0 ? 'bg-amber-50 text-amber-600' : 'bg-gray-50 text-gray-400'}`}>
+            <AlertTriangle size={18} />
           </div>
         </div>
       </div>
 
-      {/* 3. 탭 네비게이션 */}
-      <div className="flex border-b border-gray-200 space-x-1 sm:space-x-3 bg-white px-4 pt-2 rounded-xl shadow-xs overflow-x-auto no-scrollbar print:hidden">
+      {/* 3. 탭 네비게이션 (배경색 전환 및 컴팩트 사이즈 최적화) */}
+      <div className="flex items-center gap-1 sm:gap-1.5 bg-white p-1.5 rounded-2xl border border-gray-100 shadow-xs overflow-x-auto scrollbar-none print:hidden">
         <button
+          type="button"
           onClick={() => setActiveTab('overview')}
-          className={`py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
+          className={`py-1.5 sm:py-2 px-2.5 sm:px-3 text-[11px] sm:text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
             activeTab === 'overview'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
           }`}
         >
-          <Boxes size={16} />
+          <Boxes size={14} className="shrink-0" />
           <span>전체 현황 매트릭스</span>
         </button>
 
         <button
+          type="button"
           onClick={() => setActiveTab('locationReport')}
-          className={`py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
+          className={`py-1.5 sm:py-2 px-2.5 sm:px-3 text-[11px] sm:text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
             activeTab === 'locationReport'
-              ? 'border-indigo-600 text-indigo-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'bg-indigo-600 text-white shadow-xs'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
           }`}
         >
-          <Printer size={16} />
-          <span>거점별 재고 & PDF 공유 (차량 대여)</span>
+          <Printer size={14} className="shrink-0" />
+          <span>차량/거점 재고 PDF</span>
         </button>
 
         <button
+          type="button"
           onClick={() => setActiveTab('transfers')}
-          className={`py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
+          className={`py-1.5 sm:py-2 px-2.5 sm:px-3 text-[11px] sm:text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
             activeTab === 'transfers'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
           }`}
         >
-          <ArrowLeftRight size={16} />
-          <span>이고 / 입출고 이력 ({transfers.length})</span>
+          <ArrowLeftRight size={14} className="shrink-0" />
+          <span>이고/입출고 이력 ({transfers.length})</span>
         </button>
 
         <button
+          type="button"
           onClick={() => setActiveTab('audits')}
-          className={`py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
+          className={`py-1.5 sm:py-2 px-2.5 sm:px-3 text-[11px] sm:text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
             activeTab === 'audits'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'bg-purple-600 text-white shadow-xs'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
           }`}
         >
-          <ClipboardCheck size={16} />
+          <ClipboardCheck size={14} className="shrink-0" />
           <span>재고 실사 이력 ({audits.length})</span>
         </button>
 
         <button
+          type="button"
           onClick={() => setActiveTab('settings')}
-          className={`py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
+          className={`py-1.5 sm:py-2 px-2.5 sm:px-3 text-[11px] sm:text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
             activeTab === 'settings'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'bg-slate-800 text-white shadow-xs'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
           }`}
         >
-          <Settings size={16} />
-          <span>자재 및 거점 설정</span>
+          <Settings size={14} className="shrink-0" />
+          <span>자재/거점 설정</span>
         </button>
       </div>
 
@@ -686,6 +709,14 @@ export default function InventoryPage() {
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
+                      onClick={() => handleCopyMaterial(m)}
+                      className="p-1.5 text-gray-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors"
+                      title="기존 정보를 기초로 복사등록"
+                    >
+                      <Copy size={14} />
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => { setEditingMaterial(m); setIsMaterialOpen(true); }}
                       className="p-1.5 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
                       title="수정"
@@ -789,10 +820,11 @@ export default function InventoryPage() {
 
       {isMaterialOpen && (
         <MaterialModal
-          key={editingMaterial?.id || 'new-material'}
+          key={editingMaterial?._isCopy ? `copy-${editingMaterial?.code}` : (editingMaterial?.id || 'new-material')}
           isOpen={isMaterialOpen}
           onClose={() => { setIsMaterialOpen(false); setEditingMaterial(null); }}
           materialToEdit={editingMaterial}
+          existingMaterials={materials}
           onSuccess={loadData}
         />
       )}

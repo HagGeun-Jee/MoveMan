@@ -613,7 +613,7 @@ export async function getAuditHistory(limit = 20) {
 }
 
 /**
- * 자재 품목 등록/수정/삭제
+ * 자재 품목 등록/수정/삭제 (코드 및 품목명 중복 체크 적용)
  */
 export async function createMaterialItem(data: {
   code: string
@@ -625,12 +625,39 @@ export async function createMaterialItem(data: {
   memo?: string
 }) {
   try {
-    const existing = await prisma.materialItem.findUnique({ where: { code: data.code } })
-    if (existing) {
-      return { error: '이미 존재하는 자재 코드입니다.' }
+    const trimmedCode = data.code.trim()
+    const trimmedName = data.name.trim()
+
+    if (!trimmedCode) {
+      return { error: '자재 코드를 입력해 주세요.' }
+    }
+    if (!trimmedName) {
+      return { error: '자재 품목명을 입력해 주세요.' }
     }
 
-    await prisma.materialItem.create({ data })
+    // 1. 코드 중복 검사
+    const existingCode = await prisma.materialItem.findUnique({
+      where: { code: trimmedCode }
+    })
+    if (existingCode) {
+      return { error: `이미 등록된 자재 코드입니다. (${trimmedCode})` }
+    }
+
+    // 2. 품목명 중복 검사
+    const existingName = await prisma.materialItem.findFirst({
+      where: { name: trimmedName }
+    })
+    if (existingName) {
+      return { error: `이미 등록된 자재 품목명입니다. (${trimmedName})` }
+    }
+
+    await prisma.materialItem.create({
+      data: {
+        ...data,
+        code: trimmedCode,
+        name: trimmedName
+      }
+    })
     revalidatePath('/inventory')
     return { success: true }
   } catch (error: any) {
@@ -648,7 +675,43 @@ export async function updateMaterialItem(id: string, data: Partial<{
   memo: string
 }>) {
   try {
-    await prisma.materialItem.update({ where: { id }, data })
+    const trimmedCode = data.code !== undefined ? data.code.trim() : undefined
+    const trimmedName = data.name !== undefined ? data.name.trim() : undefined
+
+    if (trimmedCode !== undefined) {
+      if (!trimmedCode) return { error: '자재 코드를 입력해 주세요.' }
+      const existingCode = await prisma.materialItem.findFirst({
+        where: {
+          code: trimmedCode,
+          NOT: { id }
+        }
+      })
+      if (existingCode) {
+        return { error: `이미 등록된 자재 코드입니다. (${trimmedCode})` }
+      }
+    }
+
+    if (trimmedName !== undefined) {
+      if (!trimmedName) return { error: '자재 품목명을 입력해 주세요.' }
+      const existingName = await prisma.materialItem.findFirst({
+        where: {
+          name: trimmedName,
+          NOT: { id }
+        }
+      })
+      if (existingName) {
+        return { error: `이미 등록된 자재 품목명입니다. (${trimmedName})` }
+      }
+    }
+
+    await prisma.materialItem.update({
+      where: { id },
+      data: {
+        ...data,
+        ...(trimmedCode !== undefined ? { code: trimmedCode } : {}),
+        ...(trimmedName !== undefined ? { name: trimmedName } : {})
+      }
+    })
     revalidatePath('/inventory')
     return { success: true }
   } catch (error: any) {

@@ -1,17 +1,36 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createMaterialItem, updateMaterialItem, deleteMaterialItem } from '@/app/actions/inventory'
-import { X, Loader2, AlertCircle } from 'lucide-react'
+import { createMaterialItem, updateMaterialItem } from '@/app/actions/inventory'
+import { X, Loader2, AlertCircle, Copy, CheckCircle2 } from 'lucide-react'
 
 interface MaterialModalProps {
   isOpen: boolean
   onClose: () => void
   materialToEdit?: any | null
+  existingMaterials?: Array<{
+    id: string
+    code: string
+    name: string
+    category?: string
+    unit?: string
+    safetyStock?: number
+    unitPrice?: number
+    memo?: string | null
+  }>
   onSuccess: () => void
 }
 
-export function MaterialModal({ isOpen, onClose, materialToEdit, onSuccess }: MaterialModalProps) {
+export function MaterialModal({
+  isOpen,
+  onClose,
+  materialToEdit,
+  existingMaterials = [],
+  onSuccess
+}: MaterialModalProps) {
+  const isCopyMode = Boolean(materialToEdit?._isCopy)
+  const isEditMode = Boolean(materialToEdit?.id && !isCopyMode)
+
   const [code, setCode] = useState(materialToEdit?.code || '')
   const [name, setName] = useState(materialToEdit?.name || '')
   const [category, setCategory] = useState(materialToEdit?.category || 'REUSABLE')
@@ -21,6 +40,7 @@ export function MaterialModal({ isOpen, onClose, materialToEdit, onSuccess }: Ma
   const [memo, setMemo] = useState(materialToEdit?.memo || '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [selectedTemplateId, setSelectedTemplateId] = useState('')
 
   // 수정 대상 또는 오픈 상태 변경 시 폼 필드 동기화
   useEffect(() => {
@@ -32,6 +52,7 @@ export function MaterialModal({ isOpen, onClose, materialToEdit, onSuccess }: Ma
       setSafetyStock(materialToEdit.safetyStock ?? 0)
       setUnitPrice(materialToEdit.unitPrice ?? 0)
       setMemo(materialToEdit.memo || '')
+      setSelectedTemplateId(materialToEdit.id || '')
     } else {
       setCode('')
       setName('')
@@ -40,37 +61,93 @@ export function MaterialModal({ isOpen, onClose, materialToEdit, onSuccess }: Ma
       setSafetyStock(0)
       setUnitPrice(0)
       setMemo('')
+      setSelectedTemplateId('')
     }
     setError(null)
   }, [materialToEdit, isOpen])
 
   if (!isOpen) return null
 
+  // 기존 자재 정보를 기초로 복사 채우기
+  const handleSelectTemplate = (templateId: string) => {
+    setSelectedTemplateId(templateId)
+    if (!templateId) return
+    const target = existingMaterials.find(m => m.id === templateId)
+    if (target) {
+      // 중복 방지를 위한 추천 코드/이름 부여
+      setCode(`${target.code}-COPY`)
+      setName(`${target.name} (복사본)`)
+      setCategory(target.category || 'REUSABLE')
+      setUnit(target.unit || '개')
+      setSafetyStock(target.safetyStock ?? 0)
+      setUnitPrice(target.unitPrice ?? 0)
+      setMemo(target.memo || '')
+      setError(null)
+    }
+  }
+
+  // 중복 검사 (코드 및 품목명)
+  const validateDuplicate = () => {
+    const trimmedCode = code.trim()
+    const trimmedName = name.trim()
+
+    if (!trimmedCode) return '자재 코드를 입력해 주세요.'
+    if (!trimmedName) return '자재 품목명을 입력해 주세요.'
+
+    const targetId = isEditMode ? materialToEdit?.id : undefined
+
+    // 1. 코드 중복 체크
+    const dupCode = existingMaterials.find(
+      m => m.code.toLowerCase() === trimmedCode.toLowerCase() && m.id !== targetId
+    )
+    if (dupCode) {
+      return `이미 등록된 자재 코드입니다. (${trimmedCode})`
+    }
+
+    // 2. 품목명 중복 체크
+    const dupName = existingMaterials.find(
+      m => m.name.toLowerCase() === trimmedName.toLowerCase() && m.id !== targetId
+    )
+    if (dupName) {
+      return `이미 등록된 자재 품목명입니다. (${trimmedName})`
+    }
+
+    return null
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+
+    // 저장 전 코드/품목명 중복 검사
+    const dupError = validateDuplicate()
+    if (dupError) {
+      setError(dupError)
+      return
+    }
+
     setLoading(true)
 
     let res: any
-    if (materialToEdit?.id) {
+    if (isEditMode) {
       res = await updateMaterialItem(materialToEdit.id, {
-        code,
-        name,
+        code: code.trim(),
+        name: name.trim(),
         category,
-        unit,
+        unit: unit.trim(),
         safetyStock: Number(safetyStock) || 0,
         unitPrice: Number(unitPrice) || 0,
-        memo
+        memo: memo.trim()
       })
     } else {
       res = await createMaterialItem({
-        code,
-        name,
+        code: code.trim(),
+        name: name.trim(),
         category,
-        unit,
+        unit: unit.trim(),
         safetyStock: Number(safetyStock) || 0,
         unitPrice: Number(unitPrice) || 0,
-        memo
+        memo: memo.trim()
       })
     }
     setLoading(false)
@@ -86,37 +163,83 @@ export function MaterialModal({ isOpen, onClose, materialToEdit, onSuccess }: Ma
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-gray-50/50">
-          <h2 className="text-base font-bold text-gray-900">
-            {materialToEdit ? '자재 품목 수정' : '신규 자재 품목 등록'}
-          </h2>
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-gray-100 bg-gray-50/50">
+          <div className="flex items-center gap-2">
+            {isCopyMode ? (
+              <span className="p-1.5 bg-blue-100 text-blue-700 rounded-lg">
+                <Copy size={16} />
+              </span>
+            ) : null}
+            <div>
+              <h2 className="text-base font-bold text-gray-900">
+                {isEditMode
+                  ? '자재 품목 수정'
+                  : isCopyMode
+                  ? '자재 품목 복사 등록 (신규)'
+                  : '신규 자재 품목 등록'}
+              </h2>
+              {isCopyMode && (
+                <p className="text-[11px] text-blue-600 mt-0.5">
+                  기존 자재 정보를 기초로 복사되었습니다. 코드 및 품목명을 수정해 주세요.
+                </p>
+              )}
+            </div>
+          </div>
           <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 rounded-lg">
             <X size={18} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-3.5">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-3.5">
           {error && (
-            <div className="p-2.5 bg-red-50 text-red-700 text-xs rounded-xl flex items-center gap-2">
-              <AlertCircle size={15} />
-              <span>{error}</span>
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-start gap-2">
+              <AlertCircle size={16} className="shrink-0 mt-0.5" />
+              <div className="font-semibold">{error}</div>
+            </div>
+          )}
+
+          {/* 신규 등록 모드일 때 기존 자재 정보 불러오기 드롭다운 */}
+          {!isEditMode && existingMaterials.length > 0 && (
+            <div className="p-2.5 bg-blue-50/70 rounded-xl border border-blue-100 space-y-1">
+              <label className="text-[11px] font-bold text-blue-800 flex items-center gap-1.5">
+                <Copy size={13} />
+                <span>기존 자재 기초로 복사 불러오기 (선택)</span>
+              </label>
+              <select
+                value={selectedTemplateId}
+                onChange={(e) => handleSelectTemplate(e.target.value)}
+                className="w-full rounded-lg border border-blue-200 bg-white px-2.5 py-1.5 text-xs text-gray-700 font-medium outline-none focus:border-blue-500"
+              >
+                <option value="">-- 기존 자재 선택 시 정보가 복사됩니다 --</option>
+                {existingMaterials.map(m => (
+                  <option key={m.id} value={m.id}>
+                    {m.name} ({m.code}) - {m.unit} | {(m.unitPrice ?? 0).toLocaleString()}원
+                  </option>
+                ))}
+              </select>
             </div>
           )}
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">자재 코드</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-bold text-gray-700">자재 코드</label>
+              <span className="text-[10px] text-gray-400 font-normal">영문/숫자 고유 식별자</span>
+            </div>
             <input
               type="text"
               required
               value={code}
               onChange={(e) => setCode(e.target.value)}
               placeholder="예: MAT-BOX-01"
-              className="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs font-medium focus:border-blue-500 outline-none"
+              className="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs font-mono font-medium focus:border-blue-500 outline-none"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">자재 품명</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-bold text-gray-700">자재 품명</label>
+              <span className="text-[10px] text-gray-400 font-normal">품목명 중복 불가</span>
+            </div>
             <input
               type="text"
               required
@@ -199,9 +322,13 @@ export function MaterialModal({ isOpen, onClose, materialToEdit, onSuccess }: Ma
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center justify-center gap-1"
+              className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center justify-center gap-1 shadow-sm shadow-blue-200"
             >
-              {loading ? <Loader2 size={15} className="animate-spin" /> : <span>저장</span>}
+              {loading ? (
+                <Loader2 size={15} className="animate-spin" />
+              ) : (
+                <span>{isEditMode ? '수정 저장' : '등록 저장'}</span>
+              )}
             </button>
           </div>
         </form>

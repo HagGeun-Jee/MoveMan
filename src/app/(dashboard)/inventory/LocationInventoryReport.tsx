@@ -225,63 +225,7 @@ export function LocationInventoryReport({
       {/* ========================================================= */}
       {/* 1. 웹 화면 전용 UI (인쇄 시 숨김: print:hidden) */}
       {/* ========================================================= */}
-      <div className="space-y-5 print:hidden">
-        {/* 상단 안내 & 액션 바 */}
-        <div className="bg-white p-5 rounded-2xl shadow-xs border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
-                <Truck size={20} />
-              </span>
-              <div>
-                <h2 className="text-lg font-black text-gray-900">
-                  거점별 재고 리스트 및 차량 인수인계 (PDF)
-                </h2>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  차량 대여 시 적재된 자재 목록을 확인하고, A4 규격 PDF 인수인계서 출력 또는 메신저로 타인에게 즉시 공유합니다.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* 공유 및 출력 버튼 그룹 */}
-          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="flex-1 md:flex-none px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-blue-200 flex items-center justify-center gap-2"
-              title="A4 규격 PDF로 저장하거나 인쇄합니다"
-            >
-              <Printer size={16} />
-              <span>PDF 다운로드 / 인쇄</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleCopyShareText}
-              className={`flex-1 md:flex-none px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 border ${
-                copied
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
-                  : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border-amber-200'
-              }`}
-              title="카카오톡이나 문자로 전송 가능한 텍스트를 복사합니다"
-            >
-              {copied ? <Check size={16} className="text-emerald-600" /> : <Copy size={16} />}
-              <span>{copied ? '카톡 텍스트 복사됨!' : '카톡/메신저 텍스트 복사'}</span>
-            </button>
-
-            {typeof navigator !== 'undefined' && 'share' in navigator && (
-              <button
-                type="button"
-                onClick={handleMobileShare}
-                className="p-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition-colors border border-gray-200"
-                title="모바일 간편 공유"
-              >
-                <Share2 size={16} />
-              </button>
-            )}
-          </div>
-        </div>
+      <div className="space-y-4 print:hidden">
 
         {/* 거점(차량/창고) 선택 카드 바 */}
         <div className="bg-white p-4 rounded-2xl shadow-xs border border-gray-100 space-y-3">
@@ -349,31 +293,70 @@ export function LocationInventoryReport({
           </div>
         </div>
 
-        {/* 차량 대여 / 인수인계 상세 정보 입력 (접이식 아코디언) */}
+        {/* 차량대여 인수인계 정보입력 PDF (접이식 아코디언 및 소형화 액션 버튼) */}
         <div className="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
-          <button
-            type="button"
-            onClick={() => setIsHandoverFormOpen(!isHandoverFormOpen)}
-            className="w-full p-4 flex items-center justify-between text-left hover:bg-gray-50/50 transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <span className="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
+          <div className="w-full px-3.5 py-2.5 sm:px-4 sm:py-3 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5 bg-white">
+            {/* 좌측: 타이틀 및 아코디언 토글 클릭 영역 */}
+            <div
+              onClick={() => setIsHandoverFormOpen(!isHandoverFormOpen)}
+              className="flex items-center gap-2 cursor-pointer select-none min-w-0 hover:opacity-85 transition-opacity"
+              title="클릭하여 상세 정보 입력란을 열거나 닫습니다"
+            >
+              <span className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg shrink-0">
                 <FileText size={16} />
               </span>
-              <div>
-                <span className="text-xs font-bold text-gray-900">
-                  차량 대여 / 인수인계 추가 정보 입력 (PDF 및 서명란 반영)
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                <span className="text-xs sm:text-sm font-black text-gray-900 whitespace-nowrap">
+                  차량대여 인수인계 정보입력 PDF
                 </span>
-                <span className="text-[11px] text-gray-400 ml-2">
+                <span className="text-[11px] text-gray-400">
                   {receiverName ? `인수자: ${receiverName}` : '(선택 입력 사항)'}
+                </span>
+                <span className="text-[10px] text-indigo-600 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded font-bold flex items-center gap-0.5 ml-1">
+                  <span>{isHandoverFormOpen ? '접기' : '입력란 열기'}</span>
+                  {isHandoverFormOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-1 text-xs text-gray-500 font-medium">
-              <span>{isHandoverFormOpen ? '접기' : '입력하기'}</span>
-              {isHandoverFormOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+
+            {/* 우측: 소형화된 PDF 출력 및 공유 버튼 그룹 */}
+            <div className="flex items-center gap-1.5 shrink-0 ml-auto sm:ml-0">
+              <button
+                type="button"
+                onClick={handlePrint}
+                className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[11px] font-bold transition-all shadow-xs flex items-center gap-1.5 whitespace-nowrap"
+                title="A4 규격 PDF로 저장하거나 인쇄합니다"
+              >
+                <Printer size={13} className="shrink-0" />
+                <span>PDF 다운로드 / 인쇄</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleCopyShareText}
+                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5 border whitespace-nowrap ${
+                  copied
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                    : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border-amber-200'
+                }`}
+                title="카카오톡이나 문자로 전송 가능한 텍스트를 복사합니다"
+              >
+                {copied ? <Check size={13} className="text-emerald-600 shrink-0" /> : <Copy size={13} className="shrink-0" />}
+                <span>{copied ? '복사됨!' : '카톡/메신저 복사'}</span>
+              </button>
+
+              {typeof navigator !== 'undefined' && 'share' in navigator && (
+                <button
+                  type="button"
+                  onClick={handleMobileShare}
+                  className="p-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors border border-gray-200 shrink-0"
+                  title="모바일 간편 공유"
+                >
+                  <Share2 size={13} />
+                </button>
+              )}
             </div>
-          </button>
+          </div>
 
           {isHandoverFormOpen && (
             <div className="p-4 pt-0 border-t border-gray-100 space-y-3 bg-gray-50/40">
