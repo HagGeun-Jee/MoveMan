@@ -14,6 +14,7 @@ import { MapPin, Search, ChevronDown, ChevronUp, Navigation, RefreshCw, Car, Ale
 import { CustomDatePicker } from '@/components/CustomDatePicker'
 import { format } from 'date-fns'
 import { formatPhoneNumber, handleSelectAllOnFocus } from '@/lib/format'
+import { MovingCostCalculatorModal } from '@/components/MovingCostCalculatorModal'
 
 const NumberInput = ({ value, onChange, className, name }: { value: number, onChange: (val: number) => void, className?: string, name?: string }) => {
   const [localVal, setLocalVal] = useState(value === 0 ? '' : value.toLocaleString())
@@ -77,6 +78,7 @@ export function EstimateForm({
   const payPlanObj = initialData?.paymentPlan ? JSON.parse(initialData.paymentPlan) : {}
 
   const [movingCost, setMovingCost] = useState(initialData?.movingCost || 0)
+  const [isCostModalOpen, setIsCostModalOpen] = useState(false)
   const [additionalCost, setAdditionalCost] = useState(initialData?.additionalCost || 0)
   const [storageCost, setStorageCost] = useState(initialData?.storageCost || 0)
   const [vat, setVat] = useState(initialData?.vat || 0)
@@ -218,8 +220,8 @@ export function EstimateForm({
     }
   }
 
-  // 거리 초과 운임 계산 설정 (기본거리 10km, km당 2,000원)
-  const [baseDistanceKm, setBaseDistanceKm] = useState<number>(Number(envObj.baseDistanceKm) || 10)
+  // 거리 초과 운임 계산 설정 (기본거리 20km, km당 2,000원)
+  const [baseDistanceKm, setBaseDistanceKm] = useState<number>(Number(envObj.baseDistanceKm) || 20)
   const [ratePerKm, setRatePerKm] = useState<number>(Number(envObj.ratePerKm) || 2000)
 
   // 주행거리 자동/수동 계산 함수
@@ -587,7 +589,51 @@ export function EstimateForm({
       setCategories(catsRes)
 
       if (!initialData?.cbmItems) {
-        setItems([])
+        const initialItems: any[] = []
+        const grouped: Record<string, boolean> = {}
+
+        // 각 위치(카테고리)별로 지정된 표준 물품들을 기본 목록으로 세팅
+        catsRes.forEach((cat: any) => {
+          const catStandardItems = itemsRes.filter((item: any) => 
+            item.locations && item.locations.some((l: any) => l.id === cat.id)
+          )
+
+          catStandardItems.forEach((item: any) => {
+            const key = `${cat.id}_${item.name}`
+            if (!grouped[key]) {
+              grouped[key] = true
+              initialItems.push({
+                locationId: cat.id,
+                locationName: cat.name,
+                name: item.name,
+                spec: '',
+                quantity: 0,
+                cbm: 0,
+                innerBoxCbm: 0
+              })
+            }
+          })
+        })
+
+        // 위치가 지정되지 않은 물품이 있으면 기타/미지정에 배치
+        const unlocatedItems = itemsRes.filter((item: any) => !item.locations || item.locations.length === 0)
+        unlocatedItems.forEach((item: any) => {
+          const key = `_${item.name}`
+          if (!grouped[key]) {
+            grouped[key] = true
+            initialItems.push({
+              locationId: '',
+              locationName: '기타/미지정',
+              name: item.name,
+              spec: '',
+              quantity: 0,
+              cbm: 0,
+              innerBoxCbm: 0
+            })
+          }
+        })
+
+        setItems(initialItems)
 
         const initialExpanded: Record<string, boolean> = {}
         catsRes.forEach((c: any) => {
@@ -1428,18 +1474,40 @@ export function EstimateForm({
                                   }}
                                 >
                                   <option value="">+ 품목 선택</option>
-                                  {Array.from(new Set(
-                                    standardItems
-                                      .filter(i => 
-                                        cat.id === '' || 
-                                        i.locations?.some((l: any) => l.id === cat.id) || 
-                                        !i.locations || 
-                                        i.locations.length === 0
-                                      )
-                                      .map(i => i.name)
-                                  )).map(name => (
-                                    <option key={name as string} value={name as string}>{name as string}</option>
-                                  ))}
+                                  {(() => {
+                                    // 1. 현재 위치(카테고리)와 일치하는 품목명 목록
+                                    const matchedNames = Array.from(new Set(
+                                      standardItems
+                                        .filter(i => cat.id && i.locations?.some((l: any) => l.id === cat.id))
+                                        .map(i => i.name)
+                                    )).sort()
+
+                                    // 2. 미지정 품목(위치 미지정 또는 타 위치 포함) 중 matchedNames에 없는 품목명 목록
+                                    const otherNames = Array.from(new Set(
+                                      standardItems
+                                        .filter(i => !matchedNames.includes(i.name))
+                                        .map(i => i.name)
+                                    )).sort()
+
+                                    return (
+                                      <>
+                                        {matchedNames.length > 0 && (
+                                          <optgroup label={`── ${cat.name || '현재 위치'} 지정 품목 ──`}>
+                                            {matchedNames.map(name => (
+                                              <option key={name} value={name}>{name}</option>
+                                            ))}
+                                          </optgroup>
+                                        )}
+                                        {otherNames.length > 0 && (
+                                          <optgroup label="── 미지정 / 기타 품목 ──">
+                                            {otherNames.map(name => (
+                                              <option key={name} value={name}>{name}</option>
+                                            ))}
+                                          </optgroup>
+                                        )}
+                                      </>
+                                    )
+                                  })()}
                                 </select>
                                 
                                 {selectedItemNames[cat.id] && (
@@ -1457,17 +1525,11 @@ export function EstimateForm({
                                   >
                                     <option value="">+ 규격 선택</option>
                                     {standardItems
-                                      .filter(i => 
-                                        i.name === selectedItemNames[cat.id] && 
-                                        (
-                                          cat.id === '' || 
-                                          i.locations?.some((l: any) => l.id === cat.id) || 
-                                          !i.locations || 
-                                          i.locations.length === 0
-                                        )
-                                      )
+                                      .filter(i => i.name === selectedItemNames[cat.id])
                                       .map(i => (
-                                        <option key={i.id} value={i.id}>{i.spec || '기본 규격'}</option>
+                                        <option key={i.id} value={i.id}>
+                                          {i.spec ? `${i.spec} (${i.defaultCbm} CBM)` : `기본 규격 (${i.defaultCbm} CBM)`}
+                                        </option>
                                       ))}
                                   </select>
                                 )}
@@ -1682,7 +1744,18 @@ export function EstimateForm({
         {/* 이사 비용 및 결제 플랜 통합 섹션 */}
         <div className="bg-white p-3.5 sm:p-5 rounded-xl shadow-sm border border-gray-100 space-y-3.5">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-2 gap-2">
-            <h2 className="text-base sm:text-lg font-bold text-blue-600">이사 비용 및 결제 플랜</h2>
+            <div className="flex items-center gap-2.5">
+              <h2 className="text-base sm:text-lg font-bold text-blue-600">이사 비용 및 결제 플랜</h2>
+              <button
+                type="button"
+                onClick={() => setIsCostModalOpen(true)}
+                className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1 active:scale-95"
+                title="CBM별 가이드, 캘린더 할증, 특수물품 분해조립 비용을 종합하여 이사비용 산출"
+              >
+                <Calculator size={13} />
+                <span>이사비용 산출</span>
+              </button>
+            </div>
             <div className="flex items-center gap-3 text-xs sm:text-sm text-gray-700 bg-gray-50 px-2.5 py-1 rounded-lg border border-gray-200">
               <span className="font-bold text-gray-600">결제 기준:</span>
               <label className="flex items-center gap-1 cursor-pointer font-medium text-gray-800 hover:text-blue-600 whitespace-nowrap">
@@ -1711,8 +1784,18 @@ export function EstimateForm({
           {/* 1. 비용 입력 */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
             <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap mb-1">기본 이사 비용</label>
-              <NumberInput name="movingCost" value={movingCost} onChange={v => { setMovingCost(v); setIsCostEdited(true); }} className="block w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-right outline-none focus:border-blue-500" />
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap">기본 이사 비용</label>
+                <button
+                  type="button"
+                  onClick={() => setIsCostModalOpen(true)}
+                  className="text-[11px] text-blue-600 hover:text-blue-800 font-bold flex items-center gap-0.5 hover:underline"
+                >
+                  <Calculator size={11} />
+                  <span>산출</span>
+                </button>
+              </div>
+              <NumberInput name="movingCost" value={movingCost} onChange={v => { setMovingCost(v); setIsCostEdited(true); }} className="block w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-right outline-none focus:border-blue-500 font-semibold" />
             </div>
             <div>
               <label className="block text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap mb-1">가산비용 내역</label>
@@ -1944,6 +2027,21 @@ export function EstimateForm({
             </div>
           </div>
         </div>
+      )}
+
+      {/* 이사비용 산출 시뮬레이터 모달 */}
+      {isCostModalOpen && (
+        <MovingCostCalculatorModal
+          isOpen={isCostModalOpen}
+          onClose={() => setIsCostModalOpen(false)}
+          currentCbm={requiredCbm > 0 ? requiredCbm : totalCbm}
+          movingDate={movingDate}
+          currentMovingCost={movingCost}
+          onApply={(calculatedCost) => {
+            setMovingCost(calculatedCost)
+            setIsCostEdited(true)
+          }}
+        />
       )}
     </div>
   )

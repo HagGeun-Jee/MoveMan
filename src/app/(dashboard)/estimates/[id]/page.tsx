@@ -47,7 +47,7 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
 
   // 거리가산 운임 세부 산출
   const distanceKm = Number(envObj.distance) || 0
-  const baseDistanceKm = Number(envObj.baseDistanceKm) || 10
+  const baseDistanceKm = Number(envObj.baseDistanceKm) || 20
   const ratePerKm = Number(envObj.ratePerKm) || 2000
   const extraDistanceKm = (envObj.extraDistanceKm !== undefined && Number(envObj.extraDistanceKm) > 0)
     ? Number(envObj.extraDistanceKm) 
