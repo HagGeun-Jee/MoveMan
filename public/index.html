@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>MEMAN - 이사견적 및 재고관리</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+      color: #ffffff;
+      text-align: center;
+      padding: 24px;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(12px);
+      border-radius: 20px;
+      padding: 32px 24px;
+      max-width: 380px;
+      width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    }
+    .logo {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 8px;
+    }
+    .badge {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.25);
+      font-size: 13px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+      font-weight: 600;
+    }
+    .desc {
+      font-size: 15px;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 24px;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      background: #ffffff;
+      color: #1e3a8a;
+      font-weight: 700;
+      font-size: 16px;
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transition: transform 0.1s ease;
+    }
+    .btn:active {
+      transform: scale(0.98);
+    }
+    .footer {
+      margin-top: 16px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">MEMAN</div>
+    <div class="badge">모바일 현장 지원 시스템</div>
+    <p class="desc">
+      현장 오프라인 견적 작성 및<br>
+      서버 양방향 동기화 앱이 준비되었습니다.
+    </p>
+    <button class="btn" onclick="location.reload()">시스템 접속</button>
+    <div class="footer">오프라인 로컬 DB & 자동 동기화 지원</div>
+  </div>
+</body>
+</html>

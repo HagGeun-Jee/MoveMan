@@ -7,6 +7,7 @@ import { LayoutDashboard, FileText, Calendar, Settings } from 'lucide-react'
 
 import { Sidebar } from '@/components/Sidebar'
 import { GlobalInputEnhancer } from '@/components/GlobalInputEnhancer'
+import { SyncStatusBar } from '@/components/SyncStatusBar'
 
 import prisma from '@/lib/prisma'
 
@@ -31,8 +32,11 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       />
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto print:overflow-visible print:h-auto">
-        <div className="p-3 sm:p-4 md:p-6 lg:p-8 print:p-0">
+      <main className="flex-1 overflow-auto print:overflow-visible print:h-auto flex flex-col">
+        <div className="print:hidden sticky top-0 z-20">
+          <SyncStatusBar />
+        </div>
+        <div className="p-3 sm:p-4 md:p-6 lg:p-8 print:p-0 flex-1">
           {children}
         </div>
       </main>

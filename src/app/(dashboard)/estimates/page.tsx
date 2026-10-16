@@ -4,6 +4,7 @@ import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { EstimateRow } from './EstimateRow'
 import { formatPhoneNumber } from '@/lib/format'
+import { OfflineEstimatesNotice } from '@/components/OfflineEstimatesNotice'
 
 export default async function EstimatesPage() {
   const estimates = await prisma.estimate.findMany({
@@ -21,6 +22,9 @@ export default async function EstimatesPage() {
           + 새 견적 작성
         </Link>
       </div>
+
+      {/* 오프라인 저장된 미동기화 견적 배너 */}
+      <OfflineEstimatesNotice />
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-4 border-b border-gray-100 bg-gray-50 flex gap-4">

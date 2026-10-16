@@ -977,12 +977,84 @@ export function EstimateForm({
     }
   }
 
-  // 폼 제출 시 임시 저장 삭제
+  // 폼 제출 시 오프라인 감지 및 저장
   const handleFormSubmit = async (formData: FormData) => {
     try {
       localStorage.removeItem(storageKey)
     } catch {}
-    await action(formData)
+
+    // 1. 단말기 오프라인 상태 시 자체 로컬 DB에 즉시 저장
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      try {
+        const { syncManager } = await import('@/lib/sync/syncManager')
+        const rawItems = filterValidCbmItems(items)
+        const offlineData = {
+          id: initialData?.id,
+          customerName,
+          contact,
+          movingType,
+          estimateDate: estimateDate ? estimateDate.toISOString() : new Date().toISOString(),
+          visitDate: visitDate ? visitDate.toISOString() : null,
+          movingDate: movingDate ? movingDate.toISOString() : null,
+          organizeDate: organizeDate ? organizeDate.toISOString() : null,
+          fromAddress,
+          toAddress,
+          cbmItems: JSON.stringify(rawItems),
+          materials: formData.get('materials') as string,
+          environment: formData.get('environment') as string,
+          paymentPlan: formData.get('paymentPlan') as string,
+          movingCost,
+          additionalCost,
+          storageCost,
+          vat,
+          totalAmount,
+        }
+        await syncManager.saveEstimateOffline(offlineData, !initialData?.id)
+        alert('현재 인터넷 연결이 없어 단말기 자체 DB에 안전하게 저장되었습니다.\n네트워크가 연결되면 상단 [서버 동기화]를 통해 웹에 반영됩니다.')
+        window.location.href = '/estimates'
+        return
+      } catch (offlineErr) {
+        console.error('Offline save error:', offlineErr)
+      }
+    }
+
+    // 2. 온라인 시 서버 액션 실행 (네트워크 장애 발생 시 로컬 DB로 자동 fallback)
+    try {
+      await action(formData)
+    } catch (e: any) {
+      if (typeof navigator !== 'undefined') {
+        try {
+          const { syncManager } = await import('@/lib/sync/syncManager')
+          const rawItems = filterValidCbmItems(items)
+          const offlineData = {
+            id: initialData?.id,
+            customerName,
+            contact,
+            movingType,
+            estimateDate: estimateDate ? estimateDate.toISOString() : new Date().toISOString(),
+            visitDate: visitDate ? visitDate.toISOString() : null,
+            movingDate: movingDate ? movingDate.toISOString() : null,
+            organizeDate: organizeDate ? organizeDate.toISOString() : null,
+            fromAddress,
+            toAddress,
+            cbmItems: JSON.stringify(rawItems),
+            materials: formData.get('materials') as string,
+            environment: formData.get('environment') as string,
+            paymentPlan: formData.get('paymentPlan') as string,
+            movingCost,
+            additionalCost,
+            storageCost,
+            vat,
+            totalAmount,
+          }
+          await syncManager.saveEstimateOffline(offlineData, !initialData?.id)
+          alert('네트워크 통신 오류로 인해 단말기 자체 DB에 안전하게 보관되었습니다.\n통신이 원활해지면 상단 [서버 동기화]를 눌러주세요.')
+          window.location.href = '/estimates'
+          return
+        } catch {}
+      }
+      throw e
+    }
   }
 
   return (

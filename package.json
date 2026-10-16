@@ -10,10 +10,13 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
     "@types/react-datepicker": "^6.2.0",
     "@types/react-signature-canvas": "^1.0.7",
     "bcryptjs": "^3.0.3",
     "date-fns": "^4.4.0",
+    "dexie": "^4.4.6",
     "jose": "^6.2.12",
     "korean-lunar-calendar": "^0.4.0",
     "lucide-react": "^1.41.0",
@@ -26,6 +29,7 @@
     "react-signature-canvas": "^1.1.0-alpha.2"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.3",
     "@prisma/client": "5.22.0",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
