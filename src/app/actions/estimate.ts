@@ -61,39 +61,56 @@ export async function createEstimate(formData: FormData) {
   const paymentPlan = formData.get('paymentPlan') as string
   
   // 흩어져 있는 작업 환경(인원, 차량, 보관이사 정리여부, 층수, 작업조건 등) 필드들을 JSON으로 묶음
+  const rawEnv = formData.get('environment') as string
+  let parsedEnv: any = {}
+  if (rawEnv) {
+    try {
+      parsedEnv = JSON.parse(rawEnv)
+    } catch {}
+  }
+
+  const labors = formData.get('labors') 
+    ? JSON.parse(formData.get('labors') as string) 
+    : (Array.isArray(parsedEnv.labors) ? parsedEnv.labors : [])
+
+  const vehicles = formData.get('vehicles') 
+    ? JSON.parse(formData.get('vehicles') as string) 
+    : (Array.isArray(parsedEnv.vehicles) ? parsedEnv.vehicles : [])
+
   const environmentObj = {
-    labors: formData.get('labors') ? JSON.parse(formData.get('labors') as string) : [],
-    vehicles: formData.get('vehicles') ? JSON.parse(formData.get('vehicles') as string) : [],
-    organizeStatus: formData.get('organizeStatus') as string || '',
-    fromFloor: formData.get('fromFloor') as string || '',
-    fromWorkTypes: formData.get('fromWorkTypes') ? JSON.parse(formData.get('fromWorkTypes') as string) : [],
-    toFloor: formData.get('toFloor') as string || '',
-    toWorkTypes: formData.get('toWorkTypes') ? JSON.parse(formData.get('toWorkTypes') as string) : [],
-    distance: formData.get('distance') ? parseFloat(formData.get('distance') as string) : 0,
-    distanceDuration: formData.get('distanceDuration') as string || '',
-    distanceDetail: formData.get('distanceDetail') as string || '',
-    baseDistanceKm: formData.get('baseDistanceKm') ? parseFloat(formData.get('baseDistanceKm') as string) : 30,
-    ratePerKm: formData.get('ratePerKm') ? parseInt(formData.get('ratePerKm') as string, 10) : 2000,
+    ...parsedEnv,
+    labors,
+    vehicles,
+    organizeStatus: (formData.get('organizeStatus') as string) || parsedEnv.organizeStatus || '',
+    fromFloor: (formData.get('fromFloor') as string) || parsedEnv.fromFloor || '',
+    fromWorkTypes: formData.get('fromWorkTypes') ? JSON.parse(formData.get('fromWorkTypes') as string) : (parsedEnv.fromWorkTypes || []),
+    toFloor: (formData.get('toFloor') as string) || parsedEnv.toFloor || '',
+    toWorkTypes: formData.get('toWorkTypes') ? JSON.parse(formData.get('toWorkTypes') as string) : (parsedEnv.toWorkTypes || []),
+    distance: formData.get('distance') ? parseFloat(formData.get('distance') as string) : (Number(parsedEnv.distance) || 0),
+    distanceDuration: (formData.get('distanceDuration') as string) || parsedEnv.distanceDuration || '',
+    distanceDetail: (formData.get('distanceDetail') as string) || parsedEnv.distanceDetail || '',
+    baseDistanceKm: formData.get('baseDistanceKm') ? parseFloat(formData.get('baseDistanceKm') as string) : (Number(parsedEnv.baseDistanceKm) || 30),
+    ratePerKm: formData.get('ratePerKm') ? parseInt(formData.get('ratePerKm') as string, 10) : (Number(parsedEnv.ratePerKm) || 2000),
     extraDistanceKm: (() => {
-      const dist = formData.get('distance') ? parseFloat(formData.get('distance') as string) : 0
-      const base = formData.get('baseDistanceKm') ? parseFloat(formData.get('baseDistanceKm') as string) : 30
-      const raw = formData.get('extraDistanceKm') ? parseFloat(formData.get('extraDistanceKm') as string) : 0
+      const dist = formData.get('distance') ? parseFloat(formData.get('distance') as string) : (Number(parsedEnv.distance) || 0)
+      const base = formData.get('baseDistanceKm') ? parseFloat(formData.get('baseDistanceKm') as string) : (Number(parsedEnv.baseDistanceKm) || 30)
+      const raw = formData.get('extraDistanceKm') ? parseFloat(formData.get('extraDistanceKm') as string) : (Number(parsedEnv.extraDistanceKm) || 0)
       return raw > 0 ? raw : Math.max(0, Math.round((dist - base) * 10) / 10)
     })(),
     distanceExtraCost: (() => {
-      const dist = formData.get('distance') ? parseFloat(formData.get('distance') as string) : 0
-      const base = formData.get('baseDistanceKm') ? parseFloat(formData.get('baseDistanceKm') as string) : 30
-      const rate = formData.get('ratePerKm') ? parseInt(formData.get('ratePerKm') as string, 10) : 2000
-      const rawCost = formData.get('distanceExtraCost') ? parseInt(formData.get('distanceExtraCost') as string, 10) : 0
+      const dist = formData.get('distance') ? parseFloat(formData.get('distance') as string) : (Number(parsedEnv.distance) || 0)
+      const base = formData.get('baseDistanceKm') ? parseFloat(formData.get('baseDistanceKm') as string) : (Number(parsedEnv.baseDistanceKm) || 30)
+      const rate = formData.get('ratePerKm') ? parseInt(formData.get('ratePerKm') as string, 10) : (Number(parsedEnv.ratePerKm) || 2000)
+      const rawCost = formData.get('distanceExtraCost') ? parseInt(formData.get('distanceExtraCost') as string, 10) : (Number(parsedEnv.distanceExtraCost) || 0)
       if (rawCost > 0) return rawCost
-      const rawExtra = formData.get('extraDistanceKm') ? parseFloat(formData.get('extraDistanceKm') as string) : 0
+      const rawExtra = formData.get('extraDistanceKm') ? parseFloat(formData.get('extraDistanceKm') as string) : (Number(parsedEnv.extraDistanceKm) || 0)
       const extra = rawExtra > 0 ? rawExtra : Math.max(0, Math.round((dist - base) * 10) / 10)
       return Math.round(extra * rate)
     })(),
-    ladderTonnage: formData.get('ladderTonnage') as string || '5',
-    ladderFromCost: parseInt(formData.get('ladderFromCost') as string || '0', 10),
-    ladderToCost: parseInt(formData.get('ladderToCost') as string || '0', 10),
-    ladderTotalCost: parseInt(formData.get('ladderTotalCost') as string || '0', 10),
+    ladderTonnage: (formData.get('ladderTonnage') as string) || parsedEnv.ladderTonnage || '5',
+    ladderFromCost: parseInt((formData.get('ladderFromCost') as string) || parsedEnv.ladderFromCost || '0', 10),
+    ladderToCost: parseInt((formData.get('ladderToCost') as string) || parsedEnv.ladderToCost || '0', 10),
+    ladderTotalCost: parseInt((formData.get('ladderTotalCost') as string) || parsedEnv.ladderTotalCost || '0', 10),
   }
   const environment = JSON.stringify(environmentObj)
   
@@ -158,39 +175,56 @@ export async function updateEstimate(formData: FormData) {
   const paymentPlan = formData.get('paymentPlan') as string
   
   // 흩어져 있는 작업 환경(인원, 차량, 보관이사 정리여부, 층수, 작업조건 등) 필드들을 JSON으로 묶음
+  const rawEnv = formData.get('environment') as string
+  let parsedEnv: any = {}
+  if (rawEnv) {
+    try {
+      parsedEnv = JSON.parse(rawEnv)
+    } catch {}
+  }
+
+  const labors = formData.get('labors') 
+    ? JSON.parse(formData.get('labors') as string) 
+    : (Array.isArray(parsedEnv.labors) ? parsedEnv.labors : [])
+
+  const vehicles = formData.get('vehicles') 
+    ? JSON.parse(formData.get('vehicles') as string) 
+    : (Array.isArray(parsedEnv.vehicles) ? parsedEnv.vehicles : [])
+
   const environmentObj = {
-    labors: formData.get('labors') ? JSON.parse(formData.get('labors') as string) : [],
-    vehicles: formData.get('vehicles') ? JSON.parse(formData.get('vehicles') as string) : [],
-    organizeStatus: formData.get('organizeStatus') as string || '',
-    fromFloor: formData.get('fromFloor') as string || '',
-    fromWorkTypes: formData.get('fromWorkTypes') ? JSON.parse(formData.get('fromWorkTypes') as string) : [],
-    toFloor: formData.get('toFloor') as string || '',
-    toWorkTypes: formData.get('toWorkTypes') ? JSON.parse(formData.get('toWorkTypes') as string) : [],
-    distance: formData.get('distance') ? parseFloat(formData.get('distance') as string) : 0,
-    distanceDuration: formData.get('distanceDuration') as string || '',
-    distanceDetail: formData.get('distanceDetail') as string || '',
-    baseDistanceKm: formData.get('baseDistanceKm') ? parseFloat(formData.get('baseDistanceKm') as string) : 30,
-    ratePerKm: formData.get('ratePerKm') ? parseInt(formData.get('ratePerKm') as string, 10) : 2000,
+    ...parsedEnv,
+    labors,
+    vehicles,
+    organizeStatus: (formData.get('organizeStatus') as string) || parsedEnv.organizeStatus || '',
+    fromFloor: (formData.get('fromFloor') as string) || parsedEnv.fromFloor || '',
+    fromWorkTypes: formData.get('fromWorkTypes') ? JSON.parse(formData.get('fromWorkTypes') as string) : (parsedEnv.fromWorkTypes || []),
+    toFloor: (formData.get('toFloor') as string) || parsedEnv.toFloor || '',
+    toWorkTypes: formData.get('toWorkTypes') ? JSON.parse(formData.get('toWorkTypes') as string) : (parsedEnv.toWorkTypes || []),
+    distance: formData.get('distance') ? parseFloat(formData.get('distance') as string) : (Number(parsedEnv.distance) || 0),
+    distanceDuration: (formData.get('distanceDuration') as string) || parsedEnv.distanceDuration || '',
+    distanceDetail: (formData.get('distanceDetail') as string) || parsedEnv.distanceDetail || '',
+    baseDistanceKm: formData.get('baseDistanceKm') ? parseFloat(formData.get('baseDistanceKm') as string) : (Number(parsedEnv.baseDistanceKm) || 30),
+    ratePerKm: formData.get('ratePerKm') ? parseInt(formData.get('ratePerKm') as string, 10) : (Number(parsedEnv.ratePerKm) || 2000),
     extraDistanceKm: (() => {
-      const dist = formData.get('distance') ? parseFloat(formData.get('distance') as string) : 0
-      const base = formData.get('baseDistanceKm') ? parseFloat(formData.get('baseDistanceKm') as string) : 30
-      const raw = formData.get('extraDistanceKm') ? parseFloat(formData.get('extraDistanceKm') as string) : 0
+      const dist = formData.get('distance') ? parseFloat(formData.get('distance') as string) : (Number(parsedEnv.distance) || 0)
+      const base = formData.get('baseDistanceKm') ? parseFloat(formData.get('baseDistanceKm') as string) : (Number(parsedEnv.baseDistanceKm) || 30)
+      const raw = formData.get('extraDistanceKm') ? parseFloat(formData.get('extraDistanceKm') as string) : (Number(parsedEnv.extraDistanceKm) || 0)
       return raw > 0 ? raw : Math.max(0, Math.round((dist - base) * 10) / 10)
     })(),
     distanceExtraCost: (() => {
-      const dist = formData.get('distance') ? parseFloat(formData.get('distance') as string) : 0
-      const base = formData.get('baseDistanceKm') ? parseFloat(formData.get('baseDistanceKm') as string) : 30
-      const rate = formData.get('ratePerKm') ? parseInt(formData.get('ratePerKm') as string, 10) : 2000
-      const rawCost = formData.get('distanceExtraCost') ? parseInt(formData.get('distanceExtraCost') as string, 10) : 0
+      const dist = formData.get('distance') ? parseFloat(formData.get('distance') as string) : (Number(parsedEnv.distance) || 0)
+      const base = formData.get('baseDistanceKm') ? parseFloat(formData.get('baseDistanceKm') as string) : (Number(parsedEnv.baseDistanceKm) || 30)
+      const rate = formData.get('ratePerKm') ? parseInt(formData.get('ratePerKm') as string, 10) : (Number(parsedEnv.ratePerKm) || 2000)
+      const rawCost = formData.get('distanceExtraCost') ? parseInt(formData.get('distanceExtraCost') as string, 10) : (Number(parsedEnv.distanceExtraCost) || 0)
       if (rawCost > 0) return rawCost
-      const rawExtra = formData.get('extraDistanceKm') ? parseFloat(formData.get('extraDistanceKm') as string) : 0
+      const rawExtra = formData.get('extraDistanceKm') ? parseFloat(formData.get('extraDistanceKm') as string) : (Number(parsedEnv.extraDistanceKm) || 0)
       const extra = rawExtra > 0 ? rawExtra : Math.max(0, Math.round((dist - base) * 10) / 10)
       return Math.round(extra * rate)
     })(),
-    ladderTonnage: formData.get('ladderTonnage') as string || '5',
-    ladderFromCost: parseInt(formData.get('ladderFromCost') as string || '0', 10),
-    ladderToCost: parseInt(formData.get('ladderToCost') as string || '0', 10),
-    ladderTotalCost: parseInt(formData.get('ladderTotalCost') as string || '0', 10),
+    ladderTonnage: (formData.get('ladderTonnage') as string) || parsedEnv.ladderTonnage || '5',
+    ladderFromCost: parseInt((formData.get('ladderFromCost') as string) || parsedEnv.ladderFromCost || '0', 10),
+    ladderToCost: parseInt((formData.get('ladderToCost') as string) || parsedEnv.ladderToCost || '0', 10),
+    ladderTotalCost: parseInt((formData.get('ladderTotalCost') as string) || parsedEnv.ladderTotalCost || '0', 10),
   }
   const environment = JSON.stringify(environmentObj)
   

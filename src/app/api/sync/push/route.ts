@@ -135,9 +135,20 @@ export async function POST(request: Request) {
                   organizeDate: data.organizeDate ? new Date(data.organizeDate) : existing.organizeDate,
                   cbmItems: data.cbmItems !== undefined ? toValidJsonString(data.cbmItems, '[]') : existing.cbmItems,
                   materials: data.materials !== undefined ? toValidJsonString(data.materials, '{}') : existing.materials,
-                  assemblyItems: data.assemblyItems !== undefined ? toValidJsonString(data.assemblyItems, '[]') : existing.assemblyItems,
-                  environment: data.environment !== undefined ? toValidJsonString(data.environment, '{}') : existing.environment,
-                  paymentPlan: data.paymentPlan !== undefined ? toValidJsonString(data.paymentPlan, '{}') : existing.paymentPlan,
+                  environment: (() => {
+                    if (data.environment === undefined || data.environment === null) return existing.environment
+                    const incomingStr = toValidJsonString(data.environment, '{}')
+                    if (incomingStr === '{}') {
+                      try {
+                        const existObj = existing.environment ? JSON.parse(existing.environment) : {}
+                        const existHasData = (Array.isArray(existObj.labors) && existObj.labors.length > 0) ||
+                                              (Array.isArray(existObj.vehicles) && existObj.vehicles.length > 0) ||
+                                              existObj.fromFloor || existObj.toFloor || existObj.distance
+                        if (existHasData) return existing.environment
+                      } catch {}
+                    }
+                    return incomingStr
+                  })(),
                   movingCost: data.movingCost !== undefined ? Math.round(Number(data.movingCost) || 0) : existing.movingCost,
                   storageCost: data.storageCost !== undefined ? Math.round(Number(data.storageCost) || 0) : existing.storageCost,
                   additionalCost: data.additionalCost !== undefined ? Math.round(Number(data.additionalCost) || 0) : existing.additionalCost,

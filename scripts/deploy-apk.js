@@ -87,7 +87,7 @@ console.log(`   - 일시: ${releaseDateStr}\n`);
 // 6. Git commit & push 자동 실행
 try {
   console.log('📤 Git 스테이징 및 커밋 생성 중...');
-  execSync('git add public/moveman.apk public/downloads/moveman.apk src/lib/appRelease.ts', { cwd: rootDir, stdio: 'inherit' });
+  execSync('git add -A', { cwd: rootDir, stdio: 'inherit' });
   
   const commitMsg = `chore(release): moveman.apk 최신 빌드 배포 (${currentVersion}, ${releaseDateStr})`;
   execSync(`git commit -m "${commitMsg}"`, { cwd: rootDir, stdio: 'inherit' });

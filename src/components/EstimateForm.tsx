@@ -977,6 +977,29 @@ export function EstimateForm({
     signature
   ])
 
+  // 작업 환경(인원, 차량, 사다리차, 거리 등) 통합 객체 직렬화
+  const currentEnvironmentObj = {
+    labors,
+    vehicles,
+    organizeStatus,
+    fromFloor,
+    fromWorkTypes,
+    toFloor,
+    toWorkTypes,
+    distance,
+    distanceDuration,
+    distanceDetail,
+    baseDistanceKm,
+    ratePerKm,
+    extraDistanceKm,
+    distanceExtraCost: calculatedExtraCost,
+    ladderTonnage,
+    ladderFromCost: fromLadderCalc.cost,
+    ladderToCost: toLadderCalc.cost,
+    ladderTotalCost: totalLadderCost,
+  }
+  const currentEnvironmentStr = JSON.stringify(currentEnvironmentObj)
+
   // 임시 저장 삭제 및 초기화
   const handleClearDraft = () => {
     if (confirm('작성 중이던 임시 저장 데이터를 모두 삭제하고 새로 작성하시겠습니까?')) {
@@ -993,32 +1016,33 @@ export function EstimateForm({
       localStorage.removeItem(storageKey)
     } catch {}
 
+    const rawItems = filterValidCbmItems(items)
+    const offlineData = {
+      id: initialData?.id,
+      customerName,
+      contact,
+      movingType,
+      estimateDate: estimateDate ? estimateDate.toISOString() : new Date().toISOString(),
+      visitDate: visitDate ? visitDate.toISOString() : null,
+      movingDate: movingDate ? movingDate.toISOString() : null,
+      organizeDate: organizeDate ? organizeDate.toISOString() : null,
+      fromAddress,
+      toAddress,
+      cbmItems: JSON.stringify(rawItems),
+      materials: (formData.get('materials') as string) || '{}',
+      environment: currentEnvironmentStr,
+      paymentPlan: (formData.get('paymentPlan') as string) || '{}',
+      movingCost,
+      additionalCost,
+      storageCost,
+      vat,
+      totalAmount,
+    }
+
     // 1. 단말기 오프라인 상태 시 자체 로컬 DB에 즉시 저장
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       try {
         const { syncManager } = await import('@/lib/sync/syncManager')
-        const rawItems = filterValidCbmItems(items)
-        const offlineData = {
-          id: initialData?.id,
-          customerName,
-          contact,
-          movingType,
-          estimateDate: estimateDate ? estimateDate.toISOString() : new Date().toISOString(),
-          visitDate: visitDate ? visitDate.toISOString() : null,
-          movingDate: movingDate ? movingDate.toISOString() : null,
-          organizeDate: organizeDate ? organizeDate.toISOString() : null,
-          fromAddress,
-          toAddress,
-          cbmItems: JSON.stringify(rawItems),
-          materials: formData.get('materials') as string,
-          environment: formData.get('environment') as string,
-          paymentPlan: formData.get('paymentPlan') as string,
-          movingCost,
-          additionalCost,
-          storageCost,
-          vat,
-          totalAmount,
-        }
         await syncManager.saveEstimateOffline(offlineData, !initialData?.id)
         alert('현재 인터넷 연결이 없어 단말기 자체 DB에 안전하게 저장되었습니다.\n네트워크가 연결되면 상단 [서버 동기화]를 통해 웹에 반영됩니다.')
         window.location.href = '/estimates'
@@ -1032,31 +1056,21 @@ export function EstimateForm({
     try {
       await action(formData)
     } catch (e: any) {
+      // Next.js Server Action의 redirect()는 내부적으로 NEXT_REDIRECT 에러를 throw함.
+      // 이는 정상적인 리다이렉트 흐름이므로 catch로 잡지 않고 다시 던져야 함!
+      const isRedirect = 
+        e?.message === 'NEXT_REDIRECT' || 
+        e?.digest?.startsWith?.('NEXT_REDIRECT') ||
+        (typeof e?.message === 'string' && e.message.includes('NEXT_REDIRECT'))
+      
+      if (isRedirect) {
+        throw e
+      }
+
+      console.warn('Server action failed, saving to local DB:', e)
       if (typeof navigator !== 'undefined') {
         try {
           const { syncManager } = await import('@/lib/sync/syncManager')
-          const rawItems = filterValidCbmItems(items)
-          const offlineData = {
-            id: initialData?.id,
-            customerName,
-            contact,
-            movingType,
-            estimateDate: estimateDate ? estimateDate.toISOString() : new Date().toISOString(),
-            visitDate: visitDate ? visitDate.toISOString() : null,
-            movingDate: movingDate ? movingDate.toISOString() : null,
-            organizeDate: organizeDate ? organizeDate.toISOString() : null,
-            fromAddress,
-            toAddress,
-            cbmItems: JSON.stringify(rawItems),
-            materials: formData.get('materials') as string,
-            environment: formData.get('environment') as string,
-            paymentPlan: formData.get('paymentPlan') as string,
-            movingCost,
-            additionalCost,
-            storageCost,
-            vat,
-            totalAmount,
-          }
           await syncManager.saveEstimateOffline(offlineData, !initialData?.id)
           alert('네트워크 통신 오류로 인해 단말기 자체 DB에 안전하게 보관되었습니다.\n통신이 원활해지면 상단 [서버 동기화]를 눌러주세요.')
           window.location.href = '/estimates'
@@ -1768,6 +1782,7 @@ export function EstimateForm({
           <input type="hidden" name="ladderFromCost" value={fromLadderCalc.cost} />
           <input type="hidden" name="ladderToCost" value={toLadderCalc.cost} />
           <input type="hidden" name="ladderTotalCost" value={totalLadderCost} />
+          <input type="hidden" name="environment" value={currentEnvironmentStr} />
         </div>
 
         {/* 물품 및 작업 환경 */}
