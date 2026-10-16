@@ -16,17 +16,19 @@ export function AppExitConfirmModal({ isOpen, onClose }: AppExitConfirmModalProp
   const handleConfirmExit = async () => {
     setIsExiting(true)
     try {
-      // 1. 서버 세션 쿠키 삭제 (로그아웃)
+      // 1. 서버 세션 쿠키 삭제 (로그아웃 API 호출)
       await fetch('/api/auth/logout', { 
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
       })
     } catch (err) {
       console.error('Logout request error:', err)
     }
 
-    // 2. 로컬 브라우저 세션 및 캐시 정리
+    // 2. 클라이언트 브라우저 단 쿠키 및 로컬 세션 직접 만료
     try {
+      document.cookie = 'session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0;'
       sessionStorage.clear()
     } catch (e) {
       // ignore
@@ -34,19 +36,25 @@ export function AppExitConfirmModal({ isOpen, onClose }: AppExitConfirmModalProp
 
     // 3. 앱 종료 (안드로이드 네이티브 앱 또는 브라우저 리다이렉트)
     try {
-      // 3-1. Android WebView JavascriptInterface를 통한 완전 종료
+      // 3-1. Android WebView CookieManager 전체 초기화 & flush 후 네이티브 완전 종료
+      if (typeof window !== 'undefined' && (window as any).AndroidApp?.clearSessionAndExit) {
+        (window as any).AndroidApp.clearSessionAndExit()
+        return
+      }
+
+      // 3-2. 기존 네이티브 종료 인터페이스 fallback
       if (typeof window !== 'undefined' && (window as any).AndroidApp?.exitApp) {
         (window as any).AndroidApp.exitApp()
         return
       }
 
-      // 3-2. Capacitor App 플러그인을 통한 앱 종료
+      // 3-3. Capacitor App 플러그인을 통한 앱 종료
       const { App: CapApp } = await import('@capacitor/app')
       await CapApp.exitApp()
     } catch (err) {
       console.warn('Native exitApp not available, redirecting to login:', err)
-      // 3-3. 일반 웹 브라우저 환경인 경우 로그인 페이지로 이동
-      window.location.href = '/login'
+      // 3-4. 일반 웹 브라우저 환경인 경우 로그인 페이지로 이동
+      window.location.replace('/login')
     }
   }
 

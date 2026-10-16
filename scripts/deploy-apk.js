@@ -40,6 +40,13 @@ if (!fs.existsSync(downloadsDir)) {
   fs.mkdirSync(downloadsDir, { recursive: true });
 }
 
+// 2-1. 안드로이드 assets 디렉토리에 복사된 중복 APK 정리 (용량 비대화 방지)
+const assetsPublicDir = path.join(rootDir, 'android', 'app', 'src', 'main', 'assets', 'public');
+const nestedApk1 = path.join(assetsPublicDir, 'moveman.apk');
+const nestedApk2 = path.join(assetsPublicDir, 'downloads', 'moveman.apk');
+if (fs.existsSync(nestedApk1)) fs.unlinkSync(nestedApk1);
+if (fs.existsSync(nestedApk2)) fs.unlinkSync(nestedApk2);
+
 // 3. 최신 APK 파일 덮어쓰기 복사
 console.log('🔄 최신 moveman.apk 파일 덮어쓰기 복사 중...');
 fs.copyFileSync(sourceApk, targetApkRoot);

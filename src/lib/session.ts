@@ -40,5 +40,17 @@ export async function createSession(userId: string, name: string, level: number,
 
 export async function deleteSession() {
   const cookieStore = await cookies()
-  cookieStore.delete('session')
+  cookieStore.set('session', '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    expires: new Date(0),
+    maxAge: 0,
+    sameSite: 'lax',
+    path: '/',
+  })
+  try {
+    cookieStore.delete('session')
+  } catch (e) {
+    // ignore
+  }
 }

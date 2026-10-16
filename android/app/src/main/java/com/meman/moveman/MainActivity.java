@@ -145,10 +145,43 @@ public class MainActivity extends BridgeActivity {
         }
 
         @JavascriptInterface
+        public void clearSessionAndExit() {
+            activity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        android.webkit.CookieManager cookieManager = android.webkit.CookieManager.getInstance();
+                        cookieManager.removeAllCookies(new android.webkit.ValueCallback<Boolean>() {
+                            @Override
+                            public void onReceiveValue(Boolean aBoolean) {
+                                try {
+                                    cookieManager.flush();
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                                activity.finishAffinity();
+                                System.exit(0);
+                            }
+                        });
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        activity.finishAffinity();
+                        System.exit(0);
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
         public void exitApp() {
             activity.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
+                    try {
+                        android.webkit.CookieManager.getInstance().flush();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                     activity.finishAffinity();
                     System.exit(0);
                 }
