@@ -48,6 +48,29 @@ export default function LoginPage() {
             {isPending ? '로그인 중...' : '로그인'}
           </button>
         </form>
+
+        {/* 모바일 앱 다운로드 배너 */}
+        <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-left">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xl">📱</span>
+              <h3 className="font-bold text-blue-950 text-sm">현장용 안드로이드 앱 다운로드</h3>
+            </div>
+            <p className="text-xs text-blue-700 mb-3">
+              인터넷이 불안정한 현장(지하, 탑차 등)에서도 오프라인 로컬 작성 및 서버 동기화가 지원됩니다.
+            </p>
+            <a 
+              href="/moveman.apk" 
+              download="moveman.apk"
+              className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg transition-colors shadow-xs"
+            >
+              <span>📥 앱(APK) 다운로드 및 설치</span>
+            </a>
+            <p className="text-[11px] text-gray-500 mt-2 text-center">
+              ※ 다운로드 후 스마트폰에서 터치하여 설치하세요. ('출처를 알 수 없는 앱 허용')
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   )

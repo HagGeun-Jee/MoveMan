@@ -16,7 +16,8 @@ import {
   X,
   PlusCircle,
   KeyRound,
-  Boxes
+  Boxes,
+  Smartphone
 } from 'lucide-react'
 import { ChangePasswordModal } from './ChangePasswordModal'
 
@@ -209,6 +210,18 @@ export function Sidebar({
 
             {/* 드로어 하단 사용자 정보 및 로그아웃 */}
             <div className="p-4 border-t border-gray-100 bg-gray-50/80">
+              {/* 모바일 앱 다운로드 */}
+              <div className="mb-3">
+                <a
+                  href="/moveman.apk"
+                  download="moveman.apk"
+                  className="w-full py-2.5 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors"
+                >
+                  <Smartphone size={16} />
+                  <span>안드로이드 앱(APK) 다운로드</span>
+                </a>
+              </div>
+
               <div className="text-sm text-gray-700 mb-3 px-1">
                 <span className="font-bold text-blue-600">{sessionName}</span> 관리자님
               </div>
@@ -362,6 +375,14 @@ export function Sidebar({
 
           {collapsed ? (
             <>
+              <a
+                href="/moveman.apk"
+                download="moveman.apk"
+                className="w-full p-2.5 rounded-xl text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center mb-1"
+                title="모바일 앱(APK) 다운로드"
+              >
+                <Smartphone size={18} />
+              </a>
               <button
                 type="button"
                 onClick={() => setPasswordModalOpen(true)}
@@ -382,6 +403,15 @@ export function Sidebar({
             </>
           ) : (
             <div className="space-y-1">
+              <a
+                href="/moveman.apk"
+                download="moveman.apk"
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors mb-1.5"
+                title="안드로이드 앱(APK) 다운로드"
+              >
+                <Smartphone size={16} className="text-blue-600 shrink-0" />
+                <span>모바일 앱(APK) 다운로드</span>
+              </a>
               <button
                 type="button"
                 onClick={() => setPasswordModalOpen(true)}
