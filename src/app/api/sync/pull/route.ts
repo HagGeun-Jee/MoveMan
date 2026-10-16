@@ -28,24 +28,14 @@ export async function GET(request: Request) {
     const sinceStr = searchParams.get('since')
     const sinceDate = sinceStr ? new Date(sinceStr) : null
 
-    // 1. 기준정보 마스터 데이터 일괄 조회
-    const [
-      categories,
-      standardItems,
-      vehicles,
-      labors,
-      ladders,
-      materials,
-      locations
-    ] = await Promise.all([
-      prisma.locationCategory.findMany({ orderBy: { order: 'asc' } }),
-      prisma.standardItem.findMany({ include: { locations: true } }),
-      prisma.vehicleMaster.findMany(),
-      prisma.laborMaster.findMany(),
-      prisma.ladderTruckMaster.findMany({ orderBy: { order: 'asc' } }),
-      prisma.materialItem.findMany({ orderBy: { order: 'asc' } }),
-      prisma.inventoryLocation.findMany({ orderBy: { order: 'asc' } })
-    ])
+    // 1. 기준정보 마스터 데이터 순차 조회 (DB 커넥션 풀 고갈 방지)
+    const categories = await prisma.locationCategory.findMany({ orderBy: { order: 'asc' } })
+    const standardItems = await prisma.standardItem.findMany({ include: { locations: true } })
+    const vehicles = await prisma.vehicleMaster.findMany()
+    const labors = await prisma.laborMaster.findMany()
+    const ladders = await prisma.ladderTruckMaster.findMany({ orderBy: { order: 'asc' } })
+    const materials = await prisma.materialItem.findMany({ orderBy: { order: 'asc' } })
+    const locations = await prisma.inventoryLocation.findMany({ orderBy: { order: 'asc' } })
 
     // 2. 견적서 데이터 조회 (since가 있으면 변경분만, 없으면 최근 150건)
     const estimatesWhere = sinceDate ? { updatedAt: { gte: sinceDate } } : {}
