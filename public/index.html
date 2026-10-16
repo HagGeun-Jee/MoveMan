@@ -154,18 +154,18 @@
   </div>
 
   <script>
-    const DEFAULT_LOCAL_DEV = 'http://192.168.45.222:3000';
+    const DEFAULT_SERVER_URL = 'https://move-man.onrender.com';
     const savedUrl = localStorage.getItem('meman_server_url');
     const autoConn = localStorage.getItem('meman_auto_connect') !== 'false';
     const urlInput = document.getElementById('serverUrl');
     const autoCheck = document.getElementById('autoConnect');
     const statusMsg = document.getElementById('statusMsg');
 
-    // 이전 저장된 URL이 있으면 채우고, 없으면 기본 IP 세팅
+    // 이전 저장된 URL이 있으면 채우고, 없으면 기본 Render URL 세팅
     if (savedUrl) {
       urlInput.value = savedUrl;
     } else {
-      urlInput.value = DEFAULT_LOCAL_DEV;
+      urlInput.value = DEFAULT_SERVER_URL;
     }
     autoCheck.checked = autoConn;
 
