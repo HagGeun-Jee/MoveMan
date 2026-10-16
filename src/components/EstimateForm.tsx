@@ -92,8 +92,9 @@ const parseAndFilterCbmItems = (cbmItemsStr: string | null | undefined): any[] =
   }
 }
 
-const safeJsonParse = (str: string | null | undefined, fallback: any = {}): any => {
+const safeJsonParse = (str: any, fallback: any = {}): any => {
   if (!str || str === 'null' || str === 'undefined') return fallback
+  if (typeof str === 'object') return str
   try {
     const parsed = JSON.parse(str)
     return parsed && typeof parsed === 'object' ? parsed : fallback
@@ -647,6 +648,17 @@ export function EstimateForm({
       const saved = localStorage.getItem(storageKey)
       if (saved) {
         const draft = JSON.parse(saved)
+        
+        // 수정 모드인 경우: 서버 데이터가 드래프트보다 최신이거나 같으면 오래된 드래프트 삭제 후 서버 원본 사용
+        if (initialData?.id && initialData?.updatedAt && draft?.savedAt) {
+          const serverUpdatedTime = new Date(initialData.updatedAt).getTime()
+          const draftSavedTime = new Date(draft.savedAt).getTime()
+          if (serverUpdatedTime >= draftSavedTime) {
+            localStorage.removeItem(storageKey)
+            return
+          }
+        }
+
         const hasContent = Boolean(
           draft && (
             draft.customerName ||
@@ -671,22 +683,46 @@ export function EstimateForm({
 
           if (draft.fromAddress !== undefined) setFromAddress(draft.fromAddress)
           if (draft.toAddress !== undefined) setToAddress(draft.toAddress)
-          if (draft.fromFloor !== undefined) setFromFloor(draft.fromFloor)
-          if (draft.fromWorkTypes) setFromWorkTypes(draft.fromWorkTypes)
-          if (draft.toFloor !== undefined) setToFloor(draft.toFloor)
-          if (draft.toWorkTypes) setToWorkTypes(draft.toWorkTypes)
+          
+          // 층수 및 작업조건: draft에 유효값이 있으면 우선 적용, 없으면 서버 DB값 유지
+          if (draft.fromFloor !== undefined && draft.fromFloor !== '') setFromFloor(draft.fromFloor)
+          else if (envObj.fromFloor) setFromFloor(envObj.fromFloor)
 
-          if (draft.distance !== undefined) setDistance(draft.distance)
-          if (draft.distanceDuration !== undefined) setDistanceDuration(draft.distanceDuration)
-          if (draft.distanceDetail !== undefined) setDistanceDetail(draft.distanceDetail)
+          if (Array.isArray(draft.fromWorkTypes) && draft.fromWorkTypes.length > 0) setFromWorkTypes(draft.fromWorkTypes)
+          else if (Array.isArray(envObj.fromWorkTypes) && envObj.fromWorkTypes.length > 0) setFromWorkTypes(envObj.fromWorkTypes)
+
+          if (draft.toFloor !== undefined && draft.toFloor !== '') setToFloor(draft.toFloor)
+          else if (envObj.toFloor) setToFloor(envObj.toFloor)
+
+          if (Array.isArray(draft.toWorkTypes) && draft.toWorkTypes.length > 0) setToWorkTypes(draft.toWorkTypes)
+          else if (Array.isArray(envObj.toWorkTypes) && envObj.toWorkTypes.length > 0) setToWorkTypes(envObj.toWorkTypes)
+
+          // 거리 정보
+          if (Number(draft.distance) > 0) setDistance(Number(draft.distance))
+          else if (Number(envObj.distance) > 0) setDistance(Number(envObj.distance))
+
+          if (draft.distanceDuration) setDistanceDuration(draft.distanceDuration)
+          else if (envObj.distanceDuration) setDistanceDuration(envObj.distanceDuration)
+
+          if (draft.distanceDetail) setDistanceDetail(draft.distanceDetail)
+          else if (envObj.distanceDetail) setDistanceDetail(envObj.distanceDetail)
+
           if (draft.baseDistanceKm !== undefined) setBaseDistanceKm(draft.baseDistanceKm)
           if (draft.ratePerKm !== undefined) setRatePerKm(draft.ratePerKm)
-          if (draft.ladderTonnage !== undefined) setLadderTonnage(draft.ladderTonnage)
+          
+          if (draft.ladderTonnage) setLadderTonnage(draft.ladderTonnage)
+          else if (envObj.ladderTonnage) setLadderTonnage(envObj.ladderTonnage)
+
           if (draft.appliedLadderCost !== undefined) setAppliedLadderCost(draft.appliedLadderCost)
           if (draft.appliedDistanceCost !== undefined) setAppliedDistanceCost(draft.appliedDistanceCost)
 
-          if (draft.vehicles) setVehicles(draft.vehicles)
-          if (draft.labors) setLabors(draft.labors)
+          // 차량 및 인력: draft에 1개 이상 있으면 사용, 빈 배열이면 서버 DB값 유지
+          if (Array.isArray(draft.vehicles) && draft.vehicles.length > 0) setVehicles(draft.vehicles)
+          else if (Array.isArray(envObj.vehicles) && envObj.vehicles.length > 0) setVehicles(envObj.vehicles)
+
+          if (Array.isArray(draft.labors) && draft.labors.length > 0) setLabors(draft.labors)
+          else if (Array.isArray(envObj.labors) && envObj.labors.length > 0) setLabors(envObj.labors)
+
           if (draft.items && draft.items.length > 0) {
             setItems(draft.items.map((i: any) => ({ ...i, treatment: i.treatment || '이동' })))
           }
@@ -1000,9 +1036,13 @@ export function EstimateForm({
   }
   const currentEnvironmentStr = JSON.stringify(currentEnvironmentObj)
 
-  // 임시 저장 삭제 및 초기화
+  // 임시 저장 삭제 및 초기화 (수정 모드 시 서버 원본 복원)
   const handleClearDraft = () => {
-    if (confirm('작성 중이던 임시 저장 데이터를 모두 삭제하고 새로 작성하시겠습니까?')) {
+    const isEdit = Boolean(initialData?.id)
+    const msg = isEdit 
+      ? '작성 중이던 임시 저장 데이터를 비우고, 서버에 저장된 원래 견적 데이터로 다시 불러오시겠습니까?'
+      : '작성 중이던 임시 저장 데이터를 모두 삭제하고 새로 작성하시겠습니까?'
+    if (confirm(msg)) {
       try {
         localStorage.removeItem(storageKey)
       } catch {}
@@ -1091,7 +1131,7 @@ export function EstimateForm({
             onClick={handleClearDraft}
             className="text-xs text-gray-500 hover:text-red-600 underline transition-colors"
           >
-            임시 저장 비우고 새로 쓰기
+            {initialData?.id ? '임시저장 비우고 서버 원본 불러오기' : '임시 저장 비우고 새로 쓰기'}
           </button>
         )}
       </div>
@@ -1114,7 +1154,7 @@ export function EstimateForm({
               onClick={handleClearDraft}
               className="px-3 py-1.5 bg-white hover:bg-amber-100 text-amber-800 text-xs font-bold rounded-lg border border-amber-300 transition-colors shadow-2xs"
             >
-              새로 작성 (입력 초기화)
+              {initialData?.id ? '서버 원본으로 되돌리기' : '새로 작성 (입력 초기화)'}
             </button>
             <button
               type="button"
@@ -1334,24 +1374,25 @@ export function EstimateForm({
                       )}
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-4 bg-gray-50/80 p-2.5 rounded-lg border border-gray-200">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-gray-700 font-medium text-sm whitespace-nowrap">층수:</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-4 bg-gray-50/80 p-2.5 sm:p-3 rounded-lg border border-gray-200">
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-gray-700 font-bold text-xs sm:text-sm whitespace-nowrap">층수:</span>
                         <input 
                           type="text" 
                           value={fromFloor} 
                           onChange={e => setFromFloor(e.target.value)} 
                           onFocus={handleSelectAllOnFocus}
-                          placeholder="예: 5" 
-                          className="w-20 rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm text-center outline-none focus:border-blue-500 shadow-sm" 
+                          placeholder="예: 3" 
+                          className="w-16 sm:w-20 rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm text-center outline-none focus:border-blue-500 shadow-xs font-bold text-gray-800" 
                         />
-                        <span className="text-gray-600 text-sm">층</span>
+                        <span className="text-gray-600 text-xs sm:text-sm font-medium">층</span>
                       </div>
 
+                      <div className="h-[1px] w-full bg-gray-200 sm:hidden" />
                       <div className="h-4 w-[1px] bg-gray-300 hidden sm:block" />
 
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-gray-700 font-medium text-sm whitespace-nowrap">작업조건:</span>
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                        <span className="text-gray-700 font-bold text-xs sm:text-sm whitespace-nowrap">작업조건:</span>
                         {['사다리차', '엘리베이터', '수작업', '계단'].map(type => {
                           const isChecked = fromWorkTypes.includes(type)
                           return (
@@ -1363,9 +1404,9 @@ export function EstimateForm({
                                   prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
                                 )
                               }}
-                              className={`px-3 py-1 rounded-md text-xs sm:text-sm font-medium border transition-all flex items-center gap-1.5 shadow-sm ${
+                              className={`px-2.5 sm:px-3 py-1 rounded-md text-xs sm:text-sm font-medium border transition-all flex items-center gap-1.5 shadow-xs ${
                                 isChecked 
-                                  ? 'bg-blue-600 border-blue-600 text-white' 
+                                  ? 'bg-blue-600 border-blue-600 text-white font-bold' 
                                   : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100'
                               }`}
                             >
@@ -1418,24 +1459,25 @@ export function EstimateForm({
                       )}
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-4 bg-gray-50/80 p-2.5 rounded-lg border border-gray-200">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-gray-700 font-medium text-sm whitespace-nowrap">층수:</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-4 bg-gray-50/80 p-2.5 sm:p-3 rounded-lg border border-gray-200">
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-gray-700 font-bold text-xs sm:text-sm whitespace-nowrap">층수:</span>
                         <input 
                           type="text" 
                           value={toFloor} 
                           onChange={e => setToFloor(e.target.value)} 
                           onFocus={handleSelectAllOnFocus}
-                          placeholder="예: 12" 
-                          className="w-20 rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm text-center outline-none focus:border-blue-500 shadow-sm" 
+                          placeholder="예: 5" 
+                          className="w-16 sm:w-20 rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm text-center outline-none focus:border-blue-500 shadow-xs font-bold text-gray-800" 
                         />
-                        <span className="text-gray-600 text-sm">층</span>
+                        <span className="text-gray-600 text-xs sm:text-sm font-medium">층</span>
                       </div>
 
+                      <div className="h-[1px] w-full bg-gray-200 sm:hidden" />
                       <div className="h-4 w-[1px] bg-gray-300 hidden sm:block" />
 
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-gray-700 font-medium text-sm whitespace-nowrap">작업조건:</span>
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                        <span className="text-gray-700 font-bold text-xs sm:text-sm whitespace-nowrap">작업조건:</span>
                         {['사다리차', '엘리베이터', '수작업', '계단'].map(type => {
                           const isChecked = toWorkTypes.includes(type)
                           return (
@@ -1447,9 +1489,9 @@ export function EstimateForm({
                                   prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
                                 )
                               }}
-                              className={`px-3 py-1 rounded-md text-xs sm:text-sm font-medium border transition-all flex items-center gap-1.5 shadow-sm ${
+                              className={`px-2.5 sm:px-3 py-1 rounded-md text-xs sm:text-sm font-medium border transition-all flex items-center gap-1.5 shadow-xs ${
                                 isChecked 
-                                  ? 'bg-blue-600 border-blue-600 text-white' 
+                                  ? 'bg-blue-600 border-blue-600 text-white font-bold' 
                                   : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100'
                               }`}
                             >

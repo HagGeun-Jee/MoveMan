@@ -215,7 +215,7 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                 <td colSpan={3} className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <span>{estimate.fromAddress || '-'}</span>
-                    {(envObj.fromFloor || (envObj.fromWorkTypes && envObj.fromWorkTypes.length > 0)) && (
+                    {(envObj.fromFloor || (envObj.fromWorkTypes && envObj.fromWorkTypes.length > 0)) ? (
                       <div className="flex flex-wrap items-center gap-1.5 text-xs font-normal">
                         {envObj.fromFloor && (
                           <span className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded font-bold border border-gray-300 print:bg-transparent print:border-none print:px-0">
@@ -228,6 +228,8 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                           </span>
                         ))}
                       </div>
+                    ) : (
+                      <span className="text-xs text-gray-400 font-normal bg-gray-50 px-2 py-0.5 rounded border border-gray-200 w-fit">층수/조건 미입력</span>
                     )}
                   </div>
                 </td>
@@ -237,7 +239,7 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                 <td colSpan={3} className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <span>{estimate.toAddress || '-'}</span>
-                    {(envObj.toFloor || (envObj.toWorkTypes && envObj.toWorkTypes.length > 0)) && (
+                    {(envObj.toFloor || (envObj.toWorkTypes && envObj.toWorkTypes.length > 0)) ? (
                       <div className="flex flex-wrap items-center gap-1.5 text-xs font-normal">
                         {envObj.toFloor && (
                           <span className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded font-bold border border-gray-300 print:bg-transparent print:border-none print:px-0">
@@ -250,14 +252,16 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                           </span>
                         ))}
                       </div>
+                    ) : (
+                      <span className="text-xs text-gray-400 font-normal bg-gray-50 px-2 py-0.5 rounded border border-gray-200 w-fit">층수/조건 미입력</span>
                     )}
                   </div>
                 </td>
               </tr>
-              {(envObj.ladderTotalCost > 0 || envObj.fromWorkTypes?.includes('사다리차') || envObj.toWorkTypes?.includes('사다리차')) && (
-                <tr>
-                  <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900 whitespace-nowrap">사다리차</th>
-                  <td colSpan={3} className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900">
+              <tr>
+                <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900 whitespace-nowrap">사다리차</th>
+                <td colSpan={3} className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900">
+                  {(envObj.ladderTotalCost > 0 || envObj.fromWorkTypes?.includes('사다리차') || envObj.toWorkTypes?.includes('사다리차')) ? (
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-amber-700 font-bold">
@@ -273,9 +277,14 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                         표준 운임표 적용
                       </span>
                     </div>
-                  </td>
-                </tr>
-              )}
+                  ) : (
+                    <div className="flex items-center justify-between text-xs sm:text-sm">
+                      <span className="text-gray-500 font-normal">사다리차 미사용 (엘리베이터 / 계단 / 수작업)</span>
+                      <span className="text-[11px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded">운임 0원</span>
+                    </div>
+                  )}
+                </td>
+              </tr>
               <tr>
                 <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900 whitespace-nowrap">이동 거리</th>
                 <td colSpan={3} className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900">
