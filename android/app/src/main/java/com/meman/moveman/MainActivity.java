@@ -9,8 +9,10 @@ import android.print.PrintDocumentAdapter;
 import android.print.PrintManager;
 import android.webkit.DownloadListener;
 import android.webkit.JavascriptInterface;
+import android.webkit.ValueCallback;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import androidx.activity.OnBackPressedCallback;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
@@ -25,6 +27,42 @@ public class MainActivity extends BridgeActivity {
 
             // 2. Android 네이티브 다운로드 인터페이스 등록
             webView.addJavascriptInterface(new DownloadInterface(this), "AndroidDownloader");
+
+            // 3. Android 네이티브 앱 종료 인터페이스 등록
+            webView.addJavascriptInterface(new AppInterface(this), "AndroidApp");
+
+            // 4. Android 하드웨어/제스처 뒤로가기 버튼 처리
+            getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+                @Override
+                public void handleOnBackPressed() {
+                    WebView currentWebView = getBridge().getWebView();
+                    if (currentWebView != null) {
+                        currentWebView.evaluateJavascript(
+                            "(function() {" +
+                            "  if (typeof window.handleAndroidBackButton === 'function') {" +
+                            "    return window.handleAndroidBackButton();" +
+                            "  }" +
+                            "  return false;" +
+                            "})();",
+                            new ValueCallback<String>() {
+                                @Override
+                                public void onReceiveValue(String value) {
+                                    // 웹뷰에서 처리하지 않았거나 "false" 반환 시 기본 동작
+                                    if (!"true".equals(value)) {
+                                        setEnabled(false);
+                                        getOnBackPressedDispatcher().onBackPressed();
+                                        setEnabled(true);
+                                    }
+                                }
+                            }
+                        );
+                    } else {
+                        setEnabled(false);
+                        getOnBackPressedDispatcher().onBackPressed();
+                        setEnabled(true);
+                    }
+                }
+            });
 
             // 3. WebView 자체 파일 다운로드 리스너 연결 (모바일 브라우저/시스템 다운로더로 Intent 위임)
             webView.setDownloadListener(new DownloadListener() {
@@ -96,6 +134,30 @@ public class MainActivity extends BridgeActivity {
             } catch (Exception e) {
                 e.printStackTrace();
             }
+        }
+    }
+
+    public static class AppInterface {
+        private final MainActivity activity;
+
+        public AppInterface(MainActivity activity) {
+            this.activity = activity;
+        }
+
+        @JavascriptInterface
+        public void exitApp() {
+            activity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    activity.finishAffinity();
+                    System.exit(0);
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public boolean isNative() {
+            return true;
         }
     }
 }

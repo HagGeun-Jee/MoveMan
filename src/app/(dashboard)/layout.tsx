@@ -8,6 +8,7 @@ import { LayoutDashboard, FileText, Calendar, Settings } from 'lucide-react'
 import { Sidebar } from '@/components/Sidebar'
 import { GlobalInputEnhancer } from '@/components/GlobalInputEnhancer'
 import { SyncStatusBar } from '@/components/SyncStatusBar'
+import { GlobalBackExitHandler } from '@/components/GlobalBackExitHandler'
 
 import prisma from '@/lib/prisma'
 
@@ -20,6 +21,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   return (
     <div className="flex h-screen bg-gray-100 print:h-auto print:block print:bg-white flex-col lg:flex-row">
       <GlobalInputEnhancer />
+      <GlobalBackExitHandler />
       <Sidebar 
         sessionName={session?.name as string} 
         userLevel={(session?.level as number) || 1}

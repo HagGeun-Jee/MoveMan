@@ -71,16 +71,31 @@ export function Sidebar({
   return (
     <>
       {/* 1. 모바일 및 태블릿용 상단 네비게이션 헤더 (lg 미만 화면) */}
-      <header className="bg-white border-b border-gray-200 px-4 py-3 flex justify-between items-center lg:hidden print:hidden sticky top-0 z-30 shadow-xs">
-        <div className="flex items-center gap-3">
+      <header className="bg-white border-b border-gray-200 px-3 sm:px-4 py-2.5 flex justify-between items-center lg:hidden print:hidden sticky top-0 z-30 shadow-xs">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* 뒤로가기 (<) 버튼 */}
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('app:back'))
+              }
+            }}
+            className="flex items-center justify-center p-2 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 active:bg-blue-50 text-gray-700 hover:text-blue-600 transition-colors shadow-2xs"
+            aria-label="뒤로가기"
+            title="뒤로가기"
+          >
+            <ChevronLeft size={20} className="stroke-[2.5]" />
+          </button>
+
           <button 
             type="button"
             onClick={() => setMobileOpen(true)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors shadow-2xs"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors shadow-2xs"
             aria-label="메뉴 열기"
           >
-            <Menu size={20} className="text-blue-600" />
-            <span className="text-sm font-bold text-gray-800">메뉴</span>
+            <Menu size={18} className="text-blue-600" />
+            <span className="text-xs sm:text-sm font-bold text-gray-800">메뉴</span>
           </button>
           
           <Link href="/" className="flex items-center gap-2">

@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",
+    "@capacitor/app": "^8.1.2",
     "@capacitor/core": "^8.5.3",
     "@types/react-datepicker": "^6.2.0",
     "@types/react-signature-canvas": "^1.0.7",
