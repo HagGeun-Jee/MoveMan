@@ -1,10 +1,13 @@
 package com.meman.moveman;
 
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.print.PrintAttributes;
 import android.print.PrintDocumentAdapter;
 import android.print.PrintManager;
+import android.webkit.DownloadListener;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -17,10 +20,28 @@ public class MainActivity extends BridgeActivity {
 
         final WebView webView = getBridge().getWebView();
         if (webView != null) {
-            // Android 네이티브 인쇄 인터페이스 등록
+            // 1. Android 네이티브 인쇄 인터페이스 등록
             webView.addJavascriptInterface(new PrintInterface(this, webView), "AndroidPrinter");
 
-            // 페이지 로드 시 window.print()를 AndroidPrinter로 자동 연결하는 스크립트 주입
+            // 2. Android 네이티브 다운로드 인터페이스 등록
+            webView.addJavascriptInterface(new DownloadInterface(this), "AndroidDownloader");
+
+            // 3. WebView 자체 파일 다운로드 리스너 연결 (모바일 브라우저/시스템 다운로더로 Intent 위임)
+            webView.setDownloadListener(new DownloadListener() {
+                @Override
+                public void onDownloadStart(String url, String userAgent, String contentDisposition, String mimetype, long contentLength) {
+                    try {
+                        Intent intent = new Intent(Intent.ACTION_VIEW);
+                        intent.setData(Uri.parse(url));
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(intent);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+
+            // 4. 페이지 로드 시 window.print() 자동 연결
             webView.evaluateJavascript(
                 "(function() {" +
                 "  if (window.AndroidPrinter && !window._nativePrintOverridden) {" +
@@ -55,6 +76,26 @@ public class MainActivity extends BridgeActivity {
                     }
                 }
             });
+        }
+    }
+
+    public static class DownloadInterface {
+        private final Context context;
+
+        public DownloadInterface(Context context) {
+            this.context = context;
+        }
+
+        @JavascriptInterface
+        public void download(final String url) {
+            try {
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setData(Uri.parse(url));
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(intent);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 }

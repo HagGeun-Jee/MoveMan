@@ -3,6 +3,7 @@
 import { useActionState } from 'react'
 import { login } from '@/app/actions/auth'
 import { APP_RELEASE_INFO } from '@/lib/appRelease'
+import { AppDownloadButton } from '@/components/AppDownloadButton'
 
 export default function LoginPage() {
   const [state, formAction, isPending] = useActionState(login, null)
@@ -76,16 +77,7 @@ export default function LoginPage() {
               </span>
             </div>
 
-            <a 
-              href="/moveman.apk" 
-              download="moveman.apk"
-              className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg transition-colors shadow-xs"
-            >
-              <span>📥 앱(APK) 다운로드 및 설치</span>
-            </a>
-            <p className="text-[11px] text-gray-500 mt-2 text-center">
-              ※ 다운로드 후 스마트폰에서 터치하여 설치하세요. ('출처를 알 수 없는 앱 허용')
-            </p>
+            <AppDownloadButton variant="login" />
           </div>
         </div>
       </div>

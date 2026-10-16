@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { ChangePasswordModal } from './ChangePasswordModal'
 import { APP_RELEASE_INFO } from '@/lib/appRelease'
+import { AppDownloadButton } from './AppDownloadButton'
 
 
 
@@ -213,19 +214,7 @@ export function Sidebar({
             <div className="p-4 border-t border-gray-100 bg-gray-50/80">
               {/* 모바일 앱 다운로드 */}
               <div className="mb-3">
-                <a
-                  href="/moveman.apk"
-                  download="moveman.apk"
-                  className="w-full py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs flex flex-col items-center justify-center gap-0.5 shadow-xs transition-colors"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Smartphone size={15} />
-                    <span>안드로이드 앱(APK) 다운로드</span>
-                  </div>
-                  <span className="text-[10px] text-blue-100 font-normal">
-                    최근 릴리즈: {APP_RELEASE_INFO.releaseDate} ({APP_RELEASE_INFO.version})
-                  </span>
-                </a>
+                <AppDownloadButton variant="sidebar" />
               </div>
 
               <div className="text-sm text-gray-700 mb-3 px-1">
@@ -382,7 +371,7 @@ export function Sidebar({
           {collapsed ? (
             <>
               <a
-                href="/moveman.apk"
+                href="/api/download/apk"
                 download="moveman.apk"
                 className="w-full p-2.5 rounded-xl text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center mb-1"
                 title={`모바일 앱(APK) 다운로드 (릴리즈: ${APP_RELEASE_INFO.releaseDate})`}
@@ -409,20 +398,9 @@ export function Sidebar({
             </>
           ) : (
             <div className="space-y-1">
-              <a
-                href="/moveman.apk"
-                download="moveman.apk"
-                className="w-full flex flex-col px-3 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors mb-1.5"
-                title={`안드로이드 앱(APK) 다운로드 (릴리즈: ${APP_RELEASE_INFO.releaseDate})`}
-              >
-                <div className="flex items-center gap-2">
-                  <Smartphone size={16} className="text-blue-600 shrink-0" />
-                  <span>모바일 앱(APK) 다운로드</span>
-                </div>
-                <span className="text-[10px] font-normal text-blue-600/80 ml-6">
-                  릴리즈: {APP_RELEASE_INFO.releaseDate}
-                </span>
-              </a>
+              <div className="mb-2">
+                <AppDownloadButton variant="sidebar" />
+              </div>
               <button
                 type="button"
                 onClick={() => setPasswordModalOpen(true)}
