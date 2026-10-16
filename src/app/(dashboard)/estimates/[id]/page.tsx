@@ -41,9 +41,19 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
     notFound()
   }
 
-  const envObj = estimate.environment ? JSON.parse(estimate.environment) : {}
-  const payPlanObj = estimate.paymentPlan ? JSON.parse(estimate.paymentPlan) : {}
-  const rawItems = estimate.cbmItems ? JSON.parse(estimate.cbmItems) : []
+  const safeJsonParse = (str: string | null | undefined, fallback: any = {}): any => {
+    if (!str || str === 'null' || str === 'undefined') return fallback
+    try {
+      const parsed = JSON.parse(str)
+      return parsed && typeof parsed === 'object' ? parsed : fallback
+    } catch {
+      return fallback
+    }
+  }
+
+  const envObj = safeJsonParse(estimate.environment, {})
+  const payPlanObj = safeJsonParse(estimate.paymentPlan, {})
+  const rawItems = safeJsonParse(estimate.cbmItems, [])
   const items = Array.isArray(rawItems)
     ? rawItems.filter((item: any) => {
         const qty = item.quantity !== undefined ? Number(item.quantity) : 1
@@ -51,8 +61,8 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
         return unitCbm > 0 && qty > 0
       })
     : []
-  const labors = envObj.labors || []
-  const vehicles = envObj.vehicles || []
+  const labors = Array.isArray(envObj.labors) ? envObj.labors : []
+  const vehicles = Array.isArray(envObj.vehicles) ? envObj.vehicles : []
 
   // 사다리차 운임 세부 산출
   const ladderTotalCost = Number(envObj.ladderTotalCost) || 0

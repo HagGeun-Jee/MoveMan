@@ -92,6 +92,16 @@ const parseAndFilterCbmItems = (cbmItemsStr: string | null | undefined): any[] =
   }
 }
 
+const safeJsonParse = (str: string | null | undefined, fallback: any = {}): any => {
+  if (!str || str === 'null' || str === 'undefined') return fallback
+  try {
+    const parsed = JSON.parse(str)
+    return parsed && typeof parsed === 'object' ? parsed : fallback
+  } catch {
+    return fallback
+  }
+}
+
 export function EstimateForm({ 
   initialData, 
   action, 
@@ -101,8 +111,8 @@ export function EstimateForm({
   action: (formData: FormData) => Promise<void>,
   title?: string
 }) {
-  const envObj = initialData?.environment ? JSON.parse(initialData.environment) : {}
-  const payPlanObj = initialData?.paymentPlan ? JSON.parse(initialData.paymentPlan) : {}
+  const envObj = safeJsonParse(initialData?.environment, {})
+  const payPlanObj = safeJsonParse(initialData?.paymentPlan, {})
 
   // 임시 저장 키 (신규 견적 작성 또는 특정 견적 수정 구분)
   const storageKey = initialData?.id 

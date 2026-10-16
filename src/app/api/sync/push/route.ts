@@ -34,6 +34,26 @@ export async function POST(request: Request) {
 
     const results = []
 
+    const toValidJsonString = (val: any, fallback: string = '{}'): string => {
+      if (val === undefined || val === null || val === 'null' || val === 'undefined' || val === '') {
+        return fallback
+      }
+      if (typeof val === 'string') {
+        try {
+          const parsed = JSON.parse(val)
+          if (parsed === null || parsed === undefined) return fallback
+          return JSON.stringify(parsed)
+        } catch {
+          return fallback
+        }
+      }
+      try {
+        return JSON.stringify(val)
+      } catch {
+        return fallback
+      }
+    }
+
     for (const item of items) {
       try {
         if (item.entityType === 'estimate') {
@@ -72,11 +92,11 @@ export async function POST(request: Request) {
                 visitDate: data.visitDate ? new Date(data.visitDate) : null,
                 movingDate: data.movingDate ? new Date(data.movingDate) : null,
                 organizeDate: data.organizeDate ? new Date(data.organizeDate) : null,
-                cbmItems: typeof data.cbmItems === 'string' ? data.cbmItems : JSON.stringify(data.cbmItems || []),
-                materials: typeof data.materials === 'string' ? data.materials : JSON.stringify(data.materials || {}),
-                assemblyItems: typeof data.assemblyItems === 'string' ? data.assemblyItems : JSON.stringify(data.assemblyItems || []),
-                environment: typeof data.environment === 'string' ? data.environment : JSON.stringify(data.environment || {}),
-                paymentPlan: typeof data.paymentPlan === 'string' ? data.paymentPlan : JSON.stringify(data.paymentPlan || {}),
+                cbmItems: toValidJsonString(data.cbmItems, '[]'),
+                materials: toValidJsonString(data.materials, '{}'),
+                assemblyItems: toValidJsonString(data.assemblyItems, '[]'),
+                environment: toValidJsonString(data.environment, '{}'),
+                paymentPlan: toValidJsonString(data.paymentPlan, '{}'),
                 movingCost: Math.round(Number(data.movingCost) || 0),
                 storageCost: Math.round(Number(data.storageCost) || 0),
                 additionalCost: Math.round(Number(data.additionalCost) || 0),
@@ -113,11 +133,11 @@ export async function POST(request: Request) {
                   visitDate: data.visitDate ? new Date(data.visitDate) : existing.visitDate,
                   movingDate: data.movingDate ? new Date(data.movingDate) : existing.movingDate,
                   organizeDate: data.organizeDate ? new Date(data.organizeDate) : existing.organizeDate,
-                  cbmItems: data.cbmItems !== undefined ? (typeof data.cbmItems === 'string' ? data.cbmItems : JSON.stringify(data.cbmItems)) : existing.cbmItems,
-                  materials: data.materials !== undefined ? (typeof data.materials === 'string' ? data.materials : JSON.stringify(data.materials)) : existing.materials,
-                  assemblyItems: data.assemblyItems !== undefined ? (typeof data.assemblyItems === 'string' ? data.assemblyItems : JSON.stringify(data.assemblyItems)) : existing.assemblyItems,
-                  environment: data.environment !== undefined ? (typeof data.environment === 'string' ? data.environment : JSON.stringify(data.environment)) : existing.environment,
-                  paymentPlan: data.paymentPlan !== undefined ? (typeof data.paymentPlan === 'string' ? data.paymentPlan : JSON.stringify(data.paymentPlan)) : existing.paymentPlan,
+                  cbmItems: data.cbmItems !== undefined ? toValidJsonString(data.cbmItems, '[]') : existing.cbmItems,
+                  materials: data.materials !== undefined ? toValidJsonString(data.materials, '{}') : existing.materials,
+                  assemblyItems: data.assemblyItems !== undefined ? toValidJsonString(data.assemblyItems, '[]') : existing.assemblyItems,
+                  environment: data.environment !== undefined ? toValidJsonString(data.environment, '{}') : existing.environment,
+                  paymentPlan: data.paymentPlan !== undefined ? toValidJsonString(data.paymentPlan, '{}') : existing.paymentPlan,
                   movingCost: data.movingCost !== undefined ? Math.round(Number(data.movingCost) || 0) : existing.movingCost,
                   storageCost: data.storageCost !== undefined ? Math.round(Number(data.storageCost) || 0) : existing.storageCost,
                   additionalCost: data.additionalCost !== undefined ? Math.round(Number(data.additionalCost) || 0) : existing.additionalCost,
