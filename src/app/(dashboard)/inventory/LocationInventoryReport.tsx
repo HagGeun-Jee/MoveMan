@@ -144,6 +144,13 @@ export function LocationInventoryReport({
 
   // 5. PDF 다운로드 및 인쇄 실행
   const handlePrint = () => {
+    if (typeof window !== 'undefined') {
+      const win = window as any
+      if (win.AndroidPrinter && typeof win.AndroidPrinter.print === 'function') {
+        win.AndroidPrinter.print(`MEMAN_자재현황_${selectedLocation?.name || '거점'}`)
+        return
+      }
+    }
     window.print()
   }
 
