@@ -1058,7 +1058,7 @@ export function EstimateForm({
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-3 sm:space-y-5 pb-20">
+    <div className="max-w-5xl mx-auto space-y-3 sm:space-y-5 pb-20 px-1 sm:px-3">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{title}</h1>
         {draftRestoredTime && (
@@ -1852,31 +1852,37 @@ export function EstimateForm({
                     </div>
                     {isExpanded && (
                       <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left bg-white min-w-[580px]">
-                          <thead className="bg-gray-50 text-gray-600 border-b">
+                        <table className="w-full text-xs sm:text-sm text-left bg-white min-w-[550px]">
+                          <thead className="bg-gray-50 text-gray-700 border-b border-gray-200">
                             <tr>
-                              <th className="whitespace-nowrap px-3 sm:px-4 py-2 font-medium">품목</th>
-                              <th className="whitespace-nowrap px-3 sm:px-4 py-2 font-medium">규격</th>
-                              <th className="whitespace-nowrap px-3 sm:px-4 py-2 font-medium w-20">수량</th>
-                              <th className="whitespace-nowrap px-2 sm:px-3 py-2 font-medium w-24 text-center">처리</th>
-                              <th className="whitespace-nowrap px-3 sm:px-4 py-2 font-medium w-24">기본 CBM</th>
-                              <th className="whitespace-nowrap px-3 sm:px-4 py-2 font-medium w-24">추가 CBM</th>
-                              <th className="whitespace-nowrap px-3 sm:px-4 py-2 font-medium w-12 text-center">삭제</th>
+                              <th className="whitespace-nowrap px-2 sm:px-3 py-1.5 sm:py-2 font-semibold min-w-[110px]">품목</th>
+                              <th className="whitespace-nowrap px-2 sm:px-3 py-1.5 sm:py-2 font-semibold min-w-[120px] w-36 sm:w-44">규격</th>
+                              <th className="whitespace-nowrap px-1.5 sm:px-2 py-1.5 sm:py-2 font-semibold w-14 sm:w-16 text-right">수량</th>
+                              <th className="whitespace-nowrap px-1 sm:px-1.5 py-1.5 sm:py-2 font-semibold w-16 sm:w-20 text-center">처리</th>
+                              <th className="whitespace-nowrap px-1.5 sm:px-2 py-1.5 sm:py-2 font-semibold w-18 sm:w-22 text-right">기본 CBM</th>
+                              <th className="whitespace-nowrap px-1.5 sm:px-2 py-1.5 sm:py-2 font-semibold w-18 sm:w-22 text-right">추가 CBM</th>
+                              <th className="whitespace-nowrap px-1 py-1.5 sm:py-2 font-semibold w-8 sm:w-10 text-center">삭제</th>
                             </tr>
                           </thead>
                         <tbody>
                           {catItems.map((item, localIdx) => {
                             const idx = items.findIndex(i => i === item)
                             return (
-                              <tr key={idx} className="border-b last:border-0 hover:bg-gray-50">
-                                <td className="px-4 py-2">
-                                  <input type="text" value={item.name} onChange={e => {
-                                    const newItems = [...items]
-                                    newItems[idx].name = e.target.value
-                                    setItems(newItems)
-                                  }} className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm outline-none focus:border-blue-500" placeholder="직접입력" />
+                              <tr key={idx} className="border-b last:border-0 hover:bg-blue-50/30 transition-colors">
+                                <td className="px-1.5 sm:px-2 py-1">
+                                  <input 
+                                    type="text" 
+                                    value={item.name} 
+                                    onChange={e => {
+                                      const newItems = [...items]
+                                      newItems[idx].name = e.target.value
+                                      setItems(newItems)
+                                    }} 
+                                    className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-xs sm:text-sm outline-none focus:border-blue-500 font-medium" 
+                                    placeholder="직접입력" 
+                                  />
                                 </td>
-                                <td className="px-4 py-2">
+                                <td className="px-1.5 sm:px-2 py-1">
                                   {(() => {
                                     // 해당 품목명(name)을 가진 기준정보 항목들을 찾음 (규격순 정렬)
                                     const availableSpecs = standardItems
@@ -1887,6 +1893,7 @@ export function EstimateForm({
                                       return (
                                         <select
                                           value={item.spec || ''}
+                                          title={item.spec || '규격 선택'}
                                           onChange={e => {
                                             const newItems = [...items]
                                             newItems[idx].spec = e.target.value
@@ -1903,7 +1910,7 @@ export function EstimateForm({
                                             }
                                             setItems(newItems)
                                           }}
-                                          className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm outline-none focus:border-blue-500"
+                                          className="w-full rounded border border-gray-300 bg-white px-1.5 sm:px-2 py-1 text-xs sm:text-sm font-medium text-gray-800 outline-none focus:border-blue-500 cursor-pointer"
                                         >
                                           <option value="">규격 선택</option>
                                           {availableSpecs.map(s => (
@@ -1915,22 +1922,35 @@ export function EstimateForm({
                                     
                                     // 기준정보에 없는 직접 입력 항목인 경우 텍스트 입력창 유지
                                     return (
-                                      <input type="text" value={item.spec || ''} onChange={e => {
-                                        const newItems = [...items]
-                                        newItems[idx].spec = e.target.value
-                                        setItems(newItems)
-                                      }} className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm outline-none focus:border-blue-500" placeholder="직접입력" />
+                                      <input 
+                                        type="text" 
+                                        value={item.spec || ''} 
+                                        onChange={e => {
+                                          const newItems = [...items]
+                                          newItems[idx].spec = e.target.value
+                                          setItems(newItems)
+                                        }} 
+                                        className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-xs sm:text-sm outline-none focus:border-blue-500 font-medium" 
+                                        placeholder="직접입력" 
+                                      />
                                     )
                                   })()}
                                 </td>
-                                <td className="px-4 py-2">
-                                  <input type="number" min="0" value={item.quantity !== undefined ? item.quantity : 1} onChange={e => {
-                                    const newItems = [...items]
-                                    newItems[idx].quantity = e.target.value === '' ? 0 : parseInt(e.target.value)
-                                    setItems(newItems)
-                                  }} onFocus={handleSelectAllOnFocus} className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm outline-none focus:border-blue-500 text-right" />
+                                <td className="px-1 sm:px-1.5 py-1 text-right">
+                                  <input 
+                                    type="number" 
+                                    min="0" 
+                                    value={item.quantity !== undefined ? item.quantity : 1} 
+                                    onChange={e => {
+                                      const newItems = [...items]
+                                      newItems[idx].quantity = e.target.value === '' ? 0 : parseInt(e.target.value)
+                                      setItems(newItems)
+                                    }} 
+                                    onFocus={handleSelectAllOnFocus} 
+                                    className="w-full rounded border border-gray-300 bg-white px-1.5 py-1 text-xs sm:text-sm outline-none focus:border-blue-500 text-right font-bold text-gray-900" 
+                                  />
                                 </td>
-                                <td className="px-2 sm:px-3 py-2 text-center">
+                                <td className="px-1 py-1 text-center">
                                   <select
                                     value={item.treatment || '이동'}
                                     onChange={e => {
@@ -1938,14 +1958,14 @@ export function EstimateForm({
                                       newItems[idx].treatment = e.target.value
                                       setItems(newItems)
                                     }}
-                                    className={`w-full rounded border px-1.5 sm:px-2 py-1 text-xs sm:text-sm font-semibold outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer transition-colors ${
+                                    className={`w-full rounded border px-1 py-1 text-xs font-bold outline-none text-center cursor-pointer transition-colors ${
                                       (item.treatment || '이동') === '폐기' 
-                                        ? 'bg-red-50 text-red-700 border-red-300 font-bold'
+                                        ? 'bg-red-50 text-red-700 border-red-300'
                                         : (item.treatment || '이동') === '내림'
-                                        ? 'bg-amber-50 text-amber-700 border-amber-300 font-bold'
+                                        ? 'bg-amber-50 text-amber-700 border-amber-300'
                                         : (item.treatment || '이동') === '경유'
-                                        ? 'bg-purple-50 text-purple-700 border-purple-300 font-bold'
-                                        : 'bg-white text-gray-700 border-gray-300'
+                                        ? 'bg-purple-50 text-purple-700 border-purple-300'
+                                        : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
                                     }`}
                                   >
                                     <option value="이동">이동</option>
@@ -1954,7 +1974,7 @@ export function EstimateForm({
                                     <option value="경유">경유</option>
                                   </select>
                                 </td>
-                                <td className="px-4 py-2">
+                                <td className="px-1 sm:px-1.5 py-1">
                                   <div className="relative">
                                     <input 
                                       type="number" 
@@ -1967,45 +1987,58 @@ export function EstimateForm({
                                       }} 
                                       onFocus={handleSelectAllOnFocus} 
                                       title={isBaseCbmExcluded(item.treatment) ? `${item.treatment} 품목: 기본 CBM은 차량적재 합산에서 제외됩니다.` : undefined}
-                                      className={`w-full rounded border px-2 py-1 text-sm outline-none text-right transition-colors ${
+                                      className={`w-full rounded border px-1.5 py-1 text-xs sm:text-sm outline-none text-right transition-colors ${
                                         isBaseCbmExcluded(item.treatment)
                                           ? 'border-rose-300 bg-rose-50/70 text-rose-500 line-through decoration-rose-500 font-semibold focus:border-rose-500'
                                           : 'border-gray-300 bg-white text-gray-900 focus:border-blue-500'
                                       }`} 
                                     />
                                     {isBaseCbmExcluded(item.treatment) && (
-                                      <span className="text-[10px] text-rose-600 block text-right font-bold mt-0.5 leading-none">
+                                      <span className="text-[9px] sm:text-[10px] text-rose-600 block text-right font-bold mt-0.5 leading-none">
                                         합산제외
                                       </span>
                                     )}
                                   </div>
                                 </td>
-                                <td className="px-4 py-2">
-                                  <input type="number" step="0.01" value={item.innerBoxCbm} onChange={e => {
-                                    const newItems = [...items]
-                                    newItems[idx].innerBoxCbm = parseFloat(e.target.value) || 0
-                                    setItems(newItems)
-                                  }} onFocus={handleSelectAllOnFocus} className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm outline-none focus:border-blue-500 text-right" />
+                                <td className="px-1 sm:px-1.5 py-1">
+                                  <input 
+                                    type="number" 
+                                    step="0.01" 
+                                    value={item.innerBoxCbm} 
+                                    onChange={e => {
+                                      const newItems = [...items]
+                                      newItems[idx].innerBoxCbm = parseFloat(e.target.value) || 0
+                                      setItems(newItems)
+                                    }} 
+                                    onFocus={handleSelectAllOnFocus} 
+                                    className="w-full rounded border border-gray-300 bg-white px-1.5 py-1 text-xs sm:text-sm outline-none focus:border-blue-500 text-right" 
+                                  />
                                 </td>
-                                <td className="px-4 py-2 text-center">
-                                  <button type="button" onClick={() => {
-                                    const newItems = items.filter((_, i) => i !== idx)
-                                    setItems(newItems)
-                                  }} className="text-red-500 hover:text-red-700 font-bold p-1">✕</button>
+                                <td className="px-1 py-1 text-center">
+                                  <button 
+                                    type="button" 
+                                    onClick={() => {
+                                      const newItems = items.filter((_, i) => i !== idx)
+                                      setItems(newItems)
+                                    }} 
+                                    className="text-red-500 hover:text-red-700 font-bold p-1 text-xs sm:text-sm"
+                                  >
+                                    ✕
+                                  </button>
                                 </td>
                               </tr>
                             )
                           })}
                           {catItems.length === 0 && (
                             <tr className="border-b">
-                              <td colSpan={7} className="px-4 py-4 text-center text-gray-400">등록된 항목이 없습니다.</td>
+                              <td colSpan={7} className="px-3 py-3 text-center text-gray-400 text-xs">등록된 항목이 없습니다.</td>
                             </tr>
                           )}
-                          <tr className="bg-gray-50/50">
-                            <td colSpan={7} className="px-4 py-2">
-                              <div className="flex flex-wrap gap-2 items-center">
+                          <tr className="bg-gray-50/80 border-t border-gray-200">
+                            <td colSpan={7} className="px-2 sm:px-3 py-2">
+                              <div className="flex flex-wrap gap-1.5 sm:gap-2 items-center">
                                 <select 
-                                  className="rounded-lg border-gray-300 border px-3 py-1.5 text-sm outline-none text-gray-700 bg-white focus:border-blue-500 cursor-pointer"
+                                  className="min-w-[130px] sm:min-w-[170px] max-w-[210px] rounded-lg border-gray-300 border px-2 sm:px-2.5 py-1.5 text-xs sm:text-sm font-semibold outline-none text-gray-800 bg-white focus:border-blue-500 cursor-pointer shadow-2xs"
                                   value={selectedItemNames[cat.id] || ''}
                                   onChange={(e) => {
                                     setSelectedItemNames(prev => ({ ...prev, [cat.id]: e.target.value }))
@@ -2062,7 +2095,7 @@ export function EstimateForm({
                                 
                                 {selectedItemNames[cat.id] && (
                                   <select
-                                    className="rounded-lg border-gray-300 border px-3 py-1.5 text-sm outline-none text-gray-700 bg-white focus:border-blue-500 cursor-pointer"
+                                    className="min-w-[140px] sm:min-w-[190px] max-w-[240px] rounded-lg border-blue-400 border px-2 sm:px-2.5 py-1.5 text-xs sm:text-sm font-semibold outline-none text-blue-900 bg-blue-50/80 focus:border-blue-600 cursor-pointer shadow-2xs"
                                     value=""
                                     onChange={(e) => {
                                       if(!e.target.value) return;
@@ -2084,13 +2117,13 @@ export function EstimateForm({
                                       ))}
                                   </select>
                                 )}
-                                <span className="text-gray-400 text-sm mx-1">또는</span>
+                                <span className="text-gray-400 text-xs mx-0.5">또는</span>
                                 <button 
                                   type="button" 
                                   onClick={() => setItems([...items, { locationId: cat.id, locationName: cat.name, name: '', spec: '', quantity: 1, treatment: '이동', cbm: 0, innerBoxCbm: 0 }])}
-                                  className="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-1.5 bg-white border border-blue-200 rounded-lg shadow-sm hover:bg-blue-50"
+                                  className="text-blue-600 hover:text-blue-800 text-xs sm:text-sm font-semibold px-2.5 sm:px-3 py-1.5 bg-white border border-blue-200 rounded-lg shadow-2xs hover:bg-blue-50 transition-colors"
                                 >
-                                  + 직접입력 항목 추가
+                                  + 직접입력 추가
                                 </button>
                               </div>
                             </td>
