@@ -13,63 +13,112 @@
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+      background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #3b82f6 100%);
       color: #ffffff;
-      text-align: center;
-      padding: 24px;
+      padding: 20px;
     }
     .card {
-      background: rgba(255, 255, 255, 0.12);
-      backdrop-filter: blur(12px);
-      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 24px;
       padding: 32px 24px;
-      max-width: 380px;
+      max-width: 400px;
       width: 100%;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+      text-align: center;
     }
     .logo {
-      font-size: 32px;
-      font-weight: 800;
+      font-size: 34px;
+      font-weight: 900;
       letter-spacing: -1px;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
     .badge {
       display: inline-block;
       background: rgba(255, 255, 255, 0.25);
       font-size: 13px;
-      padding: 4px 12px;
+      padding: 4px 14px;
       border-radius: 20px;
-      margin-bottom: 20px;
+      margin-bottom: 18px;
       font-weight: 600;
     }
     .desc {
-      font-size: 15px;
-      line-height: 1.6;
+      font-size: 14px;
+      line-height: 1.5;
       color: rgba(255, 255, 255, 0.9);
-      margin-bottom: 24px;
+      margin-bottom: 22px;
+    }
+    .input-group {
+      text-align: left;
+      margin-bottom: 16px;
+    }
+    .input-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: rgba(255, 255, 255, 0.95);
+    }
+    .url-input {
+      width: 100%;
+      background: #ffffff;
+      color: #1e293b;
+      border: 2px solid transparent;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      outline: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .url-input:focus {
+      border-color: #93c5fd;
+    }
+    .auto-check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 20px;
+      cursor: pointer;
+      justify-content: flex-start;
+    }
+    .auto-check input {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: #2563eb;
     }
     .btn {
       display: block;
       width: 100%;
       background: #ffffff;
       color: #1e3a8a;
-      font-weight: 700;
+      font-weight: 800;
       font-size: 16px;
       padding: 14px;
       border-radius: 12px;
       border: none;
       cursor: pointer;
-      text-decoration: none;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      transition: transform 0.1s ease;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      transition: all 0.15s ease;
     }
     .btn:active {
-      transform: scale(0.98);
+      transform: scale(0.97);
+      background: #f1f5f9;
+    }
+    .status-msg {
+      margin-top: 14px;
+      font-size: 12px;
+      color: #fef08a;
+      min-height: 18px;
     }
     .footer {
-      margin-top: 16px;
-      font-size: 12px;
+      margin-top: 14px;
+      font-size: 11px;
       color: rgba(255, 255, 255, 0.7);
     }
   </style>
@@ -77,13 +126,74 @@
 <body>
   <div class="card">
     <div class="logo">MEMAN</div>
-    <div class="badge">모바일 현장 지원 시스템</div>
+    <div class="badge">현장 모바일 이사견적</div>
     <p class="desc">
-      현장 오프라인 견적 작성 및<br>
-      서버 양방향 동기화 앱이 준비되었습니다.
+      연결할 시스템 서버 주소를 확인하신 후<br>
+      <strong>[시스템 접속]</strong> 버튼을 눌러주세요.
     </p>
-    <button class="btn" onclick="location.reload()">시스템 접속</button>
-    <div class="footer">오프라인 로컬 DB & 자동 동기화 지원</div>
+
+    <div class="input-group">
+      <label class="input-label" for="serverUrl">시스템 서버 주소 (URL)</label>
+      <input 
+        id="serverUrl" 
+        type="text" 
+        class="url-input" 
+        placeholder="https://...onrender.com 또는 http://192.168.45.222:3000"
+        value=""
+      />
+    </div>
+
+    <label class="auto-check">
+      <input type="checkbox" id="autoConnect" checked>
+      <span>다음 실행 시 이 주소로 자동 접속</span>
+    </label>
+
+    <button class="btn" id="connectBtn" onclick="handleConnect()">시스템 접속하기</button>
+    <div class="status-msg" id="statusMsg"></div>
+    <div class="footer">단말기 로컬 DB 및 양방향 동기화 지원</div>
   </div>
+
+  <script>
+    const DEFAULT_LOCAL_DEV = 'http://192.168.45.222:3000';
+    const savedUrl = localStorage.getItem('meman_server_url');
+    const autoConn = localStorage.getItem('meman_auto_connect') !== 'false';
+    const urlInput = document.getElementById('serverUrl');
+    const autoCheck = document.getElementById('autoConnect');
+    const statusMsg = document.getElementById('statusMsg');
+
+    // 이전 저장된 URL이 있으면 채우고, 없으면 기본 IP 세팅
+    if (savedUrl) {
+      urlInput.value = savedUrl;
+    } else {
+      urlInput.value = DEFAULT_LOCAL_DEV;
+    }
+    autoCheck.checked = autoConn;
+
+    // 만약 자동접속 설정되어 있고 저장된 URL이 있으면 1.5초 후 자동 연결 시도
+    if (savedUrl && autoConn) {
+      statusMsg.innerText = '저장된 서버 주소로 자동 접속 중...';
+      setTimeout(() => {
+        handleConnect();
+      }, 1000);
+    }
+
+    function handleConnect() {
+      let target = urlInput.value.trim();
+      if (!target) {
+        statusMsg.innerText = '접속할 서버 주소를 입력해주세요.';
+        return;
+      }
+      if (!target.startsWith('http://') && !target.startsWith('https://')) {
+        target = 'https://' + target;
+      }
+
+      localStorage.setItem('meman_server_url', target);
+      localStorage.setItem('meman_auto_connect', autoCheck.checked ? 'true' : 'false');
+      statusMsg.innerText = target + ' 연결 중...';
+
+      // 접속 시도
+      window.location.href = target;
+    }
+  </script>
 </body>
 </html>
