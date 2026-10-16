@@ -15,7 +15,10 @@ function sanitizeCbmItems(raw: string | null | undefined): string {
       const qty = item.quantity !== undefined ? Number(item.quantity) : 1
       const unitCbm = (Number(item.cbm) || 0) + (Number(item.innerBoxCbm) || 0)
       return unitCbm > 0 && qty > 0
-    })
+    }).map((item: any) => ({
+      ...item,
+      treatment: item.treatment || '이동'
+    }))
     return JSON.stringify(filtered)
   } catch {
     return '[]'

@@ -15,12 +15,27 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   }
 }
 
+const isBaseCbmExcluded = (treatment?: string): boolean => 
+  treatment === '폐기' || treatment === '내림'
+
+const getItemEffectiveCbm = (item: any): number => {
+  const qty = item.quantity !== undefined ? Number(item.quantity) : 1
+  const baseCbm = isBaseCbmExcluded(item.treatment) ? 0 : (Number(item.cbm) || 0)
+  const innerCbm = Number(item.innerBoxCbm) || 0
+  return (baseCbm + innerCbm) * qty
+}
+
 export default async function EstimateViewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   
-  const estimate = await prisma.estimate.findUnique({
-    where: { id }
-  })
+  const [estimate, locationCategories] = await Promise.all([
+    prisma.estimate.findUnique({
+      where: { id }
+    }),
+    prisma.locationCategory.findMany({
+      orderBy: { order: 'asc' }
+    })
+  ])
   
   if (!estimate) {
     notFound()
@@ -59,6 +74,11 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
   const knownAddCost = ladderTotalCost + distanceExtraCost
   const otherAdditionalCost = Math.max(0, (estimate.additionalCost || 0) - knownAddCost)
 
+  const locationOrderMap: Record<string, number> = {}
+  locationCategories.forEach((cat, index) => {
+    locationOrderMap[cat.name] = index
+  })
+
   const groupedItems = items.reduce((acc: Record<string, any[]>, item: any) => {
     const locName = item.locationName || '기타/미지정'
     if (!acc[locName]) acc[locName] = []
@@ -74,6 +94,20 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
       return (a.spec || '').localeCompare(b.spec || '', 'ko')
     })
   }
+
+  // 위치(카테고리) 추천 순서 정렬: 안방 -> 방1 -> 방2 -> 방3 -> 방4 -> 거실 -> 주방 -> 베란다 -> 화장실 -> 기타/미지정(마지막)
+  const sortedGroupedItems = Object.entries(groupedItems).sort(([locA], [locB]) => {
+    const isAOther = locA === '기타/미지정' || !locA
+    const isBOther = locB === '기타/미지정' || !locB
+    if (isAOther && !isBOther) return 1
+    if (!isAOther && isBOther) return -1
+    if (isAOther && isBOther) return 0
+
+    const rankA = locationOrderMap[locA] !== undefined ? locationOrderMap[locA] : 999
+    const rankB = locationOrderMap[locB] !== undefined ? locationOrderMap[locB] : 999
+    if (rankA !== rankB) return rankA - rankB
+    return locA.localeCompare(locB, 'ko')
+  })
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-24 print:max-w-none print:space-y-4 print:pb-0 print:m-0 print:pt-4">
@@ -274,10 +308,46 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
           <h2 className="text-lg font-bold text-blue-600 border-b pb-2 mb-4 print:mb-2 print:pb-1 print:text-base">물품 및 작업 환경</h2>
           <div className="space-y-6 print:space-y-3">
             <div>
-              <h3 className="font-medium text-gray-900 mb-2 print:mb-1">산출 물품 목록 (총 {items.reduce((acc: number, item: any) => acc + ((Number(item.cbm) || 0) + (Number(item.innerBoxCbm) || 0)) * (item.quantity !== undefined ? Number(item.quantity) : 1), 0).toFixed(2)} CBM)</h3>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2 print:mb-1">
+                <h3 className="font-medium text-gray-900">
+                  산출 물품 목록 (총 {items.reduce((acc: number, item: any) => acc + getItemEffectiveCbm(item), 0).toFixed(2)} CBM)
+                </h3>
+                {/* 특이 처리 항목 (폐기, 내림, 경유) 요약 뱃지 */}
+                {(() => {
+                  const summary = items.reduce((acc: any, it: any) => {
+                    const t = it.treatment || '이동'
+                    const q = Number(it.quantity) || 1
+                    if (t !== '이동') {
+                      acc[t] = (acc[t] || 0) + q
+                    }
+                    return acc
+                  }, {})
+                  const entries = Object.entries(summary)
+                  if (entries.length === 0) return null
+                  return (
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs font-black">
+                      {summary['폐기'] && (
+                        <span className="px-2.5 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-300 shadow-2xs print:border print:border-black print:text-black">
+                          폐기 {summary['폐기']}개
+                        </span>
+                      )}
+                      {summary['내림'] && (
+                        <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 shadow-2xs print:border print:border-black print:text-black">
+                          내림 {summary['내림']}개
+                        </span>
+                      )}
+                      {summary['경유'] && (
+                        <span className="px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-700 border border-purple-300 shadow-2xs print:border print:border-black print:text-black">
+                          경유 {summary['경유']}개
+                        </span>
+                      )}
+                    </div>
+                  )
+                })()}
+              </div>
               {items.length > 0 ? (
                 <div className="space-y-4 print:space-y-2">
-                  {Object.entries(groupedItems).map(([locName, catItems]: [string, any]) => (
+                  {sortedGroupedItems.map(([locName, catItems]: [string, any]) => (
                     <div key={locName} className="border border-gray-200 rounded-lg overflow-hidden print:border-gray-300">
                       <div className="bg-blue-50/80 px-4 py-2.5 font-bold text-gray-900 flex justify-between items-center border-b border-blue-100 print:bg-gray-100 print:border-gray-300 print:py-1">
                         <div className="flex items-center gap-2">
@@ -285,30 +355,64 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                           <span className="text-gray-900 font-bold">{locName}</span>
                         </div>
                         <span className="text-sm font-bold text-blue-700 bg-white/90 px-2.5 py-0.5 rounded-full border border-blue-200 shadow-2xs print:bg-transparent print:border-none print:p-0 print:text-black">
-                          {catItems.reduce((acc: number, item: any) => acc + ((Number(item.cbm) || 0) + (Number(item.innerBoxCbm) || 0)) * (item.quantity !== undefined ? Number(item.quantity) : 1), 0).toFixed(2)} CBM
+                          {catItems.reduce((acc: number, item: any) => acc + getItemEffectiveCbm(item), 0).toFixed(2)} CBM
                         </span>
                       </div>
                       <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left print:text-xs min-w-[480px] print:min-w-0">
+                        <table className="w-full text-sm text-left print:text-xs min-w-[520px] print:min-w-0">
                         <thead className="bg-gray-50 text-gray-700 font-semibold border-b border-gray-200 print:bg-transparent">
                           <tr>
                             <th className="px-4 py-2 print:px-2 print:py-1">품목</th>
                             <th className="px-4 py-2 print:px-2 print:py-1">규격</th>
-                            <th className="px-4 py-2 text-right w-20 print:px-2 print:py-1">수량</th>
+                            <th className="px-4 py-2 text-right w-16 print:px-2 print:py-1">수량</th>
+                            <th className="px-4 py-2 text-center w-20 print:px-2 print:py-1">처리</th>
                             <th className="px-4 py-2 text-right w-24 print:px-2 print:py-1">기본 CBM</th>
                             <th className="px-4 py-2 text-right w-24 print:px-2 print:py-1">추가 CBM</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 print:divide-gray-200">
-                          {catItems.map((item: any, idx: number) => (
-                            <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                              <td className="px-4 py-2 font-bold text-gray-900 print:px-2 print:py-1">{item.name}</td>
-                              <td className="px-4 py-2 text-gray-800 font-medium print:px-2 print:py-1">{item.spec || '-'}</td>
-                              <td className="px-4 py-2 text-right font-semibold text-gray-900 print:px-2 print:py-1">{item.quantity !== undefined ? item.quantity : 1}</td>
-                              <td className="px-4 py-2 text-right text-gray-900 font-medium print:px-2 print:py-1">{item.cbm}</td>
-                              <td className="px-4 py-2 text-right text-gray-900 font-medium print:px-2 print:py-1">{item.innerBoxCbm}</td>
-                            </tr>
-                          ))}
+                          {catItems.map((item: any, idx: number) => {
+                            const treatment = item.treatment || '이동'
+                            return (
+                              <tr key={idx} className={`hover:bg-gray-50 transition-colors ${
+                                treatment === '폐기' ? 'bg-red-50/20' : treatment === '내림' ? 'bg-amber-50/20' : treatment === '경유' ? 'bg-purple-50/20' : ''
+                              }`}>
+                                <td className="px-4 py-2 font-bold text-gray-900 print:px-2 print:py-1">{item.name}</td>
+                                <td className="px-4 py-2 text-gray-800 font-medium print:px-2 print:py-1">{item.spec || '-'}</td>
+                                <td className="px-4 py-2 text-right font-semibold text-gray-900 print:px-2 print:py-1">{item.quantity !== undefined ? item.quantity : 1}</td>
+                                <td className="px-4 py-2 text-center print:px-2 print:py-1">
+                                  {treatment === '폐기' ? (
+                                    <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-black bg-red-100 text-red-700 border border-red-300 shadow-2xs print:border print:border-black print:text-black print:bg-transparent">
+                                      폐기
+                                    </span>
+                                  ) : treatment === '내림' ? (
+                                    <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-100 text-amber-800 border border-amber-300 shadow-2xs print:border print:border-black print:text-black print:bg-transparent">
+                                      내림
+                                    </span>
+                                  ) : treatment === '경유' ? (
+                                    <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-black bg-purple-100 text-purple-700 border border-purple-300 shadow-2xs print:border print:border-black print:text-black print:bg-transparent">
+                                      경유
+                                    </span>
+                                  ) : null}
+                                </td>
+                                <td className="px-4 py-2 text-right font-medium print:px-2 print:py-1">
+                                  {isBaseCbmExcluded(treatment) ? (
+                                    <div className="inline-flex flex-col items-end">
+                                      <span className="text-rose-400 line-through decoration-rose-400 font-semibold print:text-gray-400">
+                                        {item.cbm}
+                                      </span>
+                                      <span className="text-[10px] text-rose-600 font-bold -mt-0.5 print:hidden">
+                                        (제외)
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <span className="text-gray-900">{item.cbm}</span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-2 text-right text-gray-900 font-medium print:px-2 print:py-1">{item.innerBoxCbm}</td>
+                              </tr>
+                            )
+                          })}
                         </tbody>
                       </table>
                       </div>

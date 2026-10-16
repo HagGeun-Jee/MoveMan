@@ -51,6 +51,16 @@ export const isBoxItem = (name: string): boolean => {
   return upper === 'BOX' || upper.startsWith('BOX') || upper === '박스'
 }
 
+export const isBaseCbmExcluded = (treatment?: string): boolean => 
+  treatment === '폐기' || treatment === '내림'
+
+export const getItemEffectiveCbm = (item: any): number => {
+  const qty = item.quantity !== undefined ? Number(item.quantity) : 1
+  const baseCbm = isBaseCbmExcluded(item.treatment) ? 0 : (Number(item.cbm) || 0)
+  const innerCbm = Number(item.innerBoxCbm) || 0
+  return (baseCbm + innerCbm) * qty
+}
+
 const sortCbmItems = (list: any[]): any[] => {
   return [...list].sort((a: any, b: any) => {
     const nameComp = (a.name || '').localeCompare(b.name || '', 'ko')
@@ -65,7 +75,10 @@ const filterValidCbmItems = (itemsList: any[]): any[] => {
     const qty = item.quantity !== undefined ? Number(item.quantity) : 1
     const unitCbm = (Number(item.cbm) || 0) + (Number(item.innerBoxCbm) || 0)
     return unitCbm > 0 && qty > 0
-  })
+  }).map((item: any) => ({
+    ...item,
+    treatment: item.treatment || '이동'
+  }))
   return sortCbmItems(filtered)
 }
 
@@ -394,7 +407,7 @@ export function EstimateForm({
   const [cbmHeight, setCbmHeight] = useState<number | ''>('')
 
   const [deadSpaceRatio, setDeadSpaceRatio] = useState(20)
-  const totalCbm = items.reduce((acc, item) => acc + ((Number(item.cbm) || 0) + (Number(item.innerBoxCbm) || 0)) * (item.quantity !== undefined ? Number(item.quantity) : 1), 0)
+  const totalCbm = items.reduce((acc, item) => acc + getItemEffectiveCbm(item), 0)
   const requiredCbm = totalCbm * (1 + deadSpaceRatio / 100)
 
   const handleRecommendVehicles = () => {
@@ -664,7 +677,9 @@ export function EstimateForm({
 
           if (draft.vehicles) setVehicles(draft.vehicles)
           if (draft.labors) setLabors(draft.labors)
-          if (draft.items && draft.items.length > 0) setItems(draft.items)
+          if (draft.items && draft.items.length > 0) {
+            setItems(draft.items.map((i: any) => ({ ...i, treatment: i.treatment || '이동' })))
+          }
           if (draft.deadSpaceRatio !== undefined) setDeadSpaceRatio(draft.deadSpaceRatio)
 
           if (draft.movingCost !== undefined) setMovingCost(draft.movingCost)
@@ -745,6 +760,7 @@ export function EstimateForm({
                 name: item.name,
                 spec: '',
                 quantity: 0,
+                treatment: '이동',
                 cbm: 0,
                 innerBoxCbm: 0
               })
@@ -774,6 +790,7 @@ export function EstimateForm({
               name: item.name,
               spec: '',
               quantity: 0,
+              treatment: '이동',
               cbm: 0,
               innerBoxCbm: 0
             })
@@ -787,7 +804,7 @@ export function EstimateForm({
           if (saved) {
             const draft = JSON.parse(saved)
             if (draft.items && draft.items.length > 0) {
-              finalItems = [...draft.items]
+              finalItems = draft.items.map((i: any) => ({ ...i, treatment: i.treatment || '이동' }))
               // 누락된 기본 품목 추가
               initialItems.forEach(initItem => {
                 const exists = finalItems.some(f => (f.locationId || '') === (initItem.locationId || '') && f.name === initItem.name)
@@ -817,7 +834,7 @@ export function EstimateForm({
           if (saved) {
             const draft = JSON.parse(saved)
             if (draft.items && draft.items.length > 0) {
-              finalItems = draft.items
+              finalItems = draft.items.map((i: any) => ({ ...i, treatment: i.treatment || '이동' }))
             }
           }
         } catch {}
@@ -1676,8 +1693,8 @@ export function EstimateForm({
           <h2 className="text-base sm:text-lg font-bold text-blue-600 border-b pb-2">물품 및 작업 환경</h2>
           
           <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <h3 className="font-medium text-gray-900">물품 목록 (CBM 산출용)</h3>
                 <button 
                   type="button" 
@@ -1686,6 +1703,42 @@ export function EstimateForm({
                 >
                   CBM 계산기
                 </button>
+                {/* 특이 처리 항목 (폐기, 내림, 경유) 요약 뱃지 */}
+                {(() => {
+                  const validItems = items.filter(it => {
+                    const q = it.quantity !== undefined ? Number(it.quantity) : 1
+                    const unitCbm = (Number(it.cbm) || 0) + (Number(it.innerBoxCbm) || 0)
+                    return unitCbm > 0 && q > 0
+                  })
+                  const countBy = validItems.reduce((acc: any, it: any) => {
+                    const t = it.treatment || '이동'
+                    if (t !== '이동') {
+                      acc[t] = (acc[t] || 0) + (Number(it.quantity) || 1)
+                    }
+                    return acc
+                  }, {})
+                  const entries = Object.entries(countBy)
+                  if (entries.length === 0) return null
+                  return (
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs font-bold">
+                      {countBy['폐기'] && (
+                        <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200 shadow-2xs">
+                          폐기 {countBy['폐기']}개
+                        </span>
+                      )}
+                      {countBy['내림'] && (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 shadow-2xs">
+                          내림 {countBy['내림']}개
+                        </span>
+                      )}
+                      {countBy['경유'] && (
+                        <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 border border-purple-200 shadow-2xs">
+                          경유 {countBy['경유']}개
+                        </span>
+                      )}
+                    </div>
+                  )
+                })()}
               </div>
               <div className="text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100 shadow-sm">
                 총 합계: {totalCbm.toFixed(2)} CBM
@@ -1722,17 +1775,18 @@ export function EstimateForm({
                         <span className="text-gray-900 font-bold">{cat.name}</span>
                       </div>
                       <span className="text-sm font-semibold text-blue-700 bg-white/90 px-2.5 py-0.5 rounded-full border border-blue-200 shadow-2xs">
-                        {catItems.reduce((acc, item) => acc + ((Number(item.cbm) || 0) + (Number(item.innerBoxCbm) || 0)) * (item.quantity !== undefined ? Number(item.quantity) : 1), 0).toFixed(2)} CBM
+                        {catItems.reduce((acc, item) => acc + getItemEffectiveCbm(item), 0).toFixed(2)} CBM
                       </span>
                     </div>
                     {isExpanded && (
                       <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left bg-white min-w-[500px]">
+                        <table className="w-full text-sm text-left bg-white min-w-[580px]">
                           <thead className="bg-gray-50 text-gray-600 border-b">
                             <tr>
                               <th className="whitespace-nowrap px-3 sm:px-4 py-2 font-medium">품목</th>
                               <th className="whitespace-nowrap px-3 sm:px-4 py-2 font-medium">규격</th>
                               <th className="whitespace-nowrap px-3 sm:px-4 py-2 font-medium w-20">수량</th>
+                              <th className="whitespace-nowrap px-2 sm:px-3 py-2 font-medium w-24 text-center">처리</th>
                               <th className="whitespace-nowrap px-3 sm:px-4 py-2 font-medium w-24">기본 CBM</th>
                               <th className="whitespace-nowrap px-3 sm:px-4 py-2 font-medium w-24">추가 CBM</th>
                               <th className="whitespace-nowrap px-3 sm:px-4 py-2 font-medium w-12 text-center">삭제</th>
@@ -1804,12 +1858,55 @@ export function EstimateForm({
                                     setItems(newItems)
                                   }} onFocus={handleSelectAllOnFocus} className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm outline-none focus:border-blue-500 text-right" />
                                 </td>
+                                <td className="px-2 sm:px-3 py-2 text-center">
+                                  <select
+                                    value={item.treatment || '이동'}
+                                    onChange={e => {
+                                      const newItems = [...items]
+                                      newItems[idx].treatment = e.target.value
+                                      setItems(newItems)
+                                    }}
+                                    className={`w-full rounded border px-1.5 sm:px-2 py-1 text-xs sm:text-sm font-semibold outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer transition-colors ${
+                                      (item.treatment || '이동') === '폐기' 
+                                        ? 'bg-red-50 text-red-700 border-red-300 font-bold'
+                                        : (item.treatment || '이동') === '내림'
+                                        ? 'bg-amber-50 text-amber-700 border-amber-300 font-bold'
+                                        : (item.treatment || '이동') === '경유'
+                                        ? 'bg-purple-50 text-purple-700 border-purple-300 font-bold'
+                                        : 'bg-white text-gray-700 border-gray-300'
+                                    }`}
+                                  >
+                                    <option value="이동">이동</option>
+                                    <option value="폐기">폐기</option>
+                                    <option value="내림">내림</option>
+                                    <option value="경유">경유</option>
+                                  </select>
+                                </td>
                                 <td className="px-4 py-2">
-                                  <input type="number" step="0.01" value={item.cbm} onChange={e => {
-                                    const newItems = [...items]
-                                    newItems[idx].cbm = parseFloat(e.target.value) || 0
-                                    setItems(newItems)
-                                  }} onFocus={handleSelectAllOnFocus} className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm outline-none focus:border-blue-500 text-right" />
+                                  <div className="relative">
+                                    <input 
+                                      type="number" 
+                                      step="0.01" 
+                                      value={item.cbm} 
+                                      onChange={e => {
+                                        const newItems = [...items]
+                                        newItems[idx].cbm = parseFloat(e.target.value) || 0
+                                        setItems(newItems)
+                                      }} 
+                                      onFocus={handleSelectAllOnFocus} 
+                                      title={isBaseCbmExcluded(item.treatment) ? `${item.treatment} 품목: 기본 CBM은 차량적재 합산에서 제외됩니다.` : undefined}
+                                      className={`w-full rounded border px-2 py-1 text-sm outline-none text-right transition-colors ${
+                                        isBaseCbmExcluded(item.treatment)
+                                          ? 'border-rose-300 bg-rose-50/70 text-rose-500 line-through decoration-rose-500 font-semibold focus:border-rose-500'
+                                          : 'border-gray-300 bg-white text-gray-900 focus:border-blue-500'
+                                      }`} 
+                                    />
+                                    {isBaseCbmExcluded(item.treatment) && (
+                                      <span className="text-[10px] text-rose-600 block text-right font-bold mt-0.5 leading-none">
+                                        합산제외
+                                      </span>
+                                    )}
+                                  </div>
                                 </td>
                                 <td className="px-4 py-2">
                                   <input type="number" step="0.01" value={item.innerBoxCbm} onChange={e => {
@@ -1829,11 +1926,11 @@ export function EstimateForm({
                           })}
                           {catItems.length === 0 && (
                             <tr className="border-b">
-                              <td colSpan={6} className="px-4 py-4 text-center text-gray-400">등록된 항목이 없습니다.</td>
+                              <td colSpan={7} className="px-4 py-4 text-center text-gray-400">등록된 항목이 없습니다.</td>
                             </tr>
                           )}
                           <tr className="bg-gray-50/50">
-                            <td colSpan={6} className="px-4 py-2">
+                            <td colSpan={7} className="px-4 py-2">
                               <div className="flex flex-wrap gap-2 items-center">
                                 <select 
                                   className="rounded-lg border-gray-300 border px-3 py-1.5 text-sm outline-none text-gray-700 bg-white focus:border-blue-500 cursor-pointer"
@@ -1899,7 +1996,7 @@ export function EstimateForm({
                                       if(!e.target.value) return;
                                       const stdItem = standardItems.find(i => i.id === e.target.value)
                                       if(stdItem) {
-                                        setItems([...items, { locationId: cat.id, locationName: cat.name, name: stdItem.name, spec: stdItem.spec || '', quantity: 1, cbm: stdItem.defaultCbm, innerBoxCbm: stdItem.defaultInnerCbm }])
+                                        setItems([...items, { locationId: cat.id, locationName: cat.name, name: stdItem.name, spec: stdItem.spec || '', quantity: 1, treatment: '이동', cbm: stdItem.defaultCbm, innerBoxCbm: stdItem.defaultInnerCbm }])
                                         setSelectedItemNames(prev => ({ ...prev, [cat.id]: '' }))
                                       }
                                     }}
@@ -1918,7 +2015,7 @@ export function EstimateForm({
                                 <span className="text-gray-400 text-sm mx-1">또는</span>
                                 <button 
                                   type="button" 
-                                  onClick={() => setItems([...items, { locationId: cat.id, locationName: cat.name, name: '', spec: '', quantity: 1, cbm: 0, innerBoxCbm: 0 }])}
+                                  onClick={() => setItems([...items, { locationId: cat.id, locationName: cat.name, name: '', spec: '', quantity: 1, treatment: '이동', cbm: 0, innerBoxCbm: 0 }])}
                                   className="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-1.5 bg-white border border-blue-200 rounded-lg shadow-sm hover:bg-blue-50"
                                 >
                                   + 직접입력 항목 추가
