@@ -12,6 +12,19 @@ export type SyncState = {
 
 type SyncListener = (state: SyncState) => void
 
+function getApiUrl(path: string): string {
+  if (typeof window !== 'undefined') {
+    const host = window.location.host
+    // 이미 메인 서버 도메인이거나 로컬 개발 서버인 경우 상대경로 사용
+    if (host.includes('onrender.com') || host.includes('localhost:3000')) {
+      return path
+    }
+    // 앱(Capacitor 웹뷰) 또는 로컬 파일 등인 경우 공식 배포 서버 절대 URL 사용
+    return `https://move-man.onrender.com${path}`
+  }
+  return path
+}
+
 class SyncManager {
   private listeners: Set<SyncListener> = new Set()
   private state: SyncState = {
@@ -151,14 +164,24 @@ class SyncManager {
       // ── Step 1: PUSH (로컬 변경분을 서버로 전송) ──
       const queueItems = await localDB.syncQueue.toArray()
       if (queueItems.length > 0) {
-        const pushRes = await fetch('/api/sync/push', {
+        const pushUrl = getApiUrl('/api/sync/push')
+        const pushRes = await fetch(pushUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-sync-token': 'meman-sync-auth-token-2026'
+          },
+          credentials: 'include',
           body: JSON.stringify({ items: queueItems }),
         })
 
         if (!pushRes.ok) {
-          throw new Error(`서버 업로드 실패 (상태코드: ${pushRes.status})`)
+          let errDetail = `상태코드: ${pushRes.status}`
+          try {
+            const errJson = await pushRes.json()
+            if (errJson.error) errDetail = errJson.error
+          } catch {}
+          throw new Error(`서버 업로드 실패 (${errDetail})`)
         }
 
         const pushData = await pushRes.json()
@@ -196,9 +219,20 @@ class SyncManager {
       const lastSyncMeta = await localDB.syncMeta.get('lastSyncTime')
       const sinceParam = lastSyncMeta?.value ? `?since=${encodeURIComponent(lastSyncMeta.value)}` : ''
 
-      const pullRes = await fetch(`/api/sync/pull${sinceParam}`)
+      const pullUrl = getApiUrl(`/api/sync/pull${sinceParam}`)
+      const pullRes = await fetch(pullUrl, {
+        headers: {
+          'x-sync-token': 'meman-sync-auth-token-2026'
+        },
+        credentials: 'include'
+      })
       if (!pullRes.ok) {
-        throw new Error(`서버 다운로드 실패 (상태코드: ${pullRes.status})`)
+        let errDetail = `상태코드: ${pullRes.status}`
+        try {
+          const errJson = await pullRes.json()
+          if (errJson.error) errDetail = errJson.error
+        } catch {}
+        throw new Error(`서버 다운로드 실패 (${errDetail})`)
       }
 
       const pullData = await pullRes.json()

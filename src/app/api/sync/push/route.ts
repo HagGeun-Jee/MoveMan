@@ -6,12 +6,23 @@ import { format } from 'date-fns'
 
 export async function POST(request: Request) {
   try {
+    const syncToken = request.headers.get('x-sync-token')
     const cookieStore = await cookies()
     const sessionCookie = cookieStore.get('session')?.value
     const session = await decrypt(sessionCookie)
 
-    if (!session?.userId) {
-      return NextResponse.json({ error: '인증되지 않은 요청입니다.' }, { status: 401 })
+    const isAppClient = syncToken === 'meman-sync-auth-token-2026'
+    if (!session?.userId && !isAppClient) {
+      return NextResponse.json(
+        { error: '인증되지 않은 요청입니다. 로그인 상태를 확인해주세요.' }, 
+        { 
+          status: 401,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*'
+          }
+        }
+      )
     }
 
     const body = await request.json()
@@ -66,11 +77,11 @@ export async function POST(request: Request) {
                 assemblyItems: typeof data.assemblyItems === 'string' ? data.assemblyItems : JSON.stringify(data.assemblyItems || []),
                 environment: typeof data.environment === 'string' ? data.environment : JSON.stringify(data.environment || {}),
                 paymentPlan: typeof data.paymentPlan === 'string' ? data.paymentPlan : JSON.stringify(data.paymentPlan || {}),
-                movingCost: Number(data.movingCost) || 0,
-                storageCost: Number(data.storageCost) || 0,
-                additionalCost: Number(data.additionalCost) || 0,
-                vat: Number(data.vat) || 0,
-                totalAmount: Number(data.totalAmount) || 0,
+                movingCost: Math.round(Number(data.movingCost) || 0),
+                storageCost: Math.round(Number(data.storageCost) || 0),
+                additionalCost: Math.round(Number(data.additionalCost) || 0),
+                vat: Math.round(Number(data.vat) || 0),
+                totalAmount: Math.round(Number(data.totalAmount) || 0),
               }
             })
 
@@ -107,11 +118,11 @@ export async function POST(request: Request) {
                   assemblyItems: data.assemblyItems !== undefined ? (typeof data.assemblyItems === 'string' ? data.assemblyItems : JSON.stringify(data.assemblyItems)) : existing.assemblyItems,
                   environment: data.environment !== undefined ? (typeof data.environment === 'string' ? data.environment : JSON.stringify(data.environment)) : existing.environment,
                   paymentPlan: data.paymentPlan !== undefined ? (typeof data.paymentPlan === 'string' ? data.paymentPlan : JSON.stringify(data.paymentPlan)) : existing.paymentPlan,
-                  movingCost: data.movingCost !== undefined ? Number(data.movingCost) : existing.movingCost,
-                  storageCost: data.storageCost !== undefined ? Number(data.storageCost) : existing.storageCost,
-                  additionalCost: data.additionalCost !== undefined ? Number(data.additionalCost) : existing.additionalCost,
-                  vat: data.vat !== undefined ? Number(data.vat) : existing.vat,
-                  totalAmount: data.totalAmount !== undefined ? Number(data.totalAmount) : existing.totalAmount,
+                  movingCost: data.movingCost !== undefined ? Math.round(Number(data.movingCost) || 0) : existing.movingCost,
+                  storageCost: data.storageCost !== undefined ? Math.round(Number(data.storageCost) || 0) : existing.storageCost,
+                  additionalCost: data.additionalCost !== undefined ? Math.round(Number(data.additionalCost) || 0) : existing.additionalCost,
+                  vat: data.vat !== undefined ? Math.round(Number(data.vat) || 0) : existing.vat,
+                  totalAmount: data.totalAmount !== undefined ? Math.round(Number(data.totalAmount) || 0) : existing.totalAmount,
                 }
               })
               results.push({
@@ -159,9 +170,34 @@ export async function POST(request: Request) {
       processedCount: results.filter(r => r.status === 'success').length,
       totalReceived: items.length,
       results
+    }, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': '*'
+      }
     })
   } catch (error: any) {
     console.error('Sync Push Error:', error)
-    return NextResponse.json({ error: '동기화 데이터 업로드 실패', details: error.message }, { status: 500 })
+    return NextResponse.json(
+      { error: '동기화 데이터 업로드 실패', details: error.message }, 
+      { 
+        status: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': '*'
+        }
+      }
+    )
   }
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-sync-token',
+    },
+  })
 }

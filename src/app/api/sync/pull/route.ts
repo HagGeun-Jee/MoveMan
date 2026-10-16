@@ -5,12 +5,23 @@ import { decrypt } from '@/lib/session'
 
 export async function GET(request: Request) {
   try {
+    const syncToken = request.headers.get('x-sync-token')
     const cookieStore = await cookies()
     const sessionCookie = cookieStore.get('session')?.value
     const session = await decrypt(sessionCookie)
 
-    if (!session?.userId) {
-      return NextResponse.json({ error: '인증되지 않은 요청입니다.' }, { status: 401 })
+    const isAppClient = syncToken === 'meman-sync-auth-token-2026'
+    if (!session?.userId && !isAppClient) {
+      return NextResponse.json(
+        { error: '인증되지 않은 요청입니다. 로그인 상태를 확인해주세요.' }, 
+        { 
+          status: 401,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*'
+          }
+        }
+      )
     }
 
     const { searchParams } = new URL(request.url)
@@ -65,9 +76,34 @@ export async function GET(request: Request) {
         createdAt: e.createdAt.toISOString(),
         updatedAt: e.updatedAt.toISOString(),
       }))
+    }, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': '*'
+      }
     })
   } catch (error: any) {
     console.error('Sync Pull Error:', error)
-    return NextResponse.json({ error: '동기화 데이터 수신 실패', details: error.message }, { status: 500 })
+    return NextResponse.json(
+      { error: '동기화 데이터 수신 실패', details: error.message }, 
+      { 
+        status: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': '*'
+        }
+      }
+    )
   }
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-sync-token',
+    },
+  })
 }
