@@ -15,6 +15,24 @@ export function LocationModal({ isOpen, onClose, locationToEdit, onSuccess }: Lo
   const nameInputRef = useRef<HTMLInputElement>(null)
   const memoInputRef = useRef<HTMLTextAreaElement>(null)
 
+  // 안드로이드 삼성 키보드 앞/중간 입력 시 커서 튐 방지 위치 추적
+  const lastCaretPosRef = useRef<number | null>(null)
+
+  const recordCaret = (el: HTMLTextAreaElement) => {
+    lastCaretPosRef.current = el.selectionStart
+  }
+
+  const enforceCaret = (el: HTMLTextAreaElement) => {
+    const saved = lastCaretPosRef.current
+    if (saved !== null && saved < el.value.length && el.selectionStart > saved) {
+      setTimeout(() => {
+        try {
+          el.setSelectionRange(saved, saved)
+        } catch (_) {}
+      }, 0)
+    }
+  }
+
   const [type, setType] = useState(locationToEdit?.type || 'WAREHOUSE')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -129,7 +147,37 @@ export function LocationModal({ isOpen, onClose, locationToEdit, onSuccess }: Lo
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">메모 / 담당</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-bold text-gray-700">메모 / 담당</label>
+              <div className="flex items-center gap-1.5 text-[10px]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (memoInputRef.current) {
+                      memoInputRef.current.focus()
+                      memoInputRef.current.setSelectionRange(0, 0)
+                      lastCaretPosRef.current = 0
+                    }
+                  }}
+                  className="px-1.5 py-0.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded font-medium transition-colors"
+                >
+                  맨앞에 커서
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (memoInputRef.current) {
+                      memoInputRef.current.value = ''
+                      lastCaretPosRef.current = 0
+                      memoInputRef.current.focus()
+                    }
+                  }}
+                  className="px-1.5 py-0.5 bg-red-50 hover:bg-red-100 text-red-600 rounded font-medium transition-colors"
+                >
+                  지우기
+                </button>
+              </div>
+            </div>
             <textarea
               ref={memoInputRef}
               rows={2}
@@ -141,6 +189,12 @@ export function LocationModal({ isOpen, onClose, locationToEdit, onSuccess }: Lo
               spellCheck="false"
               data-gramm="false"
               data-enable-grammarly="false"
+              onPointerUp={(e) => recordCaret(e.currentTarget)}
+              onClick={(e) => recordCaret(e.currentTarget)}
+              onSelect={(e) => recordCaret(e.currentTarget)}
+              onKeyUp={(e) => recordCaret(e.currentTarget)}
+              onCompositionStart={(e) => enforceCaret(e.currentTarget)}
+              onBeforeInput={(e: any) => enforceCaret(e.currentTarget)}
               className="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs focus:border-blue-500 outline-none resize-none leading-relaxed"
             />
           </div>
