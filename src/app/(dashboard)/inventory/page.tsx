@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { 
   getInventoryOverview, 
   getTransferHistory, 
@@ -88,13 +88,20 @@ export default function InventoryPage() {
   const lowStockCount = materials.filter(m => m.isLowStock).length
   const totalStockQuantity = materials.reduce((acc, m) => acc + (m.totalQty || 0), 0)
 
-  // 필터링된 자재 목록
-  const filteredMaterials = materials.filter(m => {
-    const matchQuery = m.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                       m.code.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchCategory = categoryFilter === 'ALL' || m.category === categoryFilter
-    return matchQuery && matchCategory
-  })
+  // 자재 품명 기본 가나다순(오름차순) 정렬 목록
+  const sortedMaterials = useMemo(() => {
+    return [...materials].sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+  }, [materials])
+
+  // 필터링된 자재 목록 (자재 품명 기본 가나다순 정렬 유지)
+  const filteredMaterials = useMemo(() => {
+    return sortedMaterials.filter(m => {
+      const matchQuery = m.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         m.code.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchCategory = categoryFilter === 'ALL' || m.category === categoryFilter
+      return matchQuery && matchCategory
+    })
+  }, [sortedMaterials, searchQuery, categoryFilter])
 
   // 자재 삭제
   const handleDeleteMaterial = async (id: string, name: string) => {
@@ -495,7 +502,7 @@ export default function InventoryPage() {
       {activeTab === 'locationReport' && (
         <LocationInventoryReport
           locations={locations}
-          materials={materials}
+          materials={sortedMaterials}
           initialLocationId={reportLocationId}
           onOpenTransfer={() => setIsTransferOpen(true)}
         />
@@ -695,7 +702,7 @@ export default function InventoryPage() {
             </div>
 
             <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
-              {materials.map(m => (
+              {sortedMaterials.map(m => (
                 <div key={m.id} className="py-2.5 flex items-center justify-between hover:bg-gray-50/50 px-2 rounded-lg">
                   <div>
                     <div className="flex items-center gap-2">
@@ -799,7 +806,7 @@ export default function InventoryPage() {
         isOpen={isTransferOpen}
         onClose={() => setIsTransferOpen(false)}
         locations={locations}
-        materials={materials}
+        materials={sortedMaterials}
         onSuccess={loadData}
       />
 
@@ -807,7 +814,7 @@ export default function InventoryPage() {
         isOpen={isStockInOutOpen}
         onClose={() => setIsStockInOutOpen(false)}
         locations={locations}
-        materials={materials}
+        materials={sortedMaterials}
         onSuccess={loadData}
       />
 
@@ -816,7 +823,7 @@ export default function InventoryPage() {
           isOpen={isAuditOpen}
           onClose={() => setIsAuditOpen(false)}
           locations={locations}
-          materials={materials}
+          materials={sortedMaterials}
           onSuccess={loadData}
         />
       )}
@@ -827,7 +834,7 @@ export default function InventoryPage() {
           isOpen={isMaterialOpen}
           onClose={() => { setIsMaterialOpen(false); setEditingMaterial(null); }}
           materialToEdit={editingMaterial}
-          existingMaterials={materials}
+          existingMaterials={sortedMaterials}
           onSuccess={loadData}
         />
       )}

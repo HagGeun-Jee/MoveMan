@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { transferStock } from '@/app/actions/inventory'
 import { X, ArrowRight, Plus, Trash2, Loader2, AlertCircle } from 'lucide-react'
 
@@ -18,6 +18,11 @@ export function TransferModal({ isOpen, onClose, locations, materials, onSuccess
   const [memo, setMemo] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // 자재 품명 기본 가나다순 정렬 목록
+  const sortedMaterials = useMemo(() => {
+    return [...materials].sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+  }, [materials])
 
   // 이동할 품목 목록 [{ materialId, quantity }]
   const [items, setItems] = useState<{ materialId: string; quantity: number }[]>([
@@ -188,7 +193,7 @@ export function TransferModal({ isOpen, onClose, locations, materials, onSuccess
                         className="w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-medium focus:border-blue-500 outline-none"
                       >
                         <option value="">-- 자재를 선택하세요 --</option>
-                        {materials.map(m => {
+                        {sortedMaterials.map(m => {
                           const stockQty = sourceLocId ? (m.stocks?.[sourceLocId] ?? 0) : null
                           return (
                             <option key={m.id} value={m.id}>

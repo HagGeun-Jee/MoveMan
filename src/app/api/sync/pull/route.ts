@@ -34,7 +34,8 @@ export async function GET(request: Request) {
     const vehicles = await prisma.vehicleMaster.findMany()
     const labors = await prisma.laborMaster.findMany()
     const ladders = await prisma.ladderTruckMaster.findMany({ orderBy: { order: 'asc' } })
-    const materials = await prisma.materialItem.findMany({ orderBy: { order: 'asc' } })
+    const rawMaterials = await prisma.materialItem.findMany({ orderBy: { name: 'asc' } })
+    const materials = rawMaterials.sort((a, b) => a.name.localeCompare(b.name, 'ko'))
     const locations = await prisma.inventoryLocation.findMany({ orderBy: { order: 'asc' } })
 
     // 2. 견적서 데이터 조회 (since가 있으면 변경분만, 없으면 최근 150건)

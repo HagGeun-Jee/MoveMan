@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { createMaterialItem, updateMaterialItem } from '@/app/actions/inventory'
 import { X, Loader2, AlertCircle, Copy, CheckCircle2 } from 'lucide-react'
 
@@ -30,6 +30,11 @@ export function MaterialModal({
 }: MaterialModalProps) {
   const isCopyMode = Boolean(materialToEdit?._isCopy)
   const isEditMode = Boolean(materialToEdit?.id && !isCopyMode)
+
+  // 자재 품명 기본 가나다순 정렬
+  const sortedExistingMaterials = useMemo(() => {
+    return [...existingMaterials].sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+  }, [existingMaterials])
 
   const [code, setCode] = useState(materialToEdit?.code || '')
   const [name, setName] = useState(materialToEdit?.name || '')
@@ -211,7 +216,7 @@ export function MaterialModal({
                 className="w-full rounded-lg border border-blue-200 bg-white px-2.5 py-1.5 text-xs text-gray-700 font-medium outline-none focus:border-blue-500"
               >
                 <option value="">-- 기존 자재 선택 시 정보가 복사됩니다 --</option>
-                {existingMaterials.map(m => (
+                {sortedExistingMaterials.map(m => (
                   <option key={m.id} value={m.id}>
                     {m.name} ({m.code}) - {m.unit} | {(m.unitPrice ?? 0).toLocaleString()}원
                   </option>

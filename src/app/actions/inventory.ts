@@ -102,7 +102,7 @@ export async function getInventoryOverview() {
     await seedInitialInventory()
 
     const materials = await prisma.materialItem.findMany({
-      orderBy: [{ order: 'asc' }, { name: 'asc' }]
+      orderBy: [{ name: 'asc' }]
     })
 
     const locations = await prisma.inventoryLocation.findMany({
@@ -146,6 +146,9 @@ export async function getInventoryOverview() {
         isLowStock: m.safetyStock > 0 && totalQty < m.safetyStock
       }
     })
+
+    // 자재 품명 기본 가나다순(오름차순) 정렬 보장
+    items.sort((a, b) => a.name.localeCompare(b.name, 'ko'))
 
     return {
       success: true,
@@ -581,7 +584,12 @@ export async function getTransferHistory(limit = 50) {
         }
       }
     })
-    return list
+    return list.map(item => ({
+      ...item,
+      items: (item.items || []).sort((a: any, b: any) => 
+        (a.material?.name || '').localeCompare(b.material?.name || '', 'ko')
+      )
+    }))
   } catch (err) {
     console.error('getTransferHistory error:', err)
     return []
@@ -605,7 +613,12 @@ export async function getAuditHistory(limit = 20) {
         }
       }
     })
-    return list
+    return list.map(aud => ({
+      ...aud,
+      items: (aud.items || []).sort((a: any, b: any) => 
+        (a.material?.name || '').localeCompare(b.material?.name || '', 'ko')
+      )
+    }))
   } catch (err) {
     console.error('getAuditHistory error:', err)
     return []

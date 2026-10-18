@@ -92,11 +92,11 @@ export function LocationInventoryReport({
     return locations.find(l => l.id === selectedLocationId) || locations[0]
   }, [locations, selectedLocationId])
 
-  // 현재 위치의 자재 목록 가공
+  // 현재 위치의 자재 목록 가공 (자재 품명 기본 가나다순 정렬)
   const locationItems = useMemo(() => {
     if (!selectedLocation) return []
 
-    return materials.map(m => {
+    const list = materials.map(m => {
       const qty = m.stocks?.[selectedLocation.id] || 0
       return {
         id: m.id,
@@ -109,6 +109,8 @@ export function LocationInventoryReport({
         quantity: qty
       }
     })
+
+    return list.sort((a, b) => a.name.localeCompare(b.name, 'ko'))
   }, [materials, selectedLocation])
 
   // 필터링된 자재 목록

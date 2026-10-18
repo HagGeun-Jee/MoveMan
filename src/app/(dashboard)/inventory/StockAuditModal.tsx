@@ -38,10 +38,11 @@ export function StockAuditModal({ isOpen, onClose, locations, materials, onSucce
     }
   }, [isOpen, locations])
 
-  // 위치 선택 시 해당 위치의 전산 수량으로 기본 세팅
+  // 위치 선택 시 해당 위치의 전산 수량으로 기본 세팅 (자재 품명 기본 가나다순 정렬)
   useEffect(() => {
     if (selectedLocationId && materials.length > 0) {
-      const rows = materials.map(m => {
+      const sorted = [...materials].sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+      const rows = sorted.map(m => {
         const sysQty = m.stocks?.[selectedLocationId] || 0
         return {
           materialId: m.id,
@@ -56,7 +57,7 @@ export function StockAuditModal({ isOpen, onClose, locations, materials, onSucce
     } else {
       setAuditRows([])
     }
-  }, [selectedLocationId])
+  }, [selectedLocationId, materials])
 
   if (!isOpen) return null
 
