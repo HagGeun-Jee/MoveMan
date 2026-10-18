@@ -329,7 +329,10 @@ export function MaterialModal({
               placeholder="규격 또는 특이사항"
               autoComplete="off"
               autoCorrect="off"
+              autoCapitalize="none"
               spellCheck="false"
+              data-gramm="false"
+              data-enable-grammarly="false"
               className="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs focus:border-blue-500 outline-none"
             />
           </div>
