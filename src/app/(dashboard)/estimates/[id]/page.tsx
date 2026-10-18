@@ -121,14 +121,28 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-24 print:max-w-none print:space-y-4 print:pb-0 print:m-0 print:pt-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 print:hidden">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">견적 상세 - {estimate.id}</h1>
-        <div className="flex flex-wrap gap-2">
+      {/* 상단 액션 바 (태블릿 및 모바일 한 줄 최적화) */}
+      <div className="flex items-center justify-between gap-2 bg-white px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl border border-gray-200/80 shadow-xs print:hidden">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+          <h1 className="text-base sm:text-lg md:text-xl font-black text-gray-900 whitespace-nowrap">
+            견적 상세
+          </h1>
+          <span className="text-[11px] sm:text-xs font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 shrink-0">
+            {estimate.id}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <PrintButton />
-          <Link href="/estimates" className="px-3.5 sm:px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm sm:text-base font-medium transition-colors border border-gray-300 shadow-sm">
+          <Link 
+            href="/estimates" 
+            className="px-2.5 sm:px-3 py-1.5 sm:py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs sm:text-sm font-bold transition-all border border-gray-300 shadow-xs shrink-0 whitespace-nowrap"
+          >
             목록으로
           </Link>
-          <Link href={`/estimates/${estimate.id}/edit`} className="px-3.5 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm sm:text-base font-medium transition-colors shadow-sm">
+          <Link 
+            href={`/estimates/${estimate.id}/edit`} 
+            className="px-2.5 sm:px-3 py-1.5 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-xs shrink-0 whitespace-nowrap"
+          >
             수정하기
           </Link>
         </div>
