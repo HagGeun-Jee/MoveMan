@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createInventoryLocation, updateInventoryLocation } from '@/app/actions/inventory'
 import { X, Loader2, AlertCircle } from 'lucide-react'
 
@@ -12,39 +12,23 @@ interface LocationModalProps {
 }
 
 export function LocationModal({ isOpen, onClose, locationToEdit, onSuccess }: LocationModalProps) {
-  const [name, setName] = useState(locationToEdit?.name || '')
+  const nameInputRef = useRef<HTMLInputElement>(null)
+  const memoInputRef = useRef<HTMLInputElement>(null)
+
   const [type, setType] = useState(locationToEdit?.type || 'WAREHOUSE')
-  const [memo, setMemo] = useState(locationToEdit?.memo || '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  // 모바일 안드로이드 웹뷰 한글 입력 시 커서 맨 뒤로 튐 방지 핸들러
-  const handleTextChange = (
-    setter: (val: string) => void,
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const input = e.target
-    const cursor = input.selectionStart
-    setter(input.value)
-
-    // React 렌더링 후 커서 위치 보존
-    requestAnimationFrame(() => {
-      if (input && cursor !== null && document.activeElement === input) {
-        input.setSelectionRange(cursor, cursor)
-      }
-    })
-  }
 
   // 수정 대상 또는 오픈 상태 변경 시 폼 필드 동기화
   useEffect(() => {
     if (locationToEdit) {
-      setName(locationToEdit.name || '')
+      if (nameInputRef.current) nameInputRef.current.value = locationToEdit.name || ''
       setType(locationToEdit.type || 'WAREHOUSE')
-      setMemo(locationToEdit.memo || '')
+      if (memoInputRef.current) memoInputRef.current.value = locationToEdit.memo || ''
     } else {
-      setName('')
+      if (nameInputRef.current) nameInputRef.current.value = ''
       setType('WAREHOUSE')
-      setMemo('')
+      if (memoInputRef.current) memoInputRef.current.value = ''
     }
     setError(null)
   }, [locationToEdit, isOpen])
@@ -54,13 +38,22 @@ export function LocationModal({ isOpen, onClose, locationToEdit, onSuccess }: Lo
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+
+    const nameVal = (nameInputRef.current?.value || '').trim()
+    const memoVal = (memoInputRef.current?.value || '').trim()
+
+    if (!nameVal) {
+      setError('위치명을 입력해 주세요.')
+      return
+    }
+
     setLoading(true)
 
     let res: any
     if (locationToEdit?.id) {
-      res = await updateInventoryLocation(locationToEdit.id, { name, type, memo })
+      res = await updateInventoryLocation(locationToEdit.id, { name: nameVal, type, memo: memoVal })
     } else {
-      res = await createInventoryLocation({ name, type, memo })
+      res = await createInventoryLocation({ name: nameVal, type, memo: memoVal })
     }
     setLoading(false)
 
@@ -123,10 +116,10 @@ export function LocationModal({ isOpen, onClose, locationToEdit, onSuccess }: Lo
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">위치명</label>
             <input
+              ref={nameInputRef}
               type="text"
               required
-              value={name}
-              onChange={(e) => handleTextChange(setName, e)}
+              defaultValue={locationToEdit?.name || ''}
               placeholder={type === 'WAREHOUSE' ? '예: 본사 제1창고, 분당 지점창고' : '예: 3호차 (서울12가3456)'}
               autoComplete="off"
               autoCorrect="off"
@@ -138,9 +131,9 @@ export function LocationModal({ isOpen, onClose, locationToEdit, onSuccess }: Lo
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">메모 / 담당</label>
             <input
+              ref={memoInputRef}
               type="text"
-              value={memo}
-              onChange={(e) => handleTextChange(setMemo, e)}
+              defaultValue={locationToEdit?.memo || ''}
               placeholder="예: 5톤 윙바디 담당 기사님"
               autoComplete="off"
               autoCorrect="off"

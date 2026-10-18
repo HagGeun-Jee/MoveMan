@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { createMaterialItem, updateMaterialItem } from '@/app/actions/inventory'
 import { X, Loader2, AlertCircle, Copy, CheckCircle2 } from 'lucide-react'
 
@@ -31,58 +31,43 @@ export function MaterialModal({
   const isCopyMode = Boolean(materialToEdit?._isCopy)
   const isEditMode = Boolean(materialToEdit?.id && !isCopyMode)
 
+  // 텍스트 필드 DOM 직접 참조 (안드로이드 한글 입력 시 React Re-render로 인한 커서 튐 방지)
+  const codeInputRef = useRef<HTMLInputElement>(null)
+  const nameInputRef = useRef<HTMLInputElement>(null)
+  const unitInputRef = useRef<HTMLInputElement>(null)
+  const memoInputRef = useRef<HTMLInputElement>(null)
+
   // 자재 품명 기본 가나다순 정렬
   const sortedExistingMaterials = useMemo(() => {
     return [...existingMaterials].sort((a, b) => a.name.localeCompare(b.name, 'ko'))
   }, [existingMaterials])
 
-  const [code, setCode] = useState(materialToEdit?.code || '')
-  const [name, setName] = useState(materialToEdit?.name || '')
   const [category, setCategory] = useState(materialToEdit?.category || 'REUSABLE')
-  const [unit, setUnit] = useState(materialToEdit?.unit || '개')
   const [safetyStock, setSafetyStock] = useState(materialToEdit?.safetyStock || 0)
   const [unitPrice, setUnitPrice] = useState(materialToEdit?.unitPrice || 0)
-  const [memo, setMemo] = useState(materialToEdit?.memo || '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedTemplateId, setSelectedTemplateId] = useState('')
 
-  // 모바일 안드로이드 웹뷰 한글 입력 시 커서 맨 뒤로 튐 방지 핸들러
-  const handleTextChange = (
-    setter: (val: string) => void,
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const input = e.target
-    const cursor = input.selectionStart
-    setter(input.value)
-
-    // React 렌더링 후 커서 위치 보존
-    requestAnimationFrame(() => {
-      if (input && cursor !== null && document.activeElement === input) {
-        input.setSelectionRange(cursor, cursor)
-      }
-    })
-  }
-
   // 수정 대상 또는 오픈 상태 변경 시 폼 필드 동기화
   useEffect(() => {
     if (materialToEdit) {
-      setCode(materialToEdit.code || '')
-      setName(materialToEdit.name || '')
+      if (codeInputRef.current) codeInputRef.current.value = materialToEdit.code || ''
+      if (nameInputRef.current) nameInputRef.current.value = materialToEdit.name || ''
       setCategory(materialToEdit.category || 'REUSABLE')
-      setUnit(materialToEdit.unit || '개')
+      if (unitInputRef.current) unitInputRef.current.value = materialToEdit.unit || '개'
       setSafetyStock(materialToEdit.safetyStock ?? 0)
       setUnitPrice(materialToEdit.unitPrice ?? 0)
-      setMemo(materialToEdit.memo || '')
+      if (memoInputRef.current) memoInputRef.current.value = materialToEdit.memo || ''
       setSelectedTemplateId(materialToEdit.id || '')
     } else {
-      setCode('')
-      setName('')
+      if (codeInputRef.current) codeInputRef.current.value = ''
+      if (nameInputRef.current) nameInputRef.current.value = ''
       setCategory('REUSABLE')
-      setUnit('개')
+      if (unitInputRef.current) unitInputRef.current.value = '개'
       setSafetyStock(0)
       setUnitPrice(0)
-      setMemo('')
+      if (memoInputRef.current) memoInputRef.current.value = ''
       setSelectedTemplateId('')
     }
     setError(null)
@@ -96,22 +81,22 @@ export function MaterialModal({
     if (!templateId) return
     const target = existingMaterials.find(m => m.id === templateId)
     if (target) {
-      // 중복 방지를 위한 추천 코드/이름 부여
-      setCode(`${target.code}-COPY`)
-      setName(`${target.name} (복사본)`)
+      // DOM value 직접 갱신 (React state 리렌더링 없이 즉시 반영)
+      if (codeInputRef.current) codeInputRef.current.value = `${target.code}-COPY`
+      if (nameInputRef.current) nameInputRef.current.value = `${target.name} (복사본)`
       setCategory(target.category || 'REUSABLE')
-      setUnit(target.unit || '개')
+      if (unitInputRef.current) unitInputRef.current.value = target.unit || '개'
       setSafetyStock(target.safetyStock ?? 0)
       setUnitPrice(target.unitPrice ?? 0)
-      setMemo(target.memo || '')
+      if (memoInputRef.current) memoInputRef.current.value = target.memo || ''
       setError(null)
     }
   }
 
   // 중복 검사 (코드 및 품목명)
   const validateDuplicate = () => {
-    const trimmedCode = code.trim()
-    const trimmedName = name.trim()
+    const trimmedCode = (codeInputRef.current?.value || '').trim()
+    const trimmedName = (nameInputRef.current?.value || '').trim()
 
     if (!trimmedCode) return '자재 코드를 입력해 주세요.'
     if (!trimmedName) return '자재 품목명을 입력해 주세요.'
@@ -148,28 +133,33 @@ export function MaterialModal({
       return
     }
 
+    const codeVal = (codeInputRef.current?.value || '').trim()
+    const nameVal = (nameInputRef.current?.value || '').trim()
+    const unitVal = (unitInputRef.current?.value || '').trim()
+    const memoVal = (memoInputRef.current?.value || '').trim()
+
     setLoading(true)
 
     let res: any
     if (isEditMode) {
       res = await updateMaterialItem(materialToEdit.id, {
-        code: code.trim(),
-        name: name.trim(),
+        code: codeVal,
+        name: nameVal,
         category,
-        unit: unit.trim(),
+        unit: unitVal,
         safetyStock: Number(safetyStock) || 0,
         unitPrice: Number(unitPrice) || 0,
-        memo: memo.trim()
+        memo: memoVal
       })
     } else {
       res = await createMaterialItem({
-        code: code.trim(),
-        name: name.trim(),
+        code: codeVal,
+        name: nameVal,
         category,
-        unit: unit.trim(),
+        unit: unitVal,
         safetyStock: Number(safetyStock) || 0,
         unitPrice: Number(unitPrice) || 0,
-        memo: memo.trim()
+        memo: memoVal
       })
     }
     setLoading(false)
@@ -248,10 +238,10 @@ export function MaterialModal({
               <span className="text-[10px] text-gray-400 font-normal">영문/숫자 고유 식별자</span>
             </div>
             <input
+              ref={codeInputRef}
               type="text"
               required
-              value={code}
-              onChange={(e) => handleTextChange(setCode, e)}
+              defaultValue={materialToEdit?.code || ''}
               placeholder="예: MAT-BOX-01"
               autoComplete="off"
               autoCorrect="off"
@@ -266,10 +256,10 @@ export function MaterialModal({
               <span className="text-[10px] text-gray-400 font-normal">품목명 중복 불가</span>
             </div>
             <input
+              ref={nameInputRef}
               type="text"
               required
-              value={name}
-              onChange={(e) => handleTextChange(setName, e)}
+              defaultValue={materialToEdit?.name || ''}
               placeholder="예: 이사용 바구니 (청색)"
               autoComplete="off"
               autoCorrect="off"
@@ -294,10 +284,10 @@ export function MaterialModal({
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">단위</label>
               <input
+                ref={unitInputRef}
                 type="text"
                 required
-                value={unit}
-                onChange={(e) => handleTextChange(setUnit, e)}
+                defaultValue={materialToEdit?.unit || '개'}
                 placeholder="개, 롤, 매 등"
                 autoComplete="off"
                 autoCorrect="off"
@@ -333,9 +323,9 @@ export function MaterialModal({
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">비고 / 규격 메모</label>
             <input
+              ref={memoInputRef}
               type="text"
-              value={memo}
-              onChange={(e) => handleTextChange(setMemo, e)}
+              defaultValue={materialToEdit?.memo || ''}
               placeholder="규격 또는 특이사항"
               autoComplete="off"
               autoCorrect="off"
