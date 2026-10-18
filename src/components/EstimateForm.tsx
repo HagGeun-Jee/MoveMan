@@ -10,7 +10,7 @@ import { getDistance } from '@/app/actions/distance'
 import { getLadderFares } from '@/app/actions/ladder'
 import type { LadderFareItem } from '@/types/ladder'
 import DaumPostcodeEmbed from 'react-daum-postcode'
-import { MapPin, Search, ChevronDown, ChevronUp, Navigation, RefreshCw, Car, AlertCircle, CheckCircle2, Calculator, Truck, Plus } from 'lucide-react'
+import { MapPin, Search, ChevronDown, ChevronUp, Navigation, RefreshCw, Car, AlertCircle, CheckCircle2, Calculator, Truck, Plus, FileText } from 'lucide-react'
 import { CustomDatePicker } from '@/components/CustomDatePicker'
 import { format } from 'date-fns'
 import { formatPhoneNumber, handleSelectAllOnFocus } from '@/lib/format'
@@ -289,6 +289,9 @@ export function EstimateForm({
   // 거리 초과 운임 계산 설정 (기본거리 30km, km당 2,000원)
   const [baseDistanceKm, setBaseDistanceKm] = useState<number>(Number(envObj.baseDistanceKm) || 30)
   const [ratePerKm, setRatePerKm] = useState<number>(Number(envObj.ratePerKm) || 2000)
+
+  // 특기사항 (내용이 없으면 조회/출력 시 숨김)
+  const [specialNotes, setSpecialNotes] = useState<string>(envObj.specialNotes || '')
 
   // 주행거리 자동/수동 계산 함수
   const handleCalculateDistance = async (fromVal?: string, toVal?: string) => {
@@ -709,6 +712,7 @@ export function EstimateForm({
 
           if (draft.baseDistanceKm !== undefined) setBaseDistanceKm(draft.baseDistanceKm)
           if (draft.ratePerKm !== undefined) setRatePerKm(draft.ratePerKm)
+          if (typeof draft.specialNotes === 'string') setSpecialNotes(draft.specialNotes)
           
           if (draft.ladderTonnage) setLadderTonnage(draft.ladderTonnage)
           else if (envObj.ladderTonnage) setLadderTonnage(envObj.ladderTonnage)
@@ -909,6 +913,7 @@ export function EstimateForm({
       toAddress || 
       movingCost > 0 || 
       additionalCost > 0 ||
+      specialNotes.trim() ||
       (items && items.some(i => (i.quantity || 0) > 0))
     )
     if (!hasContent) return
@@ -936,6 +941,7 @@ export function EstimateForm({
           distanceDetail,
           baseDistanceKm,
           ratePerKm,
+          specialNotes,
           ladderTonnage,
           appliedLadderCost,
           appliedDistanceCost,
@@ -988,6 +994,7 @@ export function EstimateForm({
     distanceDetail,
     baseDistanceKm,
     ratePerKm,
+    specialNotes,
     ladderTonnage,
     appliedLadderCost,
     appliedDistanceCost,
@@ -1033,6 +1040,7 @@ export function EstimateForm({
     ladderFromCost: fromLadderCalc.cost,
     ladderToCost: toLadderCalc.cost,
     ladderTotalCost: totalLadderCost,
+    specialNotes: specialNotes.trim(),
   }
   const currentEnvironmentStr = JSON.stringify(currentEnvironmentObj)
 
@@ -1803,6 +1811,33 @@ export function EstimateForm({
                           </button>
                         </div>
                       </div>
+                    </div>
+                  </td>
+                </tr>
+
+                {/* 특기사항 (선택 입력, 내용 없으면 조회/출력 시 미표시) */}
+                <tr>
+                  <th className="whitespace-nowrap bg-amber-50/80 border border-gray-200 px-3 sm:px-4 py-3 text-left font-bold text-amber-950 align-top w-28 sm:w-36">
+                    <div className="flex items-center gap-1.5">
+                      <FileText size={16} className="text-amber-600" />
+                      <span>특기사항</span>
+                    </div>
+                    <span className="block text-[11px] font-normal text-amber-700 mt-0.5">선택 입력</span>
+                  </th>
+                  <td colSpan={3} className="border border-gray-200 p-3">
+                    <textarea
+                      id="specialNotes"
+                      name="specialNotes"
+                      value={specialNotes}
+                      onChange={e => setSpecialNotes(e.target.value)}
+                      rows={3}
+                      maxLength={1000}
+                      placeholder="예) 피아노 운반 주의, 고객 부재 시 관리실 연락, 엘리베이터 사용 예약 필요 등"
+                      className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 resize-y"
+                    />
+                    <div className="mt-1 flex justify-between text-[11px] text-gray-400">
+                      <span>입력하지 않으면 견적 상세/PDF 출력에 표시되지 않습니다.</span>
+                      <span>{specialNotes.length}/1000</span>
                     </div>
                   </td>
                 </tr>

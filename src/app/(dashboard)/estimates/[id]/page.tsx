@@ -52,6 +52,7 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
   }
 
   const envObj = safeJsonParse(estimate.environment, {})
+  const specialNotes = typeof envObj.specialNotes === 'string' ? envObj.specialNotes.trim() : ''
   const payPlanObj = safeJsonParse(estimate.paymentPlan, {})
   const rawItems = safeJsonParse(estimate.cbmItems, [])
   const items = Array.isArray(rawItems)
@@ -127,7 +128,7 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
           <h1 className="text-base sm:text-lg md:text-xl font-black text-gray-900 whitespace-nowrap">
             견적 상세
           </h1>
-          <span className="text-[11px] sm:text-xs font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 shrink-0">
+          <span className="text-xs sm:text-sm md:text-base font-mono font-bold text-blue-700 bg-blue-50 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border border-blue-200 shrink-0">
             {estimate.id}
           </span>
         </div>
@@ -331,6 +332,14 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                   </div>
                 </td>
               </tr>
+              {specialNotes && (
+                <tr>
+                  <th className="border border-gray-300 bg-amber-50 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900 whitespace-nowrap align-top">특기사항</th>
+                  <td colSpan={3} className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 text-gray-900 whitespace-pre-wrap break-words leading-relaxed">
+                    {specialNotes}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
           </div>

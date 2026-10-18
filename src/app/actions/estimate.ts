@@ -111,6 +111,7 @@ export async function createEstimate(formData: FormData) {
     ladderFromCost: parseInt((formData.get('ladderFromCost') as string) || parsedEnv.ladderFromCost || '0', 10),
     ladderToCost: parseInt((formData.get('ladderToCost') as string) || parsedEnv.ladderToCost || '0', 10),
     ladderTotalCost: parseInt((formData.get('ladderTotalCost') as string) || parsedEnv.ladderTotalCost || '0', 10),
+    specialNotes: String(formData.get('specialNotes') ?? parsedEnv.specialNotes ?? '').trim(),
   }
   const environment = JSON.stringify(environmentObj)
   
@@ -225,6 +226,7 @@ export async function updateEstimate(formData: FormData) {
     ladderFromCost: parseInt((formData.get('ladderFromCost') as string) || parsedEnv.ladderFromCost || '0', 10),
     ladderToCost: parseInt((formData.get('ladderToCost') as string) || parsedEnv.ladderToCost || '0', 10),
     ladderTotalCost: parseInt((formData.get('ladderTotalCost') as string) || parsedEnv.ladderTotalCost || '0', 10),
+    specialNotes: String(formData.get('specialNotes') ?? parsedEnv.specialNotes ?? '').trim(),
   }
   const environment = JSON.stringify(environmentObj)
   
