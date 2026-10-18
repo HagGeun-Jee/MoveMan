@@ -18,6 +18,23 @@ export function LocationModal({ isOpen, onClose, locationToEdit, onSuccess }: Lo
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // 모바일 안드로이드 웹뷰 한글 입력 시 커서 맨 뒤로 튐 방지 핸들러
+  const handleTextChange = (
+    setter: (val: string) => void,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const input = e.target
+    const cursor = input.selectionStart
+    setter(input.value)
+
+    // React 렌더링 후 커서 위치 보존
+    requestAnimationFrame(() => {
+      if (input && cursor !== null && document.activeElement === input) {
+        input.setSelectionRange(cursor, cursor)
+      }
+    })
+  }
+
   // 수정 대상 또는 오픈 상태 변경 시 폼 필드 동기화
   useEffect(() => {
     if (locationToEdit) {
@@ -109,8 +126,11 @@ export function LocationModal({ isOpen, onClose, locationToEdit, onSuccess }: Lo
               type="text"
               required
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => handleTextChange(setName, e)}
               placeholder={type === 'WAREHOUSE' ? '예: 본사 제1창고, 분당 지점창고' : '예: 3호차 (서울12가3456)'}
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck="false"
               className="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs font-medium focus:border-blue-500 outline-none"
             />
           </div>
@@ -120,8 +140,11 @@ export function LocationModal({ isOpen, onClose, locationToEdit, onSuccess }: Lo
             <input
               type="text"
               value={memo}
-              onChange={(e) => setMemo(e.target.value)}
+              onChange={(e) => handleTextChange(setMemo, e)}
               placeholder="예: 5톤 윙바디 담당 기사님"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck="false"
               className="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs focus:border-blue-500 outline-none"
             />
           </div>

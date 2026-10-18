@@ -47,6 +47,23 @@ export function MaterialModal({
   const [error, setError] = useState<string | null>(null)
   const [selectedTemplateId, setSelectedTemplateId] = useState('')
 
+  // 모바일 안드로이드 웹뷰 한글 입력 시 커서 맨 뒤로 튐 방지 핸들러
+  const handleTextChange = (
+    setter: (val: string) => void,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const input = e.target
+    const cursor = input.selectionStart
+    setter(input.value)
+
+    // React 렌더링 후 커서 위치 보존
+    requestAnimationFrame(() => {
+      if (input && cursor !== null && document.activeElement === input) {
+        input.setSelectionRange(cursor, cursor)
+      }
+    })
+  }
+
   // 수정 대상 또는 오픈 상태 변경 시 폼 필드 동기화
   useEffect(() => {
     if (materialToEdit) {
@@ -234,8 +251,11 @@ export function MaterialModal({
               type="text"
               required
               value={code}
-              onChange={(e) => setCode(e.target.value)}
+              onChange={(e) => handleTextChange(setCode, e)}
               placeholder="예: MAT-BOX-01"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck="false"
               className="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs font-mono font-medium focus:border-blue-500 outline-none"
             />
           </div>
@@ -249,8 +269,11 @@ export function MaterialModal({
               type="text"
               required
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => handleTextChange(setName, e)}
               placeholder="예: 이사용 바구니 (청색)"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck="false"
               className="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs font-medium focus:border-blue-500 outline-none"
             />
           </div>
@@ -274,8 +297,11 @@ export function MaterialModal({
                 type="text"
                 required
                 value={unit}
-                onChange={(e) => setUnit(e.target.value)}
+                onChange={(e) => handleTextChange(setUnit, e)}
                 placeholder="개, 롤, 매 등"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck="false"
                 className="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs font-medium focus:border-blue-500 outline-none"
               />
             </div>
@@ -309,8 +335,11 @@ export function MaterialModal({
             <input
               type="text"
               value={memo}
-              onChange={(e) => setMemo(e.target.value)}
+              onChange={(e) => handleTextChange(setMemo, e)}
               placeholder="규격 또는 특이사항"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck="false"
               className="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs focus:border-blue-500 outline-none"
             />
           </div>
