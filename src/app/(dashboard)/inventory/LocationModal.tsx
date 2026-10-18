@@ -13,7 +13,7 @@ interface LocationModalProps {
 
 export function LocationModal({ isOpen, onClose, locationToEdit, onSuccess }: LocationModalProps) {
   const nameInputRef = useRef<HTMLInputElement>(null)
-  const memoInputRef = useRef<HTMLInputElement>(null)
+  const memoInputRef = useRef<HTMLTextAreaElement>(null)
 
   const [type, setType] = useState(locationToEdit?.type || 'WAREHOUSE')
   const [loading, setLoading] = useState(false)
@@ -130,9 +130,9 @@ export function LocationModal({ isOpen, onClose, locationToEdit, onSuccess }: Lo
 
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">메모 / 담당</label>
-            <input
+            <textarea
               ref={memoInputRef}
-              type="text"
+              rows={2}
               defaultValue={locationToEdit?.memo || ''}
               placeholder="예: 5톤 윙바디 담당 기사님"
               autoComplete="off"
@@ -141,7 +141,7 @@ export function LocationModal({ isOpen, onClose, locationToEdit, onSuccess }: Lo
               spellCheck="false"
               data-gramm="false"
               data-enable-grammarly="false"
-              className="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs focus:border-blue-500 outline-none"
+              className="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs focus:border-blue-500 outline-none resize-none leading-relaxed"
             />
           </div>
 

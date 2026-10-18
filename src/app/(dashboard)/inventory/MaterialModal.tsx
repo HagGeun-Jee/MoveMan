@@ -35,7 +35,7 @@ export function MaterialModal({
   const codeInputRef = useRef<HTMLInputElement>(null)
   const nameInputRef = useRef<HTMLInputElement>(null)
   const unitInputRef = useRef<HTMLInputElement>(null)
-  const memoInputRef = useRef<HTMLInputElement>(null)
+  const memoInputRef = useRef<HTMLTextAreaElement>(null)
 
   // 자재 품명 기본 가나다순 정렬
   const sortedExistingMaterials = useMemo(() => {
@@ -322,9 +322,9 @@ export function MaterialModal({
 
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">비고 / 규격 메모</label>
-            <input
+            <textarea
               ref={memoInputRef}
-              type="text"
+              rows={2}
               defaultValue={materialToEdit?.memo || ''}
               placeholder="규격 또는 특이사항"
               autoComplete="off"
@@ -333,7 +333,7 @@ export function MaterialModal({
               spellCheck="false"
               data-gramm="false"
               data-enable-grammarly="false"
-              className="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs focus:border-blue-500 outline-none"
+              className="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs focus:border-blue-500 outline-none resize-none leading-relaxed"
             />
           </div>
 
