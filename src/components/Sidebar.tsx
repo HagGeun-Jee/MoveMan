@@ -46,6 +46,13 @@ export function Sidebar({
   useEffect(() => {
     if (typeof window === 'undefined') return
 
+    // 0순위: User-Agent에 박힌 MoveManApp/버전 즉시 감지 (0ms 딜레이 없이 100% 성공)
+    const uaMatch = navigator.userAgent.match(/MoveManApp\/([\d\.]+)/)
+    if (uaMatch && uaMatch[1]) {
+      setInstalledAppVersion(`v${uaMatch[1]}`)
+      return
+    }
+
     let attempts = 0
     const maxAttempts = 20 // 100ms * 20 = 최대 2초간 네이티브 인터페이스 주입 대기
 

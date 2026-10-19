@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
+import { APP_RELEASE_INFO } from '@/lib/appRelease'
 
 export async function GET() {
   try {
@@ -16,11 +17,13 @@ export async function GET() {
     const stat = fs.statSync(filePath)
     const fileBuffer = fs.readFileSync(filePath)
 
+    const filename = `moveman_${APP_RELEASE_INFO.version}.apk`
+
     return new Response(fileBuffer, {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.android.package-archive',
-        'Content-Disposition': 'attachment; filename="moveman.apk"',
+        'Content-Disposition': `attachment; filename="${filename}"`,
         'Content-Length': stat.size.toString(),
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
