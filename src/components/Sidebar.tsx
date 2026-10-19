@@ -128,18 +128,19 @@ export function Sidebar({
             {installedAppVersion ? (
               installedAppVersion === APP_RELEASE_INFO.version ? (
                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md shadow-2xs text-emerald-700 bg-emerald-50 border border-emerald-200">
-                  앱 {installedAppVersion} (최신)
+                  앱 {installedAppVersion} (최신버전)
                 </span>
               ) : (
                 <a
                   href="/api/download/apk"
                   download="moveman.apk"
-                  className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md shadow-2xs text-amber-900 bg-amber-100 border border-amber-300 animate-pulse hover:bg-amber-200 transition-colors flex items-center gap-1"
+                  className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md shadow-2xs text-amber-950 bg-amber-100 border border-amber-300 animate-pulse hover:bg-amber-200 transition-colors flex items-center gap-1.5"
                   title="최신 APK 다운로드"
                 >
-                  <span>앱 {installedAppVersion}</span>
-                  <span className="text-amber-700">➔</span>
-                  <span className="text-blue-700 underline font-bold">최신 {APP_RELEASE_INFO.version} 설치</span>
+                  <span className="text-gray-700 font-sans">사용중:</span>
+                  <span className="text-amber-900 bg-amber-200/80 px-1 py-0.2 rounded">{installedAppVersion}</span>
+                  <span className="text-amber-700 font-sans">➔</span>
+                  <span className="text-white bg-blue-600 px-1.5 py-0.2 rounded shadow-2xs font-sans">설치할 버전 {APP_RELEASE_INFO.version} 다운로드</span>
                 </a>
               )
             ) : (
@@ -317,14 +318,35 @@ export function Sidebar({
               </div>
               <div className="mt-2.5 pt-2 border-t border-gray-200/60 text-center">
                 {installedAppVersion ? (
-                  <div className="text-[10px] font-mono text-gray-500 space-y-0.5">
-                    <div>현재 앱: <strong className="text-gray-800">{installedAppVersion}</strong></div>
-                    <div>서버 최신: <strong className="text-blue-600">{APP_RELEASE_INFO.version}</strong> ({APP_RELEASE_INFO.releaseDate})</div>
+                  <div className="text-[11px] font-mono bg-white p-2.5 rounded-lg border border-gray-200 shadow-2xs space-y-1.5 text-left">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-500 font-sans">현재 사용 중인 버전:</span>
+                      <strong className="text-gray-900 bg-gray-100 px-1.5 py-0.5 rounded">{installedAppVersion}</strong>
+                    </div>
+                    {installedAppVersion !== APP_RELEASE_INFO.version ? (
+                      <>
+                        <div className="flex items-center justify-between text-blue-700 font-bold">
+                          <span className="font-sans">설치해야 할 새 버전:</span>
+                          <strong className="text-white bg-blue-600 px-1.5 py-0.5 rounded shadow-2xs">{APP_RELEASE_INFO.version}</strong>
+                        </div>
+                        <a
+                          href="/api/download/apk"
+                          download="moveman.apk"
+                          className="mt-1 block w-full py-1.5 text-center bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 text-white rounded font-sans font-bold text-xs shadow-xs"
+                        >
+                          새 버전({APP_RELEASE_INFO.version}) 다운로드 및 설치
+                        </a>
+                      </>
+                    ) : (
+                      <div className="text-emerald-700 text-[10px] font-sans font-bold text-center bg-emerald-50 py-1 rounded border border-emerald-200">
+                        ✓ 최신 버전을 정상 사용 중입니다
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  <span className="text-[10px] font-mono text-gray-400">
-                    웹 버전 {APP_RELEASE_INFO.version} ({APP_RELEASE_INFO.releaseDate})
-                  </span>
+                  <div className="text-[10px] font-mono text-gray-400 text-center">
+                    웹 브라우저 접속 ({APP_RELEASE_INFO.version})
+                  </div>
                 )}
               </div>
             </div>

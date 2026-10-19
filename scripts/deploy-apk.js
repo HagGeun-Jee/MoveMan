@@ -42,22 +42,21 @@ if (fs.existsSync(buildGradlePath)) {
 // 3. Android Gradle 자동 컴파일 (app-debug.apk 빌드)
 console.log('\n🔨 최신 안드로이드 네이티브 APK 컴파일 중 (gradlew assembleDebug)...');
 try {
-  // Java 21 JDK 경로 설정
-  const env = { ...process.processEnv, ...process.env };
   const jdkPath = 'C:\\Users\\ysjee\\.jdks\\jbr-21.0.11';
-  if (fs.existsSync(jdkPath)) {
-    env.JAVA_HOME = jdkPath;
-    env.PATH = `${path.join(jdkPath, 'bin')};${env.PATH}`;
-  }
+  const customEnv = Object.assign({}, process.env);
+  customEnv.JAVA_HOME = jdkPath;
+  customEnv.PATH = `${path.join(jdkPath, 'bin')};${customEnv.PATH || customEnv.Path || ''}`;
+  customEnv.Path = customEnv.PATH;
 
   execSync('cmd.exe /c gradlew.bat assembleDebug', {
     cwd: androidDir,
-    env: env,
+    env: customEnv,
     stdio: 'inherit'
   });
   console.log('✓ Gradle 빌드 성공!\n');
 } catch (buildErr) {
-  console.warn('⚠️ Gradle 자동 빌드 중 오류 발생 (기존 APK 사용):', buildErr.message);
+  console.error('❌ Gradle 빌드 실패:', buildErr.message);
+  process.exit(1);
 }
 
 // 4. 빌드된 원본 APK 확인
