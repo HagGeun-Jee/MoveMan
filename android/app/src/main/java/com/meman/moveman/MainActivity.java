@@ -22,9 +22,15 @@ public class MainActivity extends BridgeActivity {
 
         final WebView webView = getBridge().getWebView();
         if (webView != null) {
-            // 키보드(삼성키보드 / Gboard) 입력 포커스 및 IME 호환성 설정
-            webView.setFocusable(true);
-            webView.setFocusableInTouchMode(true);
+            // 0. 크롬 모바일 브라우저와 100% 동일한 User-Agent 설정 (Gboard 한영 토글 및 삼성키보드 완벽 호환)
+            String rawUa = webView.getSettings().getUserAgentString();
+            if (rawUa != null) {
+                String chromeUa = rawUa.replace("; wv", "").replaceAll("Version/\\d+\\.\\d+\\s*", "");
+                webView.getSettings().setUserAgentString(chromeUa);
+            }
+
+            // 1. 웹뷰 캐시 클리어 및 최신 코드 즉시 로드
+            webView.clearCache(true);
             webView.getSettings().setJavaScriptEnabled(true);
             webView.getSettings().setDomStorageEnabled(true);
             webView.getSettings().setDefaultTextEncodingName("UTF-8");
