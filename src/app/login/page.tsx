@@ -12,7 +12,12 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">MOVEMAN</h1>
+          <div className="flex items-center justify-center gap-2">
+            <h1 className="text-3xl font-bold text-gray-900">MOVEMAN</h1>
+            <span className="text-xs font-mono font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+              {APP_RELEASE_INFO.version}
+            </span>
+          </div>
           <p className="text-gray-500 mt-2">이사견적 관리 시스템 로그인</p>
         </div>
         

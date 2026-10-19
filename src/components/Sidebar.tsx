@@ -98,9 +98,12 @@ export function Sidebar({
             <span className="text-xs sm:text-sm font-bold text-gray-800">메뉴</span>
           </button>
           
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-1.5 sm:gap-2">
             <img src="/image.png" alt="MOVEMAN" className="h-7 object-contain" />
             <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">MOVEMAN</span>
+            <span className="text-[10px] font-mono font-bold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-md shadow-2xs">
+              {APP_RELEASE_INFO.version}
+            </span>
           </Link>
         </div>
 
@@ -133,7 +136,12 @@ export function Sidebar({
               <div className="flex items-center gap-2">
                 <img src="/image.png" alt="Logo" className="h-8 object-contain" />
                 <div>
-                  <p className="text-xs font-bold text-gray-800">MOVEMAN</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-bold text-gray-800">MOVEMAN</p>
+                    <span className="text-[10px] font-mono font-bold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.2 rounded">
+                      {APP_RELEASE_INFO.version}
+                    </span>
+                  </div>
                   <p className="text-[11px] text-gray-400">이사견적 관리 시스템</p>
                 </div>
               </div>
@@ -258,6 +266,11 @@ export function Sidebar({
                   </button>
                 </form>
               </div>
+              <div className="mt-2.5 pt-2 border-t border-gray-200/60 text-center">
+                <span className="text-[10px] font-mono text-gray-400">
+                  앱 버전 {APP_RELEASE_INFO.version} ({APP_RELEASE_INFO.releaseDate})
+                </span>
+              </div>
             </div>
           </aside>
         </div>
@@ -277,11 +290,21 @@ export function Sidebar({
 
         <div className={`p-4 border-b flex flex-col justify-center h-24 ${collapsed ? 'items-center px-2' : ''}`}>
           {collapsed ? (
-            <img src="/image.png" alt="Logo" className="w-10 h-10 object-contain" />
+            <div className="flex flex-col items-center">
+              <img src="/image.png" alt="Logo" className="w-8 h-8 object-contain" />
+              <span className="text-[9px] font-mono font-bold text-blue-600 mt-1">
+                {APP_RELEASE_INFO.version}
+              </span>
+            </div>
           ) : (
             <div className="flex flex-col items-center w-full">
-              <img src="/image.png" alt="Logo" className="h-10 object-contain" />
-              <p className="text-xs text-gray-500 mt-2 font-medium whitespace-nowrap overflow-hidden">이사견적 관리 시스템</p>
+              <div className="flex items-center gap-2">
+                <img src="/image.png" alt="Logo" className="h-9 object-contain" />
+                <span className="text-[10px] font-mono font-bold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-md">
+                  {APP_RELEASE_INFO.version}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 mt-1.5 font-medium whitespace-nowrap overflow-hidden">이사견적 관리 시스템</p>
             </div>
           )}
         </div>
