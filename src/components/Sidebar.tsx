@@ -39,8 +39,30 @@ export function Sidebar({
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
+  const [installedAppVersion, setInstalledAppVersion] = useState<string | null>(null)
   const pathname = usePathname()
 
+  // 안드로이드 네이티브 앱 환경인지 및 실제 설치된 APK 버전 감지
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const androidApp = (window as any).AndroidApp
+      if (androidApp) {
+        if (typeof androidApp.getNativeVersion === 'function') {
+          try {
+            setInstalledAppVersion(`v${androidApp.getNativeVersion()}`)
+          } catch (_) {
+            setInstalledAppVersion('v1.0.X (구버전)')
+          }
+        } else {
+          // getNativeVersion 메서드가 없는 구버전 APK에서 실행 중인 경우
+          setInstalledAppVersion('v1.0.X (구버전 APK)')
+        }
+      } else {
+        // 웹 브라우저 (크롬 등)로 접속한 경우
+        setInstalledAppVersion(null)
+      }
+    }
+  }, [])
 
   // 경로 변경 시 모바일 드로어 자동 닫기
   useEffect(() => {
@@ -101,8 +123,16 @@ export function Sidebar({
           <Link href="/" className="flex items-center gap-1.5 sm:gap-2">
             <img src="/image.png" alt="MOVEMAN" className="h-7 object-contain" />
             <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">MOVEMAN</span>
-            <span className="text-[10px] font-mono font-bold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-md shadow-2xs">
-              {APP_RELEASE_INFO.version}
+            <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md shadow-2xs ${
+              installedAppVersion 
+                ? (installedAppVersion === APP_RELEASE_INFO.version 
+                    ? 'text-emerald-700 bg-emerald-50 border border-emerald-200' 
+                    : 'text-amber-800 bg-amber-50 border border-amber-300 animate-pulse')
+                : 'text-blue-700 bg-blue-50 border border-blue-200'
+            }`}>
+              {installedAppVersion 
+                ? (installedAppVersion === APP_RELEASE_INFO.version ? `앱 ${installedAppVersion}` : `앱 ${installedAppVersion} (업데이트필요)`)
+                : `웹 ${APP_RELEASE_INFO.version}`}
             </span>
           </Link>
         </div>
@@ -138,8 +168,14 @@ export function Sidebar({
                 <div>
                   <div className="flex items-center gap-1.5">
                     <p className="text-xs font-bold text-gray-800">MOVEMAN</p>
-                    <span className="text-[10px] font-mono font-bold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.2 rounded">
-                      {APP_RELEASE_INFO.version}
+                    <span className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded ${
+                      installedAppVersion 
+                        ? (installedAppVersion === APP_RELEASE_INFO.version 
+                            ? 'text-emerald-700 bg-emerald-50 border border-emerald-200' 
+                            : 'text-amber-800 bg-amber-50 border border-amber-300')
+                        : 'text-blue-700 bg-blue-50 border border-blue-200'
+                    }`}>
+                      {installedAppVersion ? `앱 ${installedAppVersion}` : `웹 ${APP_RELEASE_INFO.version}`}
                     </span>
                   </div>
                   <p className="text-[11px] text-gray-400">이사견적 관리 시스템</p>
@@ -300,8 +336,14 @@ export function Sidebar({
             <div className="flex flex-col items-center w-full">
               <div className="flex items-center gap-2">
                 <img src="/image.png" alt="Logo" className="h-9 object-contain" />
-                <span className="text-[10px] font-mono font-bold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-md">
-                  {APP_RELEASE_INFO.version}
+                <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md ${
+                  installedAppVersion 
+                    ? (installedAppVersion === APP_RELEASE_INFO.version 
+                        ? 'text-emerald-700 bg-emerald-50 border border-emerald-200' 
+                        : 'text-amber-800 bg-amber-50 border border-amber-300')
+                    : 'text-blue-700 bg-blue-50 border border-blue-200'
+                }`}>
+                  {installedAppVersion ? `앱 ${installedAppVersion}` : `웹 ${APP_RELEASE_INFO.version}`}
                 </span>
               </div>
               <p className="text-xs text-gray-500 mt-1.5 font-medium whitespace-nowrap overflow-hidden">이사견적 관리 시스템</p>

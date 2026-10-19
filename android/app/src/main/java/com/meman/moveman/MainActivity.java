@@ -214,5 +214,15 @@ public class MainActivity extends BridgeActivity {
         public boolean isNative() {
             return true;
         }
+
+        @JavascriptInterface
+        public String getNativeVersion() {
+            try {
+                android.content.pm.PackageInfo pInfo = activity.getPackageManager().getPackageInfo(activity.getPackageName(), 0);
+                return pInfo.versionName != null ? pInfo.versionName : "1.0.0";
+            } catch (Exception e) {
+                return "1.0.0";
+            }
+        }
     }
 }
