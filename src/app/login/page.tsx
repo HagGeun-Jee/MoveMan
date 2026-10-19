@@ -14,10 +14,23 @@ export default function LoginPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const androidApp = (window as any).AndroidApp
-      if (androidApp && typeof androidApp.getNativeVersion === 'function') {
-        try {
-          setInstalledAppVersion(`v${androidApp.getNativeVersion()}`)
-        } catch (_) {}
+      const isNative = Boolean(
+        androidApp || 
+        (window as any).Capacitor?.isNativePlatform?.() ||
+        navigator.userAgent.includes('MoveMan')
+      )
+
+      if (isNative) {
+        if (androidApp && typeof androidApp.getNativeVersion === 'function') {
+          try {
+            setInstalledAppVersion(`v${androidApp.getNativeVersion()}`)
+          } catch (_) {
+            setInstalledAppVersion('구버전 APK')
+          }
+        } else {
+          // getNativeVersion 메서드가 아직 없던 과거 APK에서 실행 중인 경우
+          setInstalledAppVersion('구버전 APK')
+        }
       }
     }
   }, [])
@@ -31,7 +44,7 @@ export default function LoginPage() {
             {installedAppVersion ? (
               installedAppVersion === APP_RELEASE_INFO.version ? (
                 <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
-                  앱 {installedAppVersion} (최신버전)
+                  {installedAppVersion} (최신)
                 </span>
               ) : (
                 <a
@@ -40,15 +53,15 @@ export default function LoginPage() {
                   className="text-xs font-mono font-bold text-amber-950 bg-amber-100 border border-amber-300 animate-pulse px-2.5 py-0.5 rounded-full hover:bg-amber-200 transition-colors flex items-center gap-1.5"
                   title="최신 버전 다운로드"
                 >
-                  <span className="text-gray-700 font-sans">사용중:</span>
+                  <span className="text-gray-700 font-sans">설치된 버전:</span>
                   <span className="text-amber-900 bg-amber-200/80 px-1.5 py-0.2 rounded">{installedAppVersion}</span>
                   <span className="text-amber-700 font-sans">➔</span>
-                  <span className="text-white bg-blue-600 px-2 py-0.2 rounded shadow-2xs font-sans">설치할 버전: {APP_RELEASE_INFO.version} 다운로드</span>
+                  <span className="text-white bg-blue-600 px-2 py-0.2 rounded shadow-2xs font-sans">최신 {APP_RELEASE_INFO.version} 설치</span>
                 </a>
               )
             ) : (
-              <span className="text-xs font-mono font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full">
-                웹 {APP_RELEASE_INFO.version}
+              <span className="text-xs font-mono font-bold text-gray-600 bg-gray-100 border border-gray-200 px-2.5 py-0.5 rounded-full">
+                {APP_RELEASE_INFO.version}
               </span>
             )}
           </div>
