@@ -22,6 +22,12 @@ public class MainActivity extends BridgeActivity {
 
         final WebView webView = getBridge().getWebView();
         if (webView != null) {
+            // 키보드(삼성키보드 / Gboard) 입력 포커스 및 IME 호환성 설정
+            webView.setFocusable(true);
+            webView.setFocusableInTouchMode(true);
+            webView.getSettings().setJavaScriptEnabled(true);
+            webView.getSettings().setDomStorageEnabled(true);
+
             // 1. Android 네이티브 인쇄 인터페이스 등록
             webView.addJavascriptInterface(new PrintInterface(this, webView), "AndroidPrinter");
 
