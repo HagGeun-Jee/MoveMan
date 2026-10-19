@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MEMAN 이사견적</string>
+    <string name="title_activity_main">MEMAN 이사견적</string>
+    <string name="package_name">com.meman.moveman</string>
+    <string name="custom_url_scheme">com.meman.moveman</string>
+</resources>

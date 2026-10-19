@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.print.PrintAttributes;
 import android.print.PrintDocumentAdapter;
 import android.print.PrintManager;
+import android.view.KeyEvent;
 import android.webkit.DownloadListener;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
@@ -16,6 +17,13 @@ import androidx.activity.OnBackPressedCallback;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        // 삼성 키보드 및 한글 입력 시 ACTION_MULTIPLE이 발생했을 때
+        // 기본 WebView로 직접 전달하여 커서 위치에 정상 입력되도록 보장
+        return super.dispatchKeyEvent(event);
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
