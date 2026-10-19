@@ -3,20 +3,67 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const rootDir = path.resolve(__dirname, '..');
-const sourceApk = path.join(rootDir, 'android', 'app', 'build', 'outputs', 'apk', 'debug', 'app-debug.apk');
+const androidDir = path.join(rootDir, 'android');
+const buildGradlePath = path.join(androidDir, 'app', 'build.gradle');
+const sourceApk = path.join(androidDir, 'app', 'build', 'outputs', 'apk', 'debug', 'app-debug.apk');
 const targetApkRoot = path.join(rootDir, 'public', 'moveman.apk');
 const targetApkDownloads = path.join(rootDir, 'public', 'downloads', 'moveman.apk');
 const appReleasePath = path.join(rootDir, 'src', 'lib', 'appRelease.ts');
 
 console.log('====================================================');
-console.log('🚀 MOVEMAN 안드로이드 APK 자동 덮어쓰기 & Render 배포');
+console.log('🚀 MOVEMAN 안드로이드 APK 자동 컴파일 & Render 배포');
 console.log('====================================================\n');
 
-// 1. 빌드된 원본 APK 확인
+// 1. 버전 번호 자동 계산
+let currentVersion = 'v1.0.1';
+let patchNum = 1;
+if (fs.existsSync(appReleasePath)) {
+  const content = fs.readFileSync(appReleasePath, 'utf8');
+  const match = content.match(/version:\s*['"](v\d+\.\d+\.)(\d+)['"]/);
+  if (match) {
+    const prefix = match[1];
+    patchNum = parseInt(match[2], 10) + 1;
+    currentVersion = `${prefix}${patchNum}`;
+  }
+}
+
+const rawVersionName = currentVersion.replace(/^v/, '');
+console.log(`📌 새 배포 버전: ${currentVersion} (versionCode: ${patchNum})`);
+
+// 2. android/app/build.gradle 버전 정보 동기화
+if (fs.existsSync(buildGradlePath)) {
+  let gradleContent = fs.readFileSync(buildGradlePath, 'utf8');
+  gradleContent = gradleContent.replace(/versionCode\s+\d+/, `versionCode ${patchNum}`);
+  gradleContent = gradleContent.replace(/versionName\s+['"][^'"]+['"]/, `versionName "${rawVersionName}"`);
+  fs.writeFileSync(buildGradlePath, gradleContent, 'utf8');
+  console.log(`✓ build.gradle 버전 갱신 완료: versionName "${rawVersionName}", versionCode ${patchNum}`);
+}
+
+// 3. Android Gradle 자동 컴파일 (app-debug.apk 빌드)
+console.log('\n🔨 최신 안드로이드 네이티브 APK 컴파일 중 (gradlew assembleDebug)...');
+try {
+  // Java 21 JDK 경로 설정
+  const env = { ...process.processEnv, ...process.env };
+  const jdkPath = 'C:\\Users\\ysjee\\.jdks\\jbr-21.0.11';
+  if (fs.existsSync(jdkPath)) {
+    env.JAVA_HOME = jdkPath;
+    env.PATH = `${path.join(jdkPath, 'bin')};${env.PATH}`;
+  }
+
+  execSync('cmd.exe /c gradlew.bat assembleDebug', {
+    cwd: androidDir,
+    env: env,
+    stdio: 'inherit'
+  });
+  console.log('✓ Gradle 빌드 성공!\n');
+} catch (buildErr) {
+  console.warn('⚠️ Gradle 자동 빌드 중 오류 발생 (기존 APK 사용):', buildErr.message);
+}
+
+// 4. 빌드된 원본 APK 확인
 if (!fs.existsSync(sourceApk)) {
   console.error('❌ 빌드된 APK 파일을 찾을 수 없습니다.');
   console.error(`   경로: ${sourceApk}`);
-  console.error('👉 Android Studio에서 [Build] -> [Build Bundle(s) / APK(s)] -> [Build APK(s)]를 먼저 실행해 주세요.\n');
   process.exit(1);
 }
 
@@ -30,43 +77,32 @@ const kstDate = new Date(now.getTime() + (now.getTimezoneOffset() * 60 * 1000) +
 const pad = (n) => String(n).padStart(2, '0');
 const releaseDateStr = `${kstDate.getFullYear()}-${pad(kstDate.getMonth() + 1)}-${pad(kstDate.getDate())} ${pad(kstDate.getHours())}:${pad(kstDate.getMinutes())}`;
 
-console.log(`📦 원본 APK 확인 완료:`);
+console.log(`📦 최신 APK 확인 완료:`);
+console.log(`   - 버전: ${currentVersion}`);
 console.log(`   - 파일 크기: ${sizeMb} MB`);
 console.log(`   - 릴리즈 일시: ${releaseDateStr}\n`);
 
-// 2. public/downloads 디렉토리 확인 및 생성
+// 5. public/downloads 디렉토리 확인 및 생성
 const downloadsDir = path.join(rootDir, 'public', 'downloads');
 if (!fs.existsSync(downloadsDir)) {
   fs.mkdirSync(downloadsDir, { recursive: true });
 }
 
-// 2-1. 안드로이드 assets 디렉토리에 복사된 중복 APK 정리 (용량 비대화 방지)
+// 6. 안드로이드 assets 디렉토리에 복사된 중복 APK 정리 (용량 비대화 방지)
 const assetsPublicDir = path.join(rootDir, 'android', 'app', 'src', 'main', 'assets', 'public');
 const nestedApk1 = path.join(assetsPublicDir, 'moveman.apk');
 const nestedApk2 = path.join(assetsPublicDir, 'downloads', 'moveman.apk');
 if (fs.existsSync(nestedApk1)) fs.unlinkSync(nestedApk1);
 if (fs.existsSync(nestedApk2)) fs.unlinkSync(nestedApk2);
 
-// 3. 최신 APK 파일 덮어쓰기 복사
+// 7. 최신 APK 파일 덮어쓰기 복사
 console.log('🔄 최신 moveman.apk 파일 덮어쓰기 복사 중...');
 fs.copyFileSync(sourceApk, targetApkRoot);
 fs.copyFileSync(sourceApk, targetApkDownloads);
 console.log(`   ✓ ${targetApkRoot} 덮어쓰기 완료`);
 console.log(`   ✓ ${targetApkDownloads} 덮어쓰기 완료\n`);
 
-// 4. 기존 버전 정보 읽어서 패치 버전 자동 증가 (예: v1.0.1 -> v1.0.2)
-let currentVersion = 'v1.0.1';
-if (fs.existsSync(appReleasePath)) {
-  const content = fs.readFileSync(appReleasePath, 'utf8');
-  const match = content.match(/version:\s*['"](v\d+\.\d+\.)(\d+)['"]/);
-  if (match) {
-    const prefix = match[1];
-    const patchNum = parseInt(match[2], 10) + 1;
-    currentVersion = `${prefix}${patchNum}`;
-  }
-}
-
-// 5. src/lib/appRelease.ts 갱신
+// 8. src/lib/appRelease.ts 갱신
 const newReleaseContent = `/**
  * 안드로이드 모바일 앱 릴리즈 정보 메타데이터 (자동 갱신됨)
  */
@@ -84,7 +120,7 @@ console.log(`📝 appRelease.ts 메타데이터 갱신 완료:`);
 console.log(`   - 버전: ${currentVersion}`);
 console.log(`   - 일시: ${releaseDateStr}\n`);
 
-// 6. Git commit & push 자동 실행
+// 9. Git commit & push 자동 실행
 try {
   console.log('📤 Git 스테이징 및 커밋 생성 중...');
   execSync('git add -A', { cwd: rootDir, stdio: 'inherit' });

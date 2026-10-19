@@ -120,21 +120,34 @@ export function Sidebar({
             <span className="text-xs sm:text-sm font-bold text-gray-800">메뉴</span>
           </button>
           
-          <Link href="/" className="flex items-center gap-1.5 sm:gap-2">
-            <img src="/image.png" alt="MOVEMAN" className="h-7 object-contain" />
-            <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">MOVEMAN</span>
-            <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md shadow-2xs ${
-              installedAppVersion 
-                ? (installedAppVersion === APP_RELEASE_INFO.version 
-                    ? 'text-emerald-700 bg-emerald-50 border border-emerald-200' 
-                    : 'text-amber-800 bg-amber-50 border border-amber-300 animate-pulse')
-                : 'text-blue-700 bg-blue-50 border border-blue-200'
-            }`}>
-              {installedAppVersion 
-                ? (installedAppVersion === APP_RELEASE_INFO.version ? `앱 ${installedAppVersion}` : `앱 ${installedAppVersion} (업데이트필요)`)
-                : `웹 ${APP_RELEASE_INFO.version}`}
-            </span>
-          </Link>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Link href="/" className="flex items-center gap-1.5 sm:gap-2">
+              <img src="/image.png" alt="MOVEMAN" className="h-7 object-contain" />
+              <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">MOVEMAN</span>
+            </Link>
+            {installedAppVersion ? (
+              installedAppVersion === APP_RELEASE_INFO.version ? (
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md shadow-2xs text-emerald-700 bg-emerald-50 border border-emerald-200">
+                  앱 {installedAppVersion} (최신)
+                </span>
+              ) : (
+                <a
+                  href="/api/download/apk"
+                  download="moveman.apk"
+                  className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md shadow-2xs text-amber-900 bg-amber-100 border border-amber-300 animate-pulse hover:bg-amber-200 transition-colors flex items-center gap-1"
+                  title="최신 APK 다운로드"
+                >
+                  <span>앱 {installedAppVersion}</span>
+                  <span className="text-amber-700">➔</span>
+                  <span className="text-blue-700 underline font-bold">최신 {APP_RELEASE_INFO.version} 설치</span>
+                </a>
+              )
+            ) : (
+              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md shadow-2xs text-blue-700 bg-blue-50 border border-blue-200">
+                웹 {APP_RELEASE_INFO.version}
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -303,9 +316,16 @@ export function Sidebar({
                 </form>
               </div>
               <div className="mt-2.5 pt-2 border-t border-gray-200/60 text-center">
-                <span className="text-[10px] font-mono text-gray-400">
-                  앱 버전 {APP_RELEASE_INFO.version} ({APP_RELEASE_INFO.releaseDate})
-                </span>
+                {installedAppVersion ? (
+                  <div className="text-[10px] font-mono text-gray-500 space-y-0.5">
+                    <div>현재 앱: <strong className="text-gray-800">{installedAppVersion}</strong></div>
+                    <div>서버 최신: <strong className="text-blue-600">{APP_RELEASE_INFO.version}</strong> ({APP_RELEASE_INFO.releaseDate})</div>
+                  </div>
+                ) : (
+                  <span className="text-[10px] font-mono text-gray-400">
+                    웹 버전 {APP_RELEASE_INFO.version} ({APP_RELEASE_INFO.releaseDate})
+                  </span>
+                )}
               </div>
             </div>
           </aside>

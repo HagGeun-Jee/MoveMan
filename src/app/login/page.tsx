@@ -5,8 +5,22 @@ import { login } from '@/app/actions/auth'
 import { APP_RELEASE_INFO } from '@/lib/appRelease'
 import { AppDownloadButton } from '@/components/AppDownloadButton'
 
+import { useState, useEffect } from 'react'
+
 export default function LoginPage() {
   const [state, formAction, isPending] = useActionState(login, null)
+  const [installedAppVersion, setInstalledAppVersion] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const androidApp = (window as any).AndroidApp
+      if (androidApp && typeof androidApp.getNativeVersion === 'function') {
+        try {
+          setInstalledAppVersion(`v${androidApp.getNativeVersion()}`)
+        } catch (_) {}
+      }
+    }
+  }, [])
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
@@ -14,9 +28,28 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2">
             <h1 className="text-3xl font-bold text-gray-900">MOVEMAN</h1>
-            <span className="text-xs font-mono font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
-              {APP_RELEASE_INFO.version}
-            </span>
+            {installedAppVersion ? (
+              installedAppVersion === APP_RELEASE_INFO.version ? (
+                <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+                  앱 {installedAppVersion} (최신)
+                </span>
+              ) : (
+                <a
+                  href="/api/download/apk"
+                  download="moveman.apk"
+                  className="text-xs font-mono font-bold text-amber-900 bg-amber-100 border border-amber-300 animate-pulse px-2.5 py-0.5 rounded-full hover:bg-amber-200 transition-colors flex items-center gap-1"
+                  title="최신 버전 다운로드"
+                >
+                  <span>앱 {installedAppVersion}</span>
+                  <span className="text-amber-700">➔</span>
+                  <span className="text-blue-700 underline font-bold">최신 {APP_RELEASE_INFO.version} 설치</span>
+                </a>
+              )
+            ) : (
+              <span className="text-xs font-mono font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+                웹 {APP_RELEASE_INFO.version}
+              </span>
+            )}
           </div>
           <p className="text-gray-500 mt-2">이사견적 관리 시스템 로그인</p>
         </div>
