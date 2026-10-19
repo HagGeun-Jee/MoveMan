@@ -42,24 +42,6 @@ export function MaterialModal({
     return [...existingMaterials].sort((a, b) => a.name.localeCompare(b.name, 'ko'))
   }, [existingMaterials])
 
-  // 안드로이드 삼성 키보드 앞/중간 입력 시 커서 튐 방지 위치 추적
-  const lastCaretPosRef = useRef<number | null>(null)
-
-  const recordCaret = (el: HTMLTextAreaElement) => {
-    lastCaretPosRef.current = el.selectionStart
-  }
-
-  const enforceCaret = (el: HTMLTextAreaElement) => {
-    const saved = lastCaretPosRef.current
-    if (saved !== null && saved < el.value.length && el.selectionStart > saved) {
-      setTimeout(() => {
-        try {
-          el.setSelectionRange(saved, saved)
-        } catch (_) {}
-      }, 0)
-    }
-  }
-
   const [category, setCategory] = useState(materialToEdit?.category || 'REUSABLE')
   const [safetyStock, setSafetyStock] = useState(materialToEdit?.safetyStock || 0)
   const [unitPrice, setUnitPrice] = useState(materialToEdit?.unitPrice || 0)
@@ -261,9 +243,7 @@ export function MaterialModal({
               required
               defaultValue={materialToEdit?.code || ''}
               placeholder="예: MAT-BOX-01"
-              autoComplete="off"
-              autoCorrect="off"
-              spellCheck="false"
+              lang="ko"
               className="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs font-mono font-medium focus:border-blue-500 outline-none"
             />
           </div>
@@ -279,9 +259,7 @@ export function MaterialModal({
               required
               defaultValue={materialToEdit?.name || ''}
               placeholder="예: 이사용 바구니 (청색)"
-              autoComplete="off"
-              autoCorrect="off"
-              spellCheck="false"
+              lang="ko"
               className="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs font-medium focus:border-blue-500 outline-none"
             />
           </div>
@@ -307,9 +285,7 @@ export function MaterialModal({
                 required
                 defaultValue={materialToEdit?.unit || '개'}
                 placeholder="개, 롤, 매 등"
-                autoComplete="off"
-                autoCorrect="off"
-                spellCheck="false"
+                lang="ko"
                 className="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs font-medium focus:border-blue-500 outline-none"
               />
             </div>
@@ -339,54 +315,13 @@ export function MaterialModal({
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-bold text-gray-700">비고 / 규격 메모</label>
-              <div className="flex items-center gap-1.5 text-[10px]">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (memoInputRef.current) {
-                      memoInputRef.current.focus()
-                      memoInputRef.current.setSelectionRange(0, 0)
-                      lastCaretPosRef.current = 0
-                    }
-                  }}
-                  className="px-1.5 py-0.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded font-medium transition-colors"
-                >
-                  맨앞에 커서
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (memoInputRef.current) {
-                      memoInputRef.current.value = ''
-                      lastCaretPosRef.current = 0
-                      memoInputRef.current.focus()
-                    }
-                  }}
-                  className="px-1.5 py-0.5 bg-red-50 hover:bg-red-100 text-red-600 rounded font-medium transition-colors"
-                >
-                  지우기
-                </button>
-              </div>
-            </div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">비고 / 규격 메모</label>
             <textarea
               ref={memoInputRef}
               rows={2}
               defaultValue={materialToEdit?.memo || ''}
               placeholder="규격 또는 특이사항"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="none"
-              spellCheck="false"
-              data-gramm="false"
-              data-enable-grammarly="false"
-              onPointerUp={(e) => recordCaret(e.currentTarget)}
-              onClick={(e) => recordCaret(e.currentTarget)}
-              onSelect={(e) => recordCaret(e.currentTarget)}
-              onKeyUp={(e) => recordCaret(e.currentTarget)}
-              onCompositionStart={(e) => enforceCaret(e.currentTarget)}
-              onBeforeInput={(e: any) => enforceCaret(e.currentTarget)}
+              lang="ko"
               className="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs focus:border-blue-500 outline-none resize-none leading-relaxed"
             />
           </div>

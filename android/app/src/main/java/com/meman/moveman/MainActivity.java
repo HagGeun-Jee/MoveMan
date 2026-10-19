@@ -27,6 +27,8 @@ public class MainActivity extends BridgeActivity {
             webView.setFocusableInTouchMode(true);
             webView.getSettings().setJavaScriptEnabled(true);
             webView.getSettings().setDomStorageEnabled(true);
+            webView.getSettings().setDefaultTextEncodingName("UTF-8");
+            webView.getSettings().setTextZoom(100);
 
             // 1. Android 네이티브 인쇄 인터페이스 등록
             webView.addJavascriptInterface(new PrintInterface(this, webView), "AndroidPrinter");

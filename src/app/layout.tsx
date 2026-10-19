@@ -23,13 +23,18 @@ export const metadata: Metadata = {
   description: "MOVEMAN 이사견적 관리 시스템",
 };
 
+import { AndroidImeFix } from "@/components/AndroidImeFix";
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="ko"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased print:h-auto`}
     >
-      <body className="min-h-full flex flex-col print:block">{children}</body>
+      <body className="min-h-full flex flex-col print:block">
+        <AndroidImeFix />
+        {children}
+      </body>
     </html>
   );
 }
