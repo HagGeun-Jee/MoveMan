@@ -68,7 +68,7 @@ export function Sidebar({
 
       // AndroidApp 객체는 이미 주입되었으나 getNativeVersion 메서드가 아예 없는 과거 구버전 바이너리인 경우
       if (androidApp && typeof androidApp.getNativeVersion !== 'function') {
-        setInstalledAppVersion('구버전 APK')
+        setInstalledAppVersion('이전 버전')
         return true
       }
 
@@ -76,7 +76,7 @@ export function Sidebar({
       if (attempts >= maxAttempts) {
         // 2초가 지나도 AndroidApp 인터페이스가 없는데 네이티브 앱 환경인 경우
         if (isCapacitor) {
-          setInstalledAppVersion('구버전 APK')
+          setInstalledAppVersion('이전 버전')
         }
         return true
       }
@@ -171,10 +171,10 @@ export function Sidebar({
                   className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md shadow-2xs text-amber-950 bg-amber-50 border border-amber-300 hover:bg-amber-100 transition-colors flex items-center gap-1.5"
                   title="최신 APK 다운로드"
                 >
-                  <span className="text-gray-700 font-sans">설치된 버전:</span>
-                  <span className="text-amber-900 bg-amber-200/80 px-1 py-0.2 rounded">{installedAppVersion}</span>
+                  <span className="text-gray-600 font-sans">현재 버전:</span>
+                  <span className="text-amber-900 bg-amber-200/80 px-1 py-0.2 rounded font-bold">{installedAppVersion}</span>
                   <span className="text-amber-700 font-sans">➔</span>
-                  <span className="text-white bg-blue-600 px-1.5 py-0.2 rounded shadow-2xs font-sans">최신 {APP_RELEASE_INFO.version} 설치</span>
+                  <span className="text-white bg-blue-600 hover:bg-blue-700 px-1.5 py-0.2 rounded shadow-2xs font-sans">설치할 버전: {APP_RELEASE_INFO.version} 다운로드</span>
                 </a>
               )
             ) : (
