@@ -7,8 +7,8 @@ android {
         applicationId "com.meman.moveman"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 34
-        versionName "1.0.34"
+        versionCode 35
+        versionName "1.0.35"
         resourceConfigurations += ['ko', 'en']
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {

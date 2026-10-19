@@ -44,30 +44,59 @@ export function Sidebar({
 
   // 안드로이드 네이티브 앱 환경인지 및 실제 설치된 APK 버전 감지
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window === 'undefined') return
+
+    let attempts = 0
+    const maxAttempts = 20 // 100ms * 20 = 최대 2초간 네이티브 인터페이스 주입 대기
+
+    const checkVersion = () => {
       const androidApp = (window as any).AndroidApp
-      const isNative = Boolean(
-        androidApp || 
-        (window as any).Capacitor?.isNativePlatform?.() ||
+      const isCapacitor = Boolean(
+        (window as any).Capacitor?.isNativePlatform?.() || 
         navigator.userAgent.includes('MoveMan')
       )
 
-      if (isNative) {
-        if (androidApp && typeof androidApp.getNativeVersion === 'function') {
-          try {
-            setInstalledAppVersion(`v${androidApp.getNativeVersion()}`)
-          } catch (_) {
-            setInstalledAppVersion('구버전 APK')
+      if (androidApp && typeof androidApp.getNativeVersion === 'function') {
+        try {
+          const ver = androidApp.getNativeVersion()
+          if (ver) {
+            setInstalledAppVersion(`v${ver}`)
+            return true
           }
-        } else {
-          // getNativeVersion 메서드가 아직 없던 과거 APK에서 실행 중인 경우
+        } catch (_) {}
+      }
+
+      // AndroidApp 객체는 이미 주입되었으나 getNativeVersion 메서드가 아예 없는 과거 구버전 바이너리인 경우
+      if (androidApp && typeof androidApp.getNativeVersion !== 'function') {
+        setInstalledAppVersion('구버전 APK')
+        return true
+      }
+
+      attempts++
+      if (attempts >= maxAttempts) {
+        // 2초가 지나도 AndroidApp 인터페이스가 없는데 네이티브 앱 환경인 경우
+        if (isCapacitor) {
           setInstalledAppVersion('구버전 APK')
         }
-      } else {
-        setInstalledAppVersion(null)
+        return true
       }
+
+      return false
+    }
+
+    if (!checkVersion()) {
+      const timer = setInterval(() => {
+        if (checkVersion()) {
+          clearInterval(timer)
+        }
+      }, 100)
+      return () => clearInterval(timer)
     }
   }, [])
+
+  const isUpToDate = installedAppVersion 
+    ? installedAppVersion.replace(/^v/, '').trim() === APP_RELEASE_INFO.version.replace(/^v/, '').trim()
+    : true
 
   // 경로 변경 시 모바일 드로어 자동 닫기
   useEffect(() => {
@@ -131,7 +160,7 @@ export function Sidebar({
               <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">MOVEMAN</span>
             </Link>
             {installedAppVersion ? (
-              installedAppVersion === APP_RELEASE_INFO.version ? (
+              isUpToDate ? (
                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md shadow-2xs text-emerald-700 bg-emerald-50 border border-emerald-200">
                   {installedAppVersion} (최신)
                 </span>
@@ -139,7 +168,7 @@ export function Sidebar({
                 <a
                   href="/api/download/apk"
                   download="moveman.apk"
-                  className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md shadow-2xs text-amber-950 bg-amber-100 border border-amber-300 animate-pulse hover:bg-amber-200 transition-colors flex items-center gap-1.5"
+                  className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md shadow-2xs text-amber-950 bg-amber-50 border border-amber-300 hover:bg-amber-100 transition-colors flex items-center gap-1.5"
                   title="최신 APK 다운로드"
                 >
                   <span className="text-gray-700 font-sans">설치된 버전:</span>

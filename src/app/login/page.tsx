@@ -12,28 +12,59 @@ export default function LoginPage() {
   const [installedAppVersion, setInstalledAppVersion] = useState<string | null>(null)
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window === 'undefined') return
+
+    let attempts = 0
+    const maxAttempts = 20 // 100ms * 20 = 최대 2초간 네이티브 인터페이스 주입 대기
+
+    const checkVersion = () => {
       const androidApp = (window as any).AndroidApp
-      const isNative = Boolean(
-        androidApp || 
-        (window as any).Capacitor?.isNativePlatform?.() ||
+      const isCapacitor = Boolean(
+        (window as any).Capacitor?.isNativePlatform?.() || 
         navigator.userAgent.includes('MoveMan')
       )
 
-      if (isNative) {
-        if (androidApp && typeof androidApp.getNativeVersion === 'function') {
-          try {
-            setInstalledAppVersion(`v${androidApp.getNativeVersion()}`)
-          } catch (_) {
-            setInstalledAppVersion('구버전 APK')
+      if (androidApp && typeof androidApp.getNativeVersion === 'function') {
+        try {
+          const ver = androidApp.getNativeVersion()
+          if (ver) {
+            setInstalledAppVersion(`v${ver}`)
+            return true
           }
-        } else {
-          // getNativeVersion 메서드가 아직 없던 과거 APK에서 실행 중인 경우
+        } catch (_) {}
+      }
+
+      // AndroidApp 객체는 이미 주입되었으나 getNativeVersion 메서드가 아예 없는 과거 구버전 바이너리인 경우
+      if (androidApp && typeof androidApp.getNativeVersion !== 'function') {
+        setInstalledAppVersion('구버전 APK')
+        return true
+      }
+
+      attempts++
+      if (attempts >= maxAttempts) {
+        // 2초가 지나도 AndroidApp 인터페이스가 없는데 네이티브 앱 환경인 경우
+        if (isCapacitor) {
           setInstalledAppVersion('구버전 APK')
         }
+        return true
       }
+
+      return false
+    }
+
+    if (!checkVersion()) {
+      const timer = setInterval(() => {
+        if (checkVersion()) {
+          clearInterval(timer)
+        }
+      }, 100)
+      return () => clearInterval(timer)
     }
   }, [])
+
+  const isUpToDate = installedAppVersion 
+    ? installedAppVersion.replace(/^v/, '').trim() === APP_RELEASE_INFO.version.replace(/^v/, '').trim()
+    : true
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
@@ -42,7 +73,7 @@ export default function LoginPage() {
           <div className="flex items-center justify-center gap-2">
             <h1 className="text-3xl font-bold text-gray-900">MOVEMAN</h1>
             {installedAppVersion ? (
-              installedAppVersion === APP_RELEASE_INFO.version ? (
+              isUpToDate ? (
                 <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
                   {installedAppVersion} (최신)
                 </span>
@@ -50,7 +81,7 @@ export default function LoginPage() {
                 <a
                   href="/api/download/apk"
                   download="moveman.apk"
-                  className="text-xs font-mono font-bold text-amber-950 bg-amber-100 border border-amber-300 animate-pulse px-2.5 py-0.5 rounded-full hover:bg-amber-200 transition-colors flex items-center gap-1.5"
+                  className="text-xs font-mono font-bold text-amber-950 bg-amber-50 border border-amber-300 px-2.5 py-0.5 rounded-full hover:bg-amber-100 transition-colors flex items-center gap-1.5 shadow-2xs"
                   title="최신 버전 다운로드"
                 >
                   <span className="text-gray-700 font-sans">설치된 버전:</span>
