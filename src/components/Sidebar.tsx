@@ -162,9 +162,8 @@ export function Sidebar({
           </button>
           
           <div className="flex items-center gap-1.5 sm:gap-2">
-            <Link href="/" className="flex items-center gap-1.5 sm:gap-2">
-              <img src="/image.png" alt="MOVEMAN" className="h-7 object-contain" />
-              <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">MOVEMAN</span>
+            <Link href="/" className="flex items-center gap-1 sm:gap-1.5" title="메인 대시보드로 이동">
+              <img src="/image.png" alt="MOVEMAN" className="h-6 sm:h-7 object-contain" />
             </Link>
             {installedAppVersion ? (
               isUpToDate ? (

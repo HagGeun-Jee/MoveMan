@@ -79,26 +79,26 @@ export default async function DashboardPage() {
   }).length
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-6">
       {/* 대시보드 헤더 및 금일 날짜/요일 배너 */}
-      <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-xs border border-gray-200/90 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">대시보드</h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+      <div className="bg-white p-3 sm:p-6 rounded-xl sm:rounded-2xl shadow-xs border border-gray-200/90 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 sm:gap-4">
+        <div className="space-y-1 sm:space-y-1.5">
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            <h1 className="text-xl sm:text-3xl font-black text-gray-900 tracking-tight">대시보드</h1>
+            <span className="px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
               운영 현황
             </span>
           </div>
 
           {/* 금일 날짜와 요일 강조 표기 */}
-          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 pt-1">
-            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-50 to-indigo-50/60 px-3 py-1.5 rounded-xl border border-blue-200/80 shadow-2xs">
-              <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 shrink-0" />
-              <span className="text-xs sm:text-sm font-semibold text-gray-500">오늘 :</span>
-              <span className="text-sm sm:text-base font-black text-gray-900 tracking-tight">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 pt-0.5 sm:pt-1">
+            <div className="inline-flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-blue-50 to-indigo-50/60 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl border border-blue-200/80 shadow-2xs">
+              <Calendar className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-blue-600 shrink-0" />
+              <span className="text-[11px] sm:text-sm font-semibold text-gray-500">오늘 :</span>
+              <span className="text-xs sm:text-base font-black text-gray-900 tracking-tight">
                 {koreaToday.year}년 {koreaToday.month}월 {koreaToday.day}일
               </span>
-              <span className={`px-2 py-0.5 rounded-md text-xs sm:text-sm font-bold shadow-2xs ${
+              <span className={`px-1.5 py-0.2 sm:px-2 sm:py-0.5 rounded text-[10px] sm:text-sm font-bold shadow-2xs ${
                 koreaToday.dayOfWeekNumber === 0 
                   ? 'bg-red-500 text-white' 
                   : koreaToday.dayOfWeekNumber === 6 
@@ -114,45 +114,57 @@ export default async function DashboardPage() {
         <div className="flex items-center gap-2 w-full md:w-auto">
           <Link 
             href="/calendar"
-            className="flex-1 md:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 transition-colors shadow-xs"
+            className="flex-1 md:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 transition-colors shadow-xs"
           >
-            <CalendarDays size={16} className="text-blue-600" />
-            일정 캘린더 바로가기
+            <CalendarDays size={15} className="text-blue-600" />
+            일정 캘린더
           </Link>
           <Link 
             href="/estimates/new" 
-            className="flex-1 md:flex-none inline-flex items-center justify-center gap-1.5 bg-blue-600 text-white px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm hover:bg-blue-700 transition-colors shadow-sm"
+            className="flex-1 md:flex-none inline-flex items-center justify-center gap-1.5 bg-blue-600 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm hover:bg-blue-700 transition-colors shadow-sm"
           >
-            <FilePlus size={16} />
+            <FilePlus size={15} />
             새 견적 작성
           </Link>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-6">
-        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
-          <div className="flex justify-between items-center">
-            <h2 className="text-gray-700 text-xs sm:text-sm font-semibold">오늘 예정된 방문견적</h2>
-            <span className="text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
-              {koreaToday.month}.{koreaToday.day} ({koreaToday.dayOfWeekShort})
+      {/* 핵심 3대 통계 카드 (모바일에서도 1행 3열로 컴팩트하게 노출) */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-6">
+        <div className="bg-white p-2.5 sm:p-6 rounded-xl shadow-2xs sm:shadow-sm border border-gray-100 flex flex-col justify-between">
+          <div className="flex justify-between items-center gap-1">
+            <h2 className="text-gray-700 text-[11px] sm:text-sm font-semibold truncate" title="오늘 예정된 방문견적">
+              <span className="sm:hidden">오늘 방문</span>
+              <span className="hidden sm:inline">오늘 예정된 방문견적</span>
+            </h2>
+            <span className="text-[10px] sm:text-[11px] font-bold text-blue-600 bg-blue-50 px-1 py-0.2 sm:px-2 sm:py-0.5 rounded-full border border-blue-100 shrink-0">
+              {koreaToday.month}.{koreaToday.day}
             </span>
           </div>
-          <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">{todayVisitsCount}건</p>
+          <p className="text-lg sm:text-3xl font-black text-gray-900 mt-1 sm:mt-2 tracking-tight">{todayVisitsCount}건</p>
         </div>
-        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
-          <h2 className="text-gray-700 text-xs sm:text-sm font-semibold">이번 달 이사 건수</h2>
-          <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">{thisMonthMovingsCount}건</p>
+
+        <div className="bg-white p-2.5 sm:p-6 rounded-xl shadow-2xs sm:shadow-sm border border-gray-100 flex flex-col justify-between">
+          <h2 className="text-gray-700 text-[11px] sm:text-sm font-semibold truncate" title="이번 달 이사 건수">
+            <span className="sm:hidden">이달 이사</span>
+            <span className="hidden sm:inline">이번 달 이사 건수</span>
+          </h2>
+          <p className="text-lg sm:text-3xl font-black text-gray-900 mt-1 sm:mt-2 tracking-tight">{thisMonthMovingsCount}건</p>
         </div>
-        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
-          <h2 className="text-gray-700 text-xs sm:text-sm font-semibold">대기 중인 견적 (미계약)</h2>
-          <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">{pendingCount}건</p>
+
+        <div className="bg-white p-2.5 sm:p-6 rounded-xl shadow-2xs sm:shadow-sm border border-gray-100 flex flex-col justify-between">
+          <h2 className="text-gray-700 text-[11px] sm:text-sm font-semibold truncate" title="대기 중인 견적 (미계약)">
+            <span className="sm:hidden">대기 견적</span>
+            <span className="hidden sm:inline">대기 중인 견적 (미계약)</span>
+          </h2>
+          <p className="text-lg sm:text-3xl font-black text-gray-900 mt-1 sm:mt-2 tracking-tight">{pendingCount}건</p>
         </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-4 sm:p-6 border-b border-gray-100 flex justify-between items-center">
-          <h2 className="text-base sm:text-lg font-bold text-gray-900">최근 작성된 견적</h2>
-          <Link href="/estimates" className="text-xs sm:text-sm text-blue-600 hover:underline">전체 보기</Link>
+        <div className="p-3 sm:p-6 border-b border-gray-100 flex justify-between items-center">
+          <h2 className="text-sm sm:text-lg font-bold text-gray-900">최근 작성된 견적</h2>
+          <Link href="/estimates" className="text-xs sm:text-sm text-blue-600 hover:underline font-medium">전체 보기</Link>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
