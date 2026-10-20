@@ -83,11 +83,21 @@ const filterValidCbmItems = (itemsList: any[]): any[] => {
   return sortCbmItems(filtered)
 }
 
+let globalItemSeq = 0
+export const ensureItemUid = (item: any): any => {
+  if (!item) return item
+  if (!item._uid) {
+    globalItemSeq += 1
+    item._uid = `cbm_${Date.now()}_${globalItemSeq}_${Math.random().toString(36).substring(2, 7)}`
+  }
+  return item
+}
+
 const parseAndFilterCbmItems = (cbmItemsStr: string | null | undefined): any[] => {
   if (!cbmItemsStr) return []
   try {
     const parsed = JSON.parse(cbmItemsStr)
-    return filterValidCbmItems(parsed)
+    return filterValidCbmItems(parsed).map(ensureItemUid)
   } catch {
     return []
   }
@@ -455,7 +465,7 @@ export function EstimateForm({
             treatment: aiItem.treatment || cur.treatment || '이동'
           }
         } else {
-          nextList.push({
+          nextList.push(ensureItemUid({
             locationId: locId,
             name: aiItem.name,
             spec: aiItem.spec || '',
@@ -463,11 +473,11 @@ export function EstimateForm({
             cbm: aiItem.cbm,
             innerBoxCbm: aiItem.innerBoxCbm,
             treatment: aiItem.treatment || '이동'
-          })
+          }))
         }
       })
 
-      return nextList
+      return nextList.map(ensureItemUid)
     })
 
     const touchedLocIds = aiItems.map(item => locationMap.get(item.location) || '')
@@ -786,7 +796,7 @@ export function EstimateForm({
           else if (Array.isArray(envObj.labors) && envObj.labors.length > 0) setLabors(envObj.labors)
 
           if (draft.items && draft.items.length > 0) {
-            setItems(draft.items.map((i: any) => ({ ...i, treatment: i.treatment || '이동' })))
+            setItems(draft.items.map((i: any) => ensureItemUid({ ...i, treatment: i.treatment || '이동' })))
           }
           if (draft.deadSpaceRatio !== undefined) setDeadSpaceRatio(draft.deadSpaceRatio)
 
@@ -862,7 +872,7 @@ export function EstimateForm({
             const key = `${cat.id}_${item.name}`
             if (!grouped[key]) {
               grouped[key] = true
-              initialItems.push({
+              initialItems.push(ensureItemUid({
                 locationId: cat.id,
                 locationName: cat.name,
                 name: item.name,
@@ -871,7 +881,7 @@ export function EstimateForm({
                 treatment: '이동',
                 cbm: 0,
                 innerBoxCbm: 0
-              })
+              }))
             }
           })
         })
@@ -892,7 +902,7 @@ export function EstimateForm({
           const key = `_${item.name}`
           if (!grouped[key]) {
             grouped[key] = true
-            initialItems.push({
+            initialItems.push(ensureItemUid({
               locationId: '',
               locationName: '기타/미지정',
               name: item.name,
@@ -901,7 +911,7 @@ export function EstimateForm({
               treatment: '이동',
               cbm: 0,
               innerBoxCbm: 0
-            })
+            }))
           }
         })
 
@@ -912,7 +922,7 @@ export function EstimateForm({
           if (saved) {
             const draft = JSON.parse(saved)
             if (draft.items && draft.items.length > 0) {
-              finalItems = draft.items.map((i: any) => ({ ...i, treatment: i.treatment || '이동' }))
+              finalItems = draft.items.map((i: any) => ensureItemUid({ ...i, treatment: i.treatment || '이동' }))
               // 누락된 기본 품목 추가
               initialItems.forEach(initItem => {
                 const exists = finalItems.some(f => (f.locationId || '') === (initItem.locationId || '') && f.name === initItem.name)
@@ -924,7 +934,7 @@ export function EstimateForm({
           }
         } catch {}
 
-        setItems(finalItems)
+        setItems(finalItems.map(ensureItemUid))
 
         const initialExpanded: Record<string, boolean> = {}
         catsRes.forEach((c: any) => {
@@ -947,7 +957,7 @@ export function EstimateForm({
           }
         } catch {}
 
-        setItems(finalItems)
+        setItems(finalItems.map(ensureItemUid))
 
         const initialExpanded: Record<string, boolean> = {}
         catsRes.forEach((c: any) => {
@@ -1987,19 +1997,8 @@ export function EstimateForm({
             </div>
             <div className="space-y-4">
               {[...categories, { id: '', name: '기타/미지정' }].map(cat => {
-                const catItems = items
-                  .filter(i => (i.locationId || '') === cat.id)
-                  .sort((a, b) => {
-                    if (cat.id === '') {
-                      const aBox = isBoxItem(a.name)
-                      const bBox = isBoxItem(b.name)
-                      if (aBox && !bBox) return -1
-                      if (!aBox && bBox) return 1
-                    }
-                    const nameComp = (a.name || '').localeCompare(b.name || '', 'ko')
-                    if (nameComp !== 0) return nameComp
-                    return (a.spec || '').localeCompare(b.spec || '', 'ko')
-                  })
+                // 실시간 동적 정렬 제거: 타이핑 중 행 위치가 변경되어 모바일 한글 조합(IME)이 깨지는 현상 방지
+                const catItems = items.filter(i => (i.locationId || '') === cat.id)
                 // Hide '기타/미지정' if it has no items
                 if (cat.id === '' && catItems.length === 0) return null
                 
@@ -2034,10 +2033,10 @@ export function EstimateForm({
                             </tr>
                           </thead>
                         <tbody>
-                          {catItems.map((item, localIdx) => {
-                            const idx = items.findIndex(i => i === item)
+                          {catItems.map((item) => {
+                            const idx = items.findIndex(i => (i._uid ? i._uid === item._uid : i === item))
                             return (
-                              <tr key={idx} className="border-b last:border-0 hover:bg-blue-50/30 transition-colors">
+                              <tr key={item._uid || idx} className="border-b last:border-0 hover:bg-blue-50/30 transition-colors">
                                 <td className="px-1.5 sm:px-2 py-1">
                                   <input 
                                     type="text" 
@@ -2049,6 +2048,8 @@ export function EstimateForm({
                                     }} 
                                     className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-xs sm:text-sm outline-none focus:border-blue-500 font-medium" 
                                     placeholder="직접입력" 
+                                    autoComplete="off"
+                                    spellCheck={false}
                                   />
                                 </td>
                                 <td className="px-1.5 sm:px-2 py-1">
@@ -2101,6 +2102,8 @@ export function EstimateForm({
                                         }} 
                                         className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-xs sm:text-sm outline-none focus:border-blue-500 font-medium" 
                                         placeholder="직접입력" 
+                                        autoComplete="off"
+                                        spellCheck={false}
                                       />
                                     )
                                   })()}
@@ -2270,7 +2273,7 @@ export function EstimateForm({
                                       if(!e.target.value) return;
                                       const stdItem = standardItems.find(i => i.id === e.target.value)
                                       if(stdItem) {
-                                        setItems([...items, { locationId: cat.id, locationName: cat.name, name: stdItem.name, spec: stdItem.spec || '', quantity: 1, treatment: '이동', cbm: stdItem.defaultCbm, innerBoxCbm: stdItem.defaultInnerCbm }])
+                                        setItems([...items, ensureItemUid({ locationId: cat.id, locationName: cat.name, name: stdItem.name, spec: stdItem.spec || '', quantity: 1, treatment: '이동', cbm: stdItem.defaultCbm, innerBoxCbm: stdItem.defaultInnerCbm })])
                                         setSelectedItemNames(prev => ({ ...prev, [cat.id]: '' }))
                                       }
                                     }}
@@ -2289,7 +2292,7 @@ export function EstimateForm({
                                 <span className="text-gray-400 text-xs mx-0.5">또는</span>
                                 <button 
                                   type="button" 
-                                  onClick={() => setItems([...items, { locationId: cat.id, locationName: cat.name, name: '', spec: '', quantity: 1, treatment: '이동', cbm: 0, innerBoxCbm: 0 }])}
+                                  onClick={() => setItems([...items, ensureItemUid({ locationId: cat.id, locationName: cat.name, name: '', spec: '', quantity: 1, treatment: '이동', cbm: 0, innerBoxCbm: 0 })])}
                                   className="text-blue-600 hover:text-blue-800 text-xs sm:text-sm font-semibold px-2.5 sm:px-3 py-1.5 bg-white border border-blue-200 rounded-lg shadow-2xs hover:bg-blue-50 transition-colors"
                                 >
                                   + 직접입력 추가
