@@ -175,7 +175,7 @@ ${JSON.stringify(masterItemsSummary)}
 
       // 비디오 분석 실행
       const modelResponse = await aiClient.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.8-flash',
         contents: [
           {
             role: 'user',
@@ -204,7 +204,7 @@ ${JSON.stringify(masterItemsSummary)}
       const base64Data = Buffer.from(bytes).toString('base64')
 
       const modelResponse = await aiClient.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.8-flash',
         contents: [
           {
             role: 'user',

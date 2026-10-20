@@ -163,13 +163,18 @@ export function AiCbmEstimateModal({
         body: formData
       })
 
-      const data = await res.json()
+      let data: any = {}
+      try {
+        data = await res.json()
+      } catch {
+        throw new Error(`서버 통신 실패 (HTTP ${res.status}): 잠시 후 다시 시도해주세요.`)
+      }
 
       if (!res.ok) {
         if (data.error === 'GEMINI_API_KEY_MISSING') {
           setShowKeyInput(true)
         }
-        throw new Error(data.message || '분석 중 오류가 발생했습니다.')
+        throw new Error(data.message || `분석 실패 (코드: ${res.status})`)
       }
 
       setAnalysisResult({
