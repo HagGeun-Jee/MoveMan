@@ -1299,7 +1299,7 @@ export function EstimateForm({
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-3 sm:space-y-5 pb-20 px-1 sm:px-3">
+    <div className="w-full max-w-5xl mx-auto space-y-3 sm:space-y-4 pb-20 px-1 sm:px-2 md:px-3">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{title}</h1>
         {draftRestoredTime && (
@@ -1345,37 +1345,36 @@ export function EstimateForm({
         </div>
       )}
       
-      <form action={handleFormSubmit} className="space-y-4 sm:space-y-5">
+      <form action={handleFormSubmit} className="space-y-3 sm:space-y-4">
         {initialData && <input type="hidden" name="id" value={initialData.id} />}
         
         {/* 기본 정보 */}
-        <div className="bg-white p-3.5 sm:p-5 md:p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
+        <div className="bg-white p-3 sm:p-4 md:p-5 rounded-xl shadow-sm border border-gray-100 space-y-3">
           <div className="flex items-center justify-between border-b pb-2">
             <h2 className="text-base sm:text-lg font-bold text-blue-600">기본 정보</h2>
-            <span className="sm:hidden text-[11px] text-gray-400 font-medium">👉 좌우로 스크롤하여 확인</span>
           </div>
           <div className="overflow-x-auto -mx-1 sm:mx-0 pb-1">
-            <table className="w-full border-collapse border border-gray-200 text-sm min-w-[580px]">
+            <table className="w-full border-collapse border border-gray-200 text-xs sm:text-sm min-w-0">
               <tbody>
                 <tr>
-                  <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-3 sm:px-4 py-3 text-left font-medium text-gray-700 w-28 sm:w-36">
+                  <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-2 sm:px-3 py-2 text-left font-medium text-gray-700 w-20 sm:w-24 md:w-28">
                     고객명 <span className="text-red-500">*</span>
                   </th>
-                  <td className="border border-gray-200 p-2 sm:p-2.5">
+                  <td className="border border-gray-200 p-1.5 sm:p-2">
                     <input 
                       type="text" 
                       name="customerName" 
                       value={customerName} 
                       onChange={e => setCustomerName(e.target.value)} 
                       required 
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-blue-500" 
+                      className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 sm:py-2 outline-none focus:border-blue-500 text-xs sm:text-sm" 
                       placeholder="홍길동" 
                     />
                   </td>
-                  <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-3 sm:px-4 py-3 text-left font-medium text-gray-700 w-28 sm:w-36">
+                  <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-2 sm:px-3 py-2 text-left font-medium text-gray-700 w-20 sm:w-24 md:w-28">
                     연락처 <span className="text-red-500">*</span>
                   </th>
-                  <td className="border border-gray-200 p-2 sm:p-2.5">
+                  <td className="border border-gray-200 p-1.5 sm:p-2">
                     <input 
                       type="tel" 
                       name="contact" 
@@ -1383,37 +1382,37 @@ export function EstimateForm({
                       onChange={e => setContact(formatPhoneNumber(e.target.value))} 
                       onFocus={handleSelectAllOnFocus}
                       required 
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-blue-500" 
+                      className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 sm:py-2 outline-none focus:border-blue-500 text-xs sm:text-sm" 
                       placeholder="010-0000-0000" 
                     />
                   </td>
                 </tr>
                 <tr>
-                  <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-3 sm:px-4 py-3 text-left font-medium text-gray-700 w-28 sm:w-36">
+                  <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-2 sm:px-3 py-2 text-left font-medium text-gray-700 w-20 sm:w-24 md:w-28">
                     이사 종류 <span className="text-red-500">*</span>
                   </th>
-                  <td className="border border-gray-200 p-2 sm:p-2.5">
+                  <td className="border border-gray-200 p-1.5 sm:p-2">
                     <select 
                       name="movingType" 
                       value={movingType} 
                       onChange={e => setMovingType(e.target.value)} 
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-blue-500 bg-white"
+                      className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 sm:py-2 outline-none focus:border-blue-500 bg-white text-xs sm:text-sm"
                     >
                       <option value="P">포장이사 (P)</option>
                       <option value="G">일반이사 (G)</option>
                       <option value="K">보관이사 (K)</option>
                     </select>
                   </td>
-                  <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-3 sm:px-4 py-3 text-left font-medium text-gray-700 w-28 sm:w-36">
+                  <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-2 sm:px-3 py-2 text-left font-medium text-gray-700 w-20 sm:w-24 md:w-28">
                     접수일자 <span className="text-red-500">*</span>
                   </th>
-                  <td className="border border-gray-200 p-2 sm:p-2.5">
+                  <td className="border border-gray-200 p-1.5 sm:p-2">
                     <CustomDatePicker 
                       selected={estimateDate} 
                       onChange={setEstimateDate} 
                       name="estimateDate" 
                       required 
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-blue-500" 
+                      className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 sm:py-2 outline-none focus:border-blue-500 text-xs sm:text-sm" 
                     />
                   </td>
                 </tr>
@@ -1423,7 +1422,7 @@ export function EstimateForm({
         </div>
 
         {/* 주소 및 일정 */}
-        <div className="bg-white p-3.5 sm:p-5 md:p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
+        <div className="bg-white p-3 sm:p-4 md:p-5 rounded-xl shadow-sm border border-gray-100 space-y-3">
           <div className="flex justify-between items-center border-b pb-2">
             <h2 className="text-base sm:text-lg font-bold text-blue-600">주소 및 일정</h2>
             <div className="flex items-center gap-2">
@@ -1437,80 +1436,80 @@ export function EstimateForm({
                   href={`https://map.kakao.com/?sName=${encodeURIComponent(fromAddress)}&eName=${encodeURIComponent(toAddress)}`} 
                   target="_blank" 
                   rel="noreferrer" 
-                  className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 flex items-center gap-1 font-medium text-sm shadow-sm"
+                  className="px-2.5 sm:px-3 py-1 sm:py-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 flex items-center gap-1 font-medium text-xs sm:text-sm shadow-sm"
                 >
-                  <MapPin size={16}/> 경로 길찾기
+                  <MapPin size={15}/> 경로 길찾기
                 </a>
               )}
             </div>
           </div>
           <div className="overflow-x-auto -mx-1 sm:mx-0 pb-1">
-            <table className="w-full border-collapse border border-gray-200 text-sm min-w-[620px]">
+            <table className="w-full border-collapse border border-gray-200 text-xs sm:text-sm min-w-0">
               <tbody>
                 <tr>
-                  <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-3 sm:px-4 py-3 text-left font-medium text-gray-700 w-28 sm:w-36">
+                  <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-2 sm:px-3 py-2 text-left font-medium text-gray-700 w-20 sm:w-24 md:w-28">
                     방문 견적일정
                   </th>
-                  <td className="border border-gray-200 p-2 sm:p-2.5">
+                  <td className="border border-gray-200 p-1.5 sm:p-2">
                     <CustomDatePicker 
                       selected={visitDate} 
                       onChange={setVisitDate} 
                       name="visitDate" 
                       showTimeSelect 
                       dateFormat="yyyy-MM-dd'T'HH:mm" 
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-blue-500" 
+                      className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 sm:py-2 outline-none focus:border-blue-500 text-xs sm:text-sm" 
                     />
                   </td>
-                  <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-3 sm:px-4 py-3 text-left font-medium text-gray-700 w-28 sm:w-36">
+                  <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-2 sm:px-3 py-2 text-left font-medium text-gray-700 w-20 sm:w-24 md:w-28">
                     이사 예정일
                   </th>
-                  <td className="border border-gray-200 p-2 sm:p-2.5">
+                  <td className="border border-gray-200 p-1.5 sm:p-2">
                     <CustomDatePicker 
                       selected={movingDate} 
                       onChange={setMovingDate} 
                       name="movingDate" 
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-blue-500" 
+                      className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 sm:py-2 outline-none focus:border-blue-500 text-xs sm:text-sm" 
                     />
                   </td>
                 </tr>
 
                 {movingType === 'K' && (
                   <tr>
-                    <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-3 sm:px-4 py-3 text-left font-medium text-gray-700 w-28 sm:w-36">
+                    <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-2 sm:px-3 py-2 text-left font-medium text-gray-700 w-20 sm:w-24 md:w-28">
                       정리 예정일 (보관)
                     </th>
-                    <td className="border border-gray-200 p-2 sm:p-2.5">
+                    <td className="border border-gray-200 p-1.5 sm:p-2">
                       <CustomDatePicker 
                         selected={organizeDate} 
                         onChange={setOrganizeDate} 
                         name="organizeDate" 
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-blue-500" 
+                        className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 sm:py-2 outline-none focus:border-blue-500 text-xs sm:text-sm" 
                       />
                     </td>
-                    <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-3 sm:px-4 py-3 text-left font-medium text-gray-700 w-28 sm:w-36">
+                    <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-2 sm:px-3 py-2 text-left font-medium text-gray-700 w-20 sm:w-24 md:w-28">
                       정리 여부
                     </th>
-                    <td className="border border-gray-200 p-2 sm:p-2.5">
-                      <div className="flex gap-4 items-center h-full px-1">
-                        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                    <td className="border border-gray-200 p-1.5 sm:p-2">
+                      <div className="flex gap-3 items-center h-full px-1">
+                        <label className="flex items-center gap-1.5 text-xs sm:text-sm text-gray-700 cursor-pointer">
                           <input 
                             type="radio" 
                             name="organizeStatus" 
                             checked={organizeStatus === '정리'} 
                             onChange={() => setOrganizeStatus('정리')} 
                             value="정리" 
-                            className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300" 
+                            className="w-3.5 h-3.5 text-blue-600 focus:ring-blue-500 border-gray-300" 
                           />
                           정리
                         </label>
-                        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                        <label className="flex items-center gap-1.5 text-xs sm:text-sm text-gray-700 cursor-pointer">
                           <input 
                             type="radio" 
                             name="organizeStatus" 
                             checked={organizeStatus === '미정리'} 
                             onChange={() => setOrganizeStatus('미정리')} 
                             value="미정리" 
-                            className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300" 
+                            className="w-3.5 h-3.5 text-blue-600 focus:ring-blue-500 border-gray-300" 
                           />
                           미정리
                         </label>
@@ -1521,40 +1520,40 @@ export function EstimateForm({
 
                 {/* 출발지 */}
                 <tr>
-                  <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-3 sm:px-4 py-3 text-left font-medium text-gray-700 align-top w-28 sm:w-36">
+                  <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-2 sm:px-3 py-2 text-left font-medium text-gray-700 align-top w-20 sm:w-24 md:w-28">
                     출발지 <span className="text-red-500">*</span>
                   </th>
-                  <td colSpan={3} className="border border-gray-200 p-3 space-y-3">
-                    <div className="flex gap-2">
+                  <td colSpan={3} className="border border-gray-200 p-2 sm:p-2.5 space-y-2">
+                    <div className="flex gap-1.5 sm:gap-2">
                       <input 
                         type="text" 
                         name="fromAddress" 
                         value={fromAddress} 
                         onChange={e => setFromAddress(e.target.value)} 
                         required 
-                        className="flex-1 rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-blue-500" 
+                        className="flex-1 min-w-0 rounded-lg border border-gray-300 px-2.5 py-1.5 sm:py-2 outline-none focus:border-blue-500 text-xs sm:text-sm" 
                         placeholder="출발지 주소를 검색하세요" 
                       />
                       <button 
                         type="button" 
                         onClick={() => { setPostcodeTarget('from'); setPostcodeOpen(true); }} 
-                        className="px-3.5 py-2 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 flex items-center gap-1 font-medium text-sm whitespace-nowrap shadow-sm transition-colors"
+                        className="px-2.5 sm:px-3 py-1.5 sm:py-2 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 flex items-center gap-1 font-medium text-xs sm:text-sm whitespace-nowrap shadow-xs transition-colors shrink-0"
                       >
-                        <Search size={16}/> 검색
+                        <Search size={14}/> 검색
                       </button>
                       {fromAddress && (
                         <a 
                           href={`https://map.kakao.com/link/search/${fromAddress}`} 
                           target="_blank" 
                           rel="noreferrer" 
-                          className="px-3.5 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 flex items-center gap-1 font-medium text-sm whitespace-nowrap shadow-sm transition-colors"
+                          className="px-2.5 sm:px-3 py-1.5 sm:py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 flex items-center gap-1 font-medium text-xs sm:text-sm whitespace-nowrap shadow-xs transition-colors shrink-0"
                         >
-                          <MapPin size={16}/> 지도
+                          <MapPin size={14}/> 지도
                         </a>
                       )}
                     </div>
 
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-4 bg-gray-50/80 p-2.5 sm:p-3 rounded-lg border border-gray-200">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 bg-gray-50/80 p-2 sm:p-2.5 rounded-lg border border-gray-200">
                       <div className="flex items-center gap-1.5 shrink-0">
                         <span className="text-gray-700 font-bold text-xs sm:text-sm whitespace-nowrap">층수:</span>
                         <input 
@@ -1563,16 +1562,15 @@ export function EstimateForm({
                           onChange={e => setFromFloor(e.target.value)} 
                           onFocus={handleSelectAllOnFocus}
                           placeholder="예: 3" 
-                          className="w-16 sm:w-20 rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm text-center outline-none focus:border-blue-500 shadow-xs font-bold text-gray-800" 
+                          className="w-14 sm:w-16 rounded-lg border border-gray-300 bg-white px-1.5 py-1 text-xs sm:text-sm text-center outline-none focus:border-blue-500 shadow-xs font-bold text-gray-800" 
                         />
                         <span className="text-gray-600 text-xs sm:text-sm font-medium">층</span>
                       </div>
 
-                      <div className="h-[1px] w-full bg-gray-200 sm:hidden" />
                       <div className="h-4 w-[1px] bg-gray-300 hidden sm:block" />
 
-                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                        <span className="text-gray-700 font-bold text-xs sm:text-sm whitespace-nowrap">작업조건:</span>
+                      <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
+                        <span className="text-gray-700 font-bold text-xs sm:text-sm whitespace-nowrap mr-0.5">작업조건:</span>
                         {['사다리차', '엘리베이터', '수작업', '계단'].map(type => {
                           const isChecked = fromWorkTypes.includes(type)
                           return (
@@ -1584,13 +1582,13 @@ export function EstimateForm({
                                   prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
                                 )
                               }}
-                              className={`px-2.5 sm:px-3 py-1 rounded-md text-xs sm:text-sm font-medium border transition-all flex items-center gap-1.5 shadow-xs ${
+                              className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-xs sm:text-sm font-medium border transition-all flex items-center gap-1 shadow-xs whitespace-nowrap ${
                                 isChecked 
                                   ? 'bg-blue-600 border-blue-600 text-white font-bold' 
                                   : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100'
                               }`}
                             >
-                              <span className={`w-3.5 h-3.5 rounded flex items-center justify-center text-[10px] font-bold ${
+                              <span className={`w-3 h-3 rounded flex items-center justify-center text-[9px] font-bold ${
                                 isChecked ? 'bg-white text-blue-600' : 'border border-gray-400'
                               }`}>
                                 {isChecked ? '✓' : ''}
@@ -1606,40 +1604,40 @@ export function EstimateForm({
 
                 {/* 도착지 */}
                 <tr>
-                  <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-3 sm:px-4 py-3 text-left font-medium text-gray-700 align-top w-28 sm:w-36">
+                  <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-2 sm:px-3 py-2 text-left font-medium text-gray-700 align-top w-20 sm:w-24 md:w-28">
                     도착지 <span className="text-red-500">*</span>
                   </th>
-                  <td colSpan={3} className="border border-gray-200 p-3 space-y-3">
-                    <div className="flex gap-2">
+                  <td colSpan={3} className="border border-gray-200 p-2 sm:p-2.5 space-y-2">
+                    <div className="flex gap-1.5 sm:gap-2">
                       <input 
                         type="text" 
                         name="toAddress" 
                         value={toAddress} 
                         onChange={e => setToAddress(e.target.value)} 
                         required 
-                        className="flex-1 rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-blue-500" 
+                        className="flex-1 min-w-0 rounded-lg border border-gray-300 px-2.5 py-1.5 sm:py-2 outline-none focus:border-blue-500 text-xs sm:text-sm" 
                         placeholder="도착지 주소를 검색하세요" 
                       />
                       <button 
                         type="button" 
                         onClick={() => { setPostcodeTarget('to'); setPostcodeOpen(true); }} 
-                        className="px-3.5 py-2 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 flex items-center gap-1 font-medium text-sm whitespace-nowrap shadow-sm transition-colors"
+                        className="px-2.5 sm:px-3 py-1.5 sm:py-2 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 flex items-center gap-1 font-medium text-xs sm:text-sm whitespace-nowrap shadow-xs transition-colors shrink-0"
                       >
-                        <Search size={16}/> 검색
+                        <Search size={14}/> 검색
                       </button>
                       {toAddress && (
                         <a 
                           href={`https://map.kakao.com/link/search/${toAddress}`} 
                           target="_blank" 
                           rel="noreferrer" 
-                          className="px-3.5 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 flex items-center gap-1 font-medium text-sm whitespace-nowrap shadow-sm transition-colors"
+                          className="px-2.5 sm:px-3 py-1.5 sm:py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 flex items-center gap-1 font-medium text-xs sm:text-sm whitespace-nowrap shadow-xs transition-colors shrink-0"
                         >
-                          <MapPin size={16}/> 지도
+                          <MapPin size={14}/> 지도
                         </a>
                       )}
                     </div>
 
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-4 bg-gray-50/80 p-2.5 sm:p-3 rounded-lg border border-gray-200">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 bg-gray-50/80 p-2 sm:p-2.5 rounded-lg border border-gray-200">
                       <div className="flex items-center gap-1.5 shrink-0">
                         <span className="text-gray-700 font-bold text-xs sm:text-sm whitespace-nowrap">층수:</span>
                         <input 
@@ -1648,16 +1646,15 @@ export function EstimateForm({
                           onChange={e => setToFloor(e.target.value)} 
                           onFocus={handleSelectAllOnFocus}
                           placeholder="예: 5" 
-                          className="w-16 sm:w-20 rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm text-center outline-none focus:border-blue-500 shadow-xs font-bold text-gray-800" 
+                          className="w-14 sm:w-16 rounded-lg border border-gray-300 bg-white px-1.5 py-1 text-xs sm:text-sm text-center outline-none focus:border-blue-500 shadow-xs font-bold text-gray-800" 
                         />
                         <span className="text-gray-600 text-xs sm:text-sm font-medium">층</span>
                       </div>
 
-                      <div className="h-[1px] w-full bg-gray-200 sm:hidden" />
                       <div className="h-4 w-[1px] bg-gray-300 hidden sm:block" />
 
-                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                        <span className="text-gray-700 font-bold text-xs sm:text-sm whitespace-nowrap">작업조건:</span>
+                      <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
+                        <span className="text-gray-700 font-bold text-xs sm:text-sm whitespace-nowrap mr-0.5">작업조건:</span>
                         {['사다리차', '엘리베이터', '수작업', '계단'].map(type => {
                           const isChecked = toWorkTypes.includes(type)
                           return (
@@ -1669,13 +1666,13 @@ export function EstimateForm({
                                   prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
                                 )
                               }}
-                              className={`px-2.5 sm:px-3 py-1 rounded-md text-xs sm:text-sm font-medium border transition-all flex items-center gap-1.5 shadow-xs ${
+                              className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-xs sm:text-sm font-medium border transition-all flex items-center gap-1 shadow-xs whitespace-nowrap ${
                                 isChecked 
                                   ? 'bg-blue-600 border-blue-600 text-white font-bold' 
                                   : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100'
                               }`}
                             >
-                              <span className={`w-3.5 h-3.5 rounded flex items-center justify-center text-[10px] font-bold ${
+                              <span className={`w-3 h-3 rounded flex items-center justify-center text-[9px] font-bold ${
                                 isChecked ? 'bg-white text-blue-600' : 'border border-gray-400'
                               }`}>
                                 {isChecked ? '✓' : ''}
@@ -1691,18 +1688,18 @@ export function EstimateForm({
 
                 {/* 사다리차 표준 운임표 연동 및 계산 */}
                 <tr className="bg-amber-50/20">
-                  <th className="whitespace-nowrap bg-amber-50/80 border border-gray-200 px-3 sm:px-4 py-3 text-left font-bold text-amber-950 align-top w-28 sm:w-36">
+                  <th className="whitespace-nowrap bg-amber-50/80 border border-gray-200 px-2 sm:px-3 py-2 text-left font-bold text-amber-950 align-top w-20 sm:w-24 md:w-28">
                     <div className="flex items-center gap-1.5">
-                      <Truck size={16} className="text-amber-600" />
+                      <Truck size={15} className="text-amber-600" />
                       <span>사다리차 운임</span>
                     </div>
-                    <span className="block text-[11px] font-normal text-amber-700 mt-0.5">표준운임표 연동</span>
+                    <span className="block text-[10px] sm:text-[11px] font-normal text-amber-700 mt-0.5">표준운임 연동</span>
                   </th>
-                  <td colSpan={3} className="border border-gray-200 p-3 space-y-3">
-                    <div className="bg-white rounded-xl border border-amber-200 p-3 sm:p-4 shadow-sm space-y-3">
+                  <td colSpan={3} className="border border-gray-200 p-2 sm:p-2.5 space-y-2">
+                    <div className="bg-white rounded-xl border border-amber-200 p-2.5 sm:p-3 shadow-xs space-y-2.5">
                       {/* 톤수 선택 및 운임표 바로가기 */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
-                        <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-2">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                           <span className="text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap">화물 기준 톤수:</span>
                           <div className="flex flex-wrap items-center gap-1">
                             {['1', '2.5', '5', '6', '7.5', '10'].map(ton => (
@@ -1710,7 +1707,7 @@ export function EstimateForm({
                                 key={ton}
                                 type="button"
                                 onClick={() => setLadderTonnage(ton)}
-                                className={`px-2.5 py-1 text-xs font-bold rounded-md border transition-all ${
+                                className={`px-2 sm:px-2.5 py-0.5 sm:py-1 text-xs font-bold rounded-md border transition-all ${
                                   ladderTonnage === ton
                                     ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
                                     : 'bg-gray-50 text-gray-700 border-gray-300 hover:bg-gray-100'
@@ -1726,16 +1723,16 @@ export function EstimateForm({
                           href="/ladders" 
                           target="_blank" 
                           rel="noreferrer"
-                          className="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1 self-end sm:self-auto hover:underline"
+                          className="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1 hover:underline whitespace-nowrap"
                         >
-                          <span>사다리차 표준운임표 확인/수정 ↗</span>
+                          <span>사다리차 운임표 ↗</span>
                         </a>
                       </div>
 
                       {/* 출발지 / 도착지 사다리차 적용 현황 */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
                         {/* 출발지 */}
-                        <div className={`p-3 rounded-lg border text-xs space-y-1.5 ${
+                        <div className={`p-2.5 rounded-lg border text-xs space-y-1 ${
                           isFromLadder 
                             ? 'bg-amber-50/50 border-amber-200' 
                             : 'bg-gray-50 border-gray-200 text-gray-400'
@@ -1745,7 +1742,7 @@ export function EstimateForm({
                               출발지 사다리차 {isFromLadder ? '✓ 선택됨' : '(미선택)'}
                             </span>
                             {isFromLadder && fromFloor && (
-                              <span className="text-gray-700 bg-white px-2 py-0.5 rounded border border-amber-200 font-bold">{fromFloor}층</span>
+                              <span className="text-gray-700 bg-white px-1.5 py-0.2 rounded border border-amber-200 font-bold">{fromFloor}층</span>
                             )}
                           </div>
                           {isFromLadder ? (
@@ -1757,7 +1754,7 @@ export function EstimateForm({
                                 </span>
                               </div>
                             ) : (
-                              <p className="text-gray-500 pt-1">출발지 층수를 2층 이상 입력하면 표준 운임이 자동 계산됩니다.</p>
+                              <p className="text-gray-500 pt-1">출발지 층수를 2층 이상 입력하면 자동 계산됩니다.</p>
                             )
                           ) : (
                             <p className="text-gray-400">출발지 작업조건에서 '사다리차'를 선택하면 자동 계산됩니다.</p>
@@ -1765,7 +1762,7 @@ export function EstimateForm({
                         </div>
 
                         {/* 도착지 */}
-                        <div className={`p-3 rounded-lg border text-xs space-y-1.5 ${
+                        <div className={`p-2.5 rounded-lg border text-xs space-y-1 ${
                           isToLadder 
                             ? 'bg-amber-50/50 border-amber-200' 
                             : 'bg-gray-50 border-gray-200 text-gray-400'
@@ -1775,7 +1772,7 @@ export function EstimateForm({
                               도착지 사다리차 {isToLadder ? '✓ 선택됨' : '(미선택)'}
                             </span>
                             {isToLadder && toFloor && (
-                              <span className="text-gray-700 bg-white px-2 py-0.5 rounded border border-amber-200 font-bold">{toFloor}층</span>
+                              <span className="text-gray-700 bg-white px-1.5 py-0.2 rounded border border-amber-200 font-bold">{toFloor}층</span>
                             )}
                           </div>
                           {isToLadder ? (
@@ -1787,7 +1784,7 @@ export function EstimateForm({
                                 </span>
                               </div>
                             ) : (
-                              <p className="text-gray-500 pt-1">도착지 층수를 2층 이상 입력하면 표준 운임이 자동 계산됩니다.</p>
+                              <p className="text-gray-500 pt-1">도착지 층수를 2층 이상 입력하면 자동 계산됩니다.</p>
                             )
                           ) : (
                             <p className="text-gray-400">도착지 작업조건에서 '사다리차'를 선택하면 자동 계산됩니다.</p>
@@ -1796,15 +1793,15 @@ export function EstimateForm({
                       </div>
 
                       {/* 합계 및 가산비용 반영 버튼 */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-gray-200 bg-gray-50/60 p-2.5 rounded-lg">
-                        <div className="flex items-center gap-2 text-xs sm:text-sm">
-                          <span className="text-gray-600 font-medium">총 사다리차 표준 운임:</span>
-                          <span className="font-black text-amber-700 text-base">
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 border-t border-gray-200 bg-gray-50/60 p-2 rounded-lg">
+                        <div className="flex items-center gap-1.5 text-xs sm:text-sm">
+                          <span className="text-gray-600 font-medium">총 사다리차 운임:</span>
+                          <span className="font-black text-amber-700 text-sm sm:text-base">
                             {totalLadderCost.toLocaleString()} 원
                           </span>
                           {(fromLadderCalc.cost > 0 && toLadderCalc.cost > 0) && (
-                            <span className="text-gray-400 text-xs hidden sm:inline">
-                              (출발지 {fromLadderCalc.cost.toLocaleString()} + 도착지 {toLadderCalc.cost.toLocaleString()})
+                            <span className="text-gray-400 text-xs hidden md:inline">
+                              (출발 {fromLadderCalc.cost.toLocaleString()} + 도착 {toLadderCalc.cost.toLocaleString()})
                             </span>
                           )}
                         </div>
@@ -1813,7 +1810,7 @@ export function EstimateForm({
                           type="button"
                           onClick={handleApplyLadderCost}
                           disabled={totalLadderCost <= 0}
-                          className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 ${
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1 whitespace-nowrap ${
                             totalLadderCost <= 0
                               ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                               : isLadderApplied
@@ -1821,8 +1818,8 @@ export function EstimateForm({
                               : 'bg-amber-600 hover:bg-amber-700 text-white active:scale-95'
                           }`}
                         >
-                          {isLadderApplied ? <CheckCircle2 size={14} className="text-amber-700" /> : <Plus size={14} />}
-                          <span>{isLadderApplied ? '사다리차 운임 반영 완료' : '가산 비용에 반영하기'}</span>
+                          {isLadderApplied ? <CheckCircle2 size={13} className="text-amber-700" /> : <Plus size={13} />}
+                          <span>{isLadderApplied ? '운임 반영 완료' : '가산비용 반영'}</span>
                         </button>
                       </div>
                     </div>
@@ -1831,21 +1828,21 @@ export function EstimateForm({
 
                 {/* 이동 거리 계산 및 표시 (견적금액 영향) */}
                 <tr className="bg-blue-50/20">
-                  <th className="whitespace-nowrap bg-blue-50/80 border border-gray-200 px-3 sm:px-4 py-3 text-left font-bold text-blue-950 align-top w-28 sm:w-36">
+                  <th className="whitespace-nowrap bg-blue-50/80 border border-gray-200 px-2 sm:px-3 py-2 text-left font-bold text-blue-950 align-top w-20 sm:w-24 md:w-28">
                     <div className="flex items-center gap-1.5">
-                      <Navigation size={16} className="text-blue-600" />
+                      <Navigation size={15} className="text-blue-600" />
                       <span>이동 거리</span>
                     </div>
-                    <span className="block text-[11px] font-normal text-blue-700 mt-0.5">견적금액 연동</span>
+                    <span className="block text-[10px] sm:text-[11px] font-normal text-blue-700 mt-0.5">견적금액 연동</span>
                   </th>
-                  <td colSpan={3} className="border border-gray-200 p-3 space-y-3">
-                    <div className="bg-white rounded-xl border border-blue-200 p-3 sm:p-4 shadow-sm space-y-3">
+                  <td colSpan={3} className="border border-gray-200 p-2 sm:p-2.5 space-y-2">
+                    <div className="bg-white rounded-xl border border-blue-200 p-2.5 sm:p-3 shadow-xs space-y-2.5">
                       {/* 1. 거리 및 시간 표시 / 수동 조정 영역 */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="flex flex-wrap items-center gap-3">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">실제 주행거리:</span>
-                            <div className="flex items-center gap-1 bg-blue-50/60 px-3 py-1 rounded-lg border border-blue-200">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap">실제 주행거리:</span>
+                            <div className="flex items-center gap-1 bg-blue-50/60 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border border-blue-200">
                               <input 
                                 type="number" 
                                 step="0.1" 
@@ -1857,14 +1854,14 @@ export function EstimateForm({
                                 }} 
                                 onFocus={handleSelectAllOnFocus}
                                 placeholder="0.0" 
-                                className="w-20 bg-transparent text-right font-black text-blue-700 text-base sm:text-lg outline-none focus:bg-white rounded px-1"
+                                className="w-16 bg-transparent text-right font-black text-blue-700 text-sm sm:text-base outline-none focus:bg-white rounded px-0.5"
                               />
-                              <span className="font-bold text-blue-900 text-sm sm:text-base">km</span>
+                              <span className="font-bold text-blue-900 text-xs sm:text-sm">km</span>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 bg-gray-50 px-2.5 py-1.5 rounded-lg border border-gray-200">
-                            <span className="font-medium">예상 소요시간:</span>
+                          <div className="flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded-lg border border-gray-200">
+                            <span className="font-medium">예상시간:</span>
                             <span className="font-bold text-gray-800">
                               {distanceDuration || (distance > 0 ? `약 ${Math.max(10, Math.round((distance / 45) * 60))}분` : '-')}
                             </span>
@@ -1872,12 +1869,12 @@ export function EstimateForm({
                         </div>
 
                         {/* 계산 버튼 & 안내 */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
                           <button
                             type="button"
                             onClick={() => handleCalculateDistance()}
                             disabled={isCalculatingDistance || !fromAddress || !toAddress}
-                            className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-sm transition-all ${
+                            className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1 shadow-xs transition-all whitespace-nowrap ${
                               isCalculatingDistance
                                 ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                                 : !fromAddress || !toAddress
@@ -1885,8 +1882,8 @@ export function EstimateForm({
                                 : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95'
                             }`}
                           >
-                            <RefreshCw size={14} className={isCalculatingDistance ? 'animate-spin' : ''} />
-                            <span>{isCalculatingDistance ? '경로 계산 중...' : '거리 재계산'}</span>
+                            <RefreshCw size={12} className={isCalculatingDistance ? 'animate-spin' : ''} />
+                            <span>{isCalculatingDistance ? '계산 중...' : '거리 재계산'}</span>
                           </button>
 
                           {fromAddress && toAddress && (
@@ -1894,10 +1891,10 @@ export function EstimateForm({
                               href={`https://map.kakao.com/?sName=${encodeURIComponent(fromAddress)}&eName=${encodeURIComponent(toAddress)}`}
                               target="_blank"
                               rel="noreferrer"
-                              className="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs sm:text-sm font-medium transition-colors border border-gray-300 flex items-center gap-1"
+                              className="px-2 sm:px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors border border-gray-300 flex items-center gap-1 whitespace-nowrap"
                               title="카카오맵에서 실제 경로 및 지도 확인"
                             >
-                              <MapPin size={14} /> 지도 확인
+                              <MapPin size={12} /> 지도
                             </a>
                           )}
                         </div>
@@ -1905,30 +1902,30 @@ export function EstimateForm({
 
                       {/* 상태 알림 배지 */}
                       {distanceNotice && (
-                        <div className="flex items-center gap-1.5 text-xs text-green-700 bg-green-50 px-2.5 py-1 rounded-md border border-green-200">
-                          <CheckCircle2 size={13} className="text-green-600 shrink-0" />
+                        <div className="flex items-center gap-1.5 text-xs text-green-700 bg-green-50 px-2 py-0.5 rounded-md border border-green-200">
+                          <CheckCircle2 size={12} className="text-green-600 shrink-0" />
                           <span>{distanceNotice}</span>
                         </div>
                       )}
 
                       {distanceCalcError && (
-                        <div className="flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200">
-                          <AlertCircle size={13} className="text-amber-600 shrink-0" />
+                        <div className="flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                          <AlertCircle size={12} className="text-amber-600 shrink-0" />
                           <span>{distanceCalcError}</span>
                         </div>
                       )}
 
                       {/* 2. 견적금액 연동: 거리 가산 요금 산출 보조 섹션 */}
-                      <div className="mt-2 pt-2.5 border-t border-dashed border-gray-200 bg-gray-50/70 p-2.5 sm:p-3 rounded-lg space-y-2">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                          <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-gray-800">
-                            <Calculator size={15} className="text-blue-600" />
-                            <span>거리 가산 운임 계산기</span>
-                            <span className="text-[11px] font-normal text-gray-500">(견적 추가비용 반영)</span>
+                      <div className="mt-1.5 pt-2 border-t border-dashed border-gray-200 bg-gray-50/70 p-2 sm:p-2.5 rounded-lg space-y-1.5">
+                        <div className="flex flex-wrap items-center justify-between gap-1.5">
+                          <div className="flex items-center gap-1 text-xs sm:text-sm font-bold text-gray-800">
+                            <Calculator size={14} className="text-blue-600" />
+                            <span>거리 가산 운임</span>
+                            <span className="text-[10px] sm:text-[11px] font-normal text-gray-500">(추가비용)</span>
                           </div>
                           
-                          <div className="flex flex-wrap items-center gap-2 text-xs">
-                            <span className="text-gray-600 font-medium">기준 거리:</span>
+                          <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                            <span className="text-gray-600 font-medium">기준:</span>
                             <div className="flex items-center">
                               <input 
                                 type="number" 
@@ -1936,9 +1933,9 @@ export function EstimateForm({
                                 value={baseDistanceKm} 
                                 onChange={e => setBaseDistanceKm(Number(e.target.value) || 0)} 
                                 onFocus={handleSelectAllOnFocus}
-                                className="w-12 text-center rounded border border-gray-300 bg-white py-0.5 px-1 font-bold text-gray-800 outline-none focus:border-blue-500" 
+                                className="w-10 text-center rounded border border-gray-300 bg-white py-0.5 px-0.5 font-bold text-gray-800 outline-none focus:border-blue-500 text-xs" 
                               />
-                              <span className="ml-1 text-gray-600">km 초과 시</span>
+                              <span className="ml-0.5 text-gray-600">km 초과</span>
                             </div>
 
                             <span className="text-gray-600 font-medium ml-1">km당:</span>
@@ -1950,27 +1947,27 @@ export function EstimateForm({
                                 value={ratePerKm} 
                                 onChange={e => setRatePerKm(Number(e.target.value) || 0)} 
                                 onFocus={handleSelectAllOnFocus}
-                                className="w-16 text-right rounded border border-gray-300 bg-white py-0.5 px-1 font-bold text-gray-800 outline-none focus:border-blue-500" 
+                                className="w-14 text-right rounded border border-gray-300 bg-white py-0.5 px-1 font-bold text-gray-800 outline-none focus:border-blue-500 text-xs" 
                               />
-                              <span className="ml-1 text-gray-600">원</span>
+                              <span className="ml-0.5 text-gray-600">원</span>
                             </div>
                           </div>
                         </div>
 
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-gray-200/80">
-                          <div className="text-xs text-gray-600 flex items-center gap-1.5 flex-wrap">
-                            <span>초과 거리:</span>
+                        <div className="flex flex-wrap items-center justify-between gap-1.5 pt-1 border-t border-gray-200/80">
+                          <div className="text-xs text-gray-600 flex items-center gap-1 flex-wrap">
+                            <span>초과:</span>
                             <span className="font-bold text-gray-900">{extraDistanceKm}km</span>
                             <span className="text-gray-300">|</span>
-                            <span>산출 가산금액:</span>
-                            <span className="font-extrabold text-blue-700 text-sm">+{calculatedExtraCost.toLocaleString()} 원</span>
+                            <span>산출액:</span>
+                            <span className="font-extrabold text-blue-700 text-xs sm:text-sm">+{calculatedExtraCost.toLocaleString()} 원</span>
                           </div>
 
                           <button
                             type="button"
                             onClick={handleApplyDistanceCost}
                             disabled={calculatedExtraCost <= 0}
-                            className={`px-3 py-1 rounded-md text-xs font-bold transition-all shadow-sm flex items-center gap-1 ${
+                            className={`px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-md text-xs font-bold transition-all shadow-xs flex items-center gap-1 whitespace-nowrap ${
                               calculatedExtraCost <= 0
                                 ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                                 : isDistanceApplied
@@ -1978,8 +1975,8 @@ export function EstimateForm({
                                 : 'bg-indigo-600 hover:bg-indigo-700 text-white active:scale-95'
                             }`}
                           >
-                            {isDistanceApplied ? <CheckCircle2 size={13} className="text-indigo-700" /> : <Plus size={13} />}
-                            <span>{isDistanceApplied ? '거리가산운임 반영 완료' : '+ 가산 비용에 반영하기'}</span>
+                            {isDistanceApplied ? <CheckCircle2 size={12} className="text-indigo-700" /> : <Plus size={12} />}
+                            <span>{isDistanceApplied ? '운임 반영 완료' : '+ 가산비용 반영'}</span>
                           </button>
                         </div>
                       </div>
@@ -1989,12 +1986,12 @@ export function EstimateForm({
 
                 {/* 특기사항 (선택 입력, 내용 없으면 조회/출력 시 미표시) */}
                 <tr>
-                  <th className="whitespace-nowrap bg-amber-50/80 border border-gray-200 px-3 sm:px-4 py-3 text-left font-bold text-amber-950 align-top w-28 sm:w-36">
+                  <th className="whitespace-nowrap bg-amber-50/80 border border-gray-200 px-2 sm:px-3 py-2 text-left font-bold text-amber-950 align-top w-20 sm:w-24 md:w-28">
                     <div className="flex items-center gap-1.5">
-                      <FileText size={16} className="text-amber-600" />
+                      <FileText size={15} className="text-amber-600" />
                       <span>특기사항</span>
                     </div>
-                    <span className="block text-[11px] font-normal text-amber-700 mt-0.5">선택 입력</span>
+                    <span className="block text-[10px] sm:text-[11px] font-normal text-amber-700 mt-0.5">선택 입력</span>
                   </th>
                   <td colSpan={3} className="border border-gray-200 p-3">
                     <textarea
@@ -2040,37 +2037,37 @@ export function EstimateForm({
           
           <div className="space-y-3">
             {/* CBM 물품 목록 액션 바 */}
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-2.5 bg-gray-50/80 p-2.5 rounded-xl border border-gray-200">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 bg-gray-50/80 p-2 sm:p-2.5 rounded-xl border border-gray-200">
               <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                <h3 className="font-bold text-gray-900 text-sm sm:text-base mr-1">물품 목록 (CBM)</h3>
+                <h3 className="font-bold text-gray-900 text-xs sm:text-sm md:text-base mr-1">물품 목록 (CBM)</h3>
                 
                 {/* 1. 평형별 템플릿 원클릭 버튼 */}
                 <button
                   type="button"
                   onClick={() => setIsPresetModalOpen(true)}
-                  className="px-2.5 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs rounded-lg font-extrabold transition-all shadow-xs flex items-center gap-1 active:scale-95"
+                  className="px-2 sm:px-2.5 py-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs rounded-lg font-extrabold transition-all shadow-xs flex items-center gap-1 active:scale-95 whitespace-nowrap"
                   title="원룸, 24평, 34평 등 평형별 표준 이삿짐을 원클릭으로 자동 구성합니다"
                 >
-                  <Zap size={13} className="text-amber-300 fill-amber-300" />
-                  <span>⚡ 평형 템플릿 (5초)</span>
+                  <Zap size={12} className="text-amber-300 fill-amber-300" />
+                  <span>⚡ 평형 템플릿</span>
                 </button>
 
                 {/* 2. AI CBM 견적 버튼 */}
                 <button
                   type="button"
                   onClick={() => setIsAiModalOpen(true)}
-                  className="px-2.5 py-1.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white text-xs rounded-lg font-bold transition-all shadow-xs flex items-center gap-1 active:scale-95"
+                  className="px-2 sm:px-2.5 py-1 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white text-xs rounded-lg font-bold transition-all shadow-xs flex items-center gap-1 active:scale-95 whitespace-nowrap"
                   title="촬영한 현장 영상이나 사진을 AI로 분석하여 CBM 물품을 자동 추출합니다"
                 >
-                  <Sparkles size={13} className="text-amber-300 animate-pulse" />
-                  <span>AI 영상·사진 분석</span>
+                  <Sparkles size={12} className="text-amber-300 animate-pulse" />
+                  <span>AI 영상·사진</span>
                 </button>
 
                 {/* 3. CBM 계산기 */}
                 <button 
                   type="button" 
                   onClick={() => setIsCbmCalculatorOpen(true)}
-                  className="px-2 py-1.5 bg-white text-blue-700 hover:bg-blue-50 text-xs rounded-lg font-bold transition-colors border border-blue-200 shadow-2xs"
+                  className="px-2 py-1 bg-white text-blue-700 hover:bg-blue-50 text-xs rounded-lg font-bold transition-colors border border-blue-200 shadow-2xs whitespace-nowrap"
                 >
                   CBM 계산기
                 </button>
@@ -2092,20 +2089,20 @@ export function EstimateForm({
                   const entries = Object.entries(countBy)
                   if (entries.length === 0) return null
                   return (
-                    <div className="flex flex-wrap items-center gap-1.5 text-xs font-bold">
+                    <div className="flex flex-wrap items-center gap-1 text-xs font-bold">
                       {countBy['폐기'] && (
-                        <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200 shadow-2xs">
-                          폐기 {countBy['폐기']}개
+                        <span className="px-1.5 py-0.2 rounded-full bg-red-100 text-red-700 border border-red-200 shadow-2xs text-[11px]">
+                          폐기 {countBy['폐기']}
                         </span>
                       )}
                       {countBy['내림'] && (
-                        <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 shadow-2xs">
-                          내림 {countBy['내림']}개
+                        <span className="px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-700 border border-amber-200 shadow-2xs text-[11px]">
+                          내림 {countBy['내림']}
                         </span>
                       )}
                       {countBy['경유'] && (
-                        <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 border border-purple-200 shadow-2xs">
-                          경유 {countBy['경유']}개
+                        <span className="px-1.5 py-0.2 rounded-full bg-purple-100 text-purple-700 border border-purple-200 shadow-2xs text-[11px]">
+                          경유 {countBy['경유']}
                         </span>
                       )}
                     </div>
@@ -2114,36 +2111,36 @@ export function EstimateForm({
               </div>
 
               {/* 우측: 뷰 모드 토글 (초고속 터치 모드 vs 상세 테이블) 및 총 합계 */}
-              <div className="flex items-center justify-between w-full lg:w-auto gap-2">
+              <div className="flex items-center justify-between w-full md:w-auto gap-2 shrink-0">
                 {/* 뷰 모드 세그먼트 스위처 */}
                 <div className="flex items-center bg-gray-200/80 p-0.5 rounded-lg border border-gray-300">
                   <button
                     type="button"
                     onClick={() => setCbmInputMode('touch')}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-extrabold transition-all ${
+                    className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-md text-xs font-extrabold transition-all whitespace-nowrap ${
                       cbmInputMode === 'touch'
                         ? 'bg-blue-600 text-white shadow-2xs'
                         : 'text-gray-600 hover:text-gray-900'
                     }`}
                   >
-                    <Smartphone size={13} />
-                    <span>⚡ 초고속 터치</span>
+                    <Smartphone size={12} />
+                    <span>⚡ 터치</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setCbmInputMode('table')}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-extrabold transition-all ${
+                    className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-md text-xs font-extrabold transition-all whitespace-nowrap ${
                       cbmInputMode === 'table'
                         ? 'bg-white text-gray-900 shadow-2xs'
                         : 'text-gray-600 hover:text-gray-900'
                     }`}
                   >
-                    <Table size={13} />
-                    <span>📋 상세 테이블</span>
+                    <Table size={12} />
+                    <span>📋 테이블</span>
                   </button>
                 </div>
 
-                <div className="text-sm font-extrabold text-blue-700 bg-white px-3 py-1 rounded-lg border border-blue-200 shadow-2xs shrink-0">
+                <div className="text-xs sm:text-sm font-extrabold text-blue-700 bg-white px-2.5 py-1 rounded-lg border border-blue-200 shadow-2xs shrink-0 whitespace-nowrap">
                   총 {totalCbm.toFixed(2)} CBM
                 </div>
               </div>
@@ -2173,10 +2170,10 @@ export function EstimateForm({
                       )}
                       <span>
                         {task.status === 'analyzing'
-                          ? `[${task.location}] AI가 백그라운드에서 분석 중입니다... (다른 방 짐을 계속 체크하세요)`
+                          ? `[${task.location}] AI 분석 중...`
                           : task.status === 'done'
-                          ? `🎉 [${task.location}] AI 분석 완료! (${task.items?.length || 0}개 물품 감지됨)`
-                          : `[${task.location}] 분석 실패: ${task.error}`}
+                          ? `🎉 [${task.location}] 분석 완료 (${task.items?.length || 0}개 감지)`
+                          : `[${task.location}] 실패: ${task.error}`}
                       </span>
                     </div>
 
@@ -2192,7 +2189,7 @@ export function EstimateForm({
                           }}
                           className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[11px] shadow-2xs"
                         >
-                          + 견적서에 즉시 반영
+                          + 반영
                         </button>
                       )}
                       <button
@@ -2217,7 +2214,7 @@ export function EstimateForm({
                 standardItems={standardItems}
               />
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
               {[...categories, { id: '', name: '기타/미지정' }].map(cat => {
                 // 실시간 동적 정렬 제거: 타이핑 중 행 위치가 변경되어 모바일 한글 조합(IME)이 깨지는 현상 방지
                 const catItems = items.filter(i => (i.locationId || '') === cat.id)
@@ -2229,29 +2226,29 @@ export function EstimateForm({
                 return (
                   <div key={cat.id} className="border border-gray-200 rounded-lg overflow-hidden">
                     <div 
-                      className="bg-blue-50/80 px-4 py-2.5 font-bold text-gray-800 flex justify-between items-center cursor-pointer hover:bg-blue-100/70 transition-colors border-b border-blue-100"
+                      className="bg-blue-50/80 px-3 sm:px-4 py-2 font-bold text-gray-800 flex justify-between items-center cursor-pointer hover:bg-blue-100/70 transition-colors border-b border-blue-100"
                       onClick={() => setExpandedCategories(prev => ({ ...prev, [cat.id]: !isExpanded }))}
                     >
-                      <div className="flex items-center gap-2">
-                        {isExpanded ? <ChevronUp size={20} className="text-blue-600" /> : <ChevronDown size={20} className="text-gray-400" />}
-                        <span className="text-gray-900 font-bold">{cat.name}</span>
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        {isExpanded ? <ChevronUp size={18} className="text-blue-600" /> : <ChevronDown size={18} className="text-gray-400" />}
+                        <span className="text-gray-900 font-bold text-xs sm:text-sm">{cat.name}</span>
                       </div>
-                      <span className="text-sm font-semibold text-blue-700 bg-white/90 px-2.5 py-0.5 rounded-full border border-blue-200 shadow-2xs">
+                      <span className="text-xs sm:text-sm font-semibold text-blue-700 bg-white/90 px-2 sm:px-2.5 py-0.5 rounded-full border border-blue-200 shadow-2xs">
                         {catItems.reduce((acc, item) => acc + getItemEffectiveCbm(item), 0).toFixed(2)} CBM
                       </span>
                     </div>
                     {isExpanded && (
                       <div className="overflow-x-auto">
-                        <table className="w-full text-xs sm:text-sm text-left bg-white min-w-[550px]">
+                        <table className="w-full text-xs sm:text-sm text-left bg-white min-w-0">
                           <thead className="bg-gray-50 text-gray-700 border-b border-gray-200">
                             <tr>
-                              <th className="whitespace-nowrap px-2 sm:px-3 py-1.5 sm:py-2 font-semibold min-w-[110px]">품목</th>
-                              <th className="whitespace-nowrap px-2 sm:px-3 py-1.5 sm:py-2 font-semibold min-w-[120px] w-36 sm:w-44">규격</th>
-                              <th className="whitespace-nowrap px-1.5 sm:px-2 py-1.5 sm:py-2 font-semibold w-14 sm:w-16 text-right">수량</th>
-                              <th className="whitespace-nowrap px-1 sm:px-1.5 py-1.5 sm:py-2 font-semibold w-16 sm:w-20 text-center">처리</th>
-                              <th className="whitespace-nowrap px-1.5 sm:px-2 py-1.5 sm:py-2 font-semibold w-18 sm:w-22 text-right">기본 CBM</th>
-                              <th className="whitespace-nowrap px-1.5 sm:px-2 py-1.5 sm:py-2 font-semibold w-18 sm:w-22 text-right">내품 CBM</th>
-                              <th className="whitespace-nowrap px-1 py-1.5 sm:py-2 font-semibold w-8 sm:w-10 text-center">삭제</th>
+                              <th className="whitespace-nowrap px-1.5 sm:px-2 py-1.5 font-semibold">품목</th>
+                              <th className="whitespace-nowrap px-1.5 sm:px-2 py-1.5 font-semibold w-24 sm:w-32 md:w-36">규격</th>
+                              <th className="whitespace-nowrap px-1 sm:px-1.5 py-1.5 font-semibold w-11 sm:w-13 text-right">수량</th>
+                              <th className="whitespace-nowrap px-1 sm:px-1.5 py-1.5 font-semibold w-13 sm:w-15 text-center">처리</th>
+                              <th className="whitespace-nowrap px-1 sm:px-1.5 py-1.5 font-semibold w-13 sm:w-15 text-right">기본 CBM</th>
+                              <th className="whitespace-nowrap px-1 sm:px-1.5 py-1.5 font-semibold w-13 sm:w-15 text-right">내품 CBM</th>
+                              <th className="whitespace-nowrap px-0.5 sm:px-1 py-1.5 font-semibold w-7 sm:w-8 text-center">삭제</th>
                             </tr>
                           </thead>
                         <tbody>
@@ -2541,71 +2538,71 @@ export function EstimateForm({
             <input type="hidden" name="cbmItems" value={JSON.stringify(filterValidCbmItems(items))} />
           </div>
 
-          <div className="pt-4 border-t border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="pt-3 border-t border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
             {/* 인력 추가 */}
             <div>
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="font-medium text-gray-900">작업 인원</h3>
+              <div className="flex justify-between items-center mb-1.5">
+                <h3 className="font-bold text-gray-900 text-xs sm:text-sm">작업 인원</h3>
               </div>
 
-              <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 mb-3 space-y-2">
-                <div className="flex items-center justify-between text-sm">
+              <div className="bg-blue-50 p-2.5 sm:p-3 rounded-lg border border-blue-100 mb-2 space-y-1.5">
+                <div className="flex items-center justify-between text-xs sm:text-sm">
                   <span className="text-gray-700">
                     구분: <strong>{movingType === 'P' ? '포장이사' : movingType === 'G' ? '일반이사' : '보관이사'}</strong>
                   </span>
-                  <div className="flex items-center gap-1.5 text-xs">
+                  <div className="flex items-center gap-1 text-[11px]">
                     {fromWorkTypes.concat(toWorkTypes).some(t => t === '수작업' || t === '계단') ? (
-                      <span className="bg-orange-100 text-orange-700 font-semibold px-2 py-0.5 rounded border border-orange-200">
-                        수작업/계단 가산
+                      <span className="bg-orange-100 text-orange-700 font-semibold px-1.5 py-0.2 rounded border border-orange-200">
+                        수작업/계단
                       </span>
                     ) : (
-                      <span className="text-gray-500 bg-white px-2 py-0.5 rounded border border-gray-200">
-                        기본 환경
+                      <span className="text-gray-500 bg-white px-1.5 py-0.2 rounded border border-gray-200">
+                        기본
                       </span>
                     )}
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-blue-900 font-bold">
-                    기준 적재량: {requiredCbm.toFixed(2)} CBM
+                  <span className="text-xs sm:text-sm text-blue-900 font-bold">
+                    적재량: {requiredCbm.toFixed(2)} CBM
                   </span>
                   <button 
                     type="button"
                     onClick={handleRecommendLabors}
-                    className="px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors shadow-sm"
+                    className="px-2.5 py-0.5 bg-blue-600 text-white text-xs font-semibold rounded hover:bg-blue-700 transition-colors shadow-2xs whitespace-nowrap"
                   >
                     최적 인원 추천
                   </button>
                 </div>
                 {laborRecommendationReason && (
-                  <div className="text-xs text-blue-800 bg-white/80 p-2 rounded border border-blue-200 leading-relaxed font-medium">
+                  <div className="text-[11px] text-blue-800 bg-white/80 p-1.5 rounded border border-blue-200 leading-tight font-medium">
                     💡 {laborRecommendationReason}
                   </div>
                 )}
               </div>
               {labors.length > 0 && (
                 <div className="border border-gray-200 rounded-lg mb-2 overflow-x-auto">
-                  <table className="w-full text-sm text-left min-w-[280px]">
+                  <table className="w-full text-xs sm:text-sm text-left min-w-0">
                     <thead className="bg-gray-50 text-gray-600 border-b">
                       <tr>
-                        <th className="whitespace-nowrap px-3 py-2 font-medium">인력 구분</th>
-                        <th className="whitespace-nowrap px-3 py-2 font-medium w-24">인원(명)</th>
-                        <th className="whitespace-nowrap px-3 py-2 font-medium w-12 text-center">삭제</th>
+                        <th className="whitespace-nowrap px-2.5 py-1.5 font-medium">인력 구분</th>
+                        <th className="whitespace-nowrap px-2 py-1.5 font-medium w-16 sm:w-20 text-right">인원(명)</th>
+                        <th className="whitespace-nowrap px-1 py-1.5 font-medium w-8 text-center">삭제</th>
                       </tr>
                     </thead>
                     <tbody>
                       {labors.map((labor, idx) => (
                         <tr key={idx} className="border-b last:border-0 hover:bg-gray-50">
-                          <td className="px-3 py-2">{labor.name}</td>
-                          <td className="px-3 py-2">
+                          <td className="px-2.5 py-1.5">{labor.name}</td>
+                          <td className="px-2 py-1">
                             <input type="number" min="1" value={labor.count} onChange={e => {
                               const newLabors = [...labors]
                               newLabors[idx].count = parseInt(e.target.value) || 1
                               setLabors(newLabors)
-                            }} onFocus={handleSelectAllOnFocus} className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm outline-none focus:border-blue-500 text-right" />
+                            }} onFocus={handleSelectAllOnFocus} className="w-full rounded border border-gray-300 bg-white px-1.5 py-0.5 text-xs sm:text-sm outline-none focus:border-blue-500 text-right" />
                           </td>
-                          <td className="px-3 py-2 text-center">
-                            <button type="button" onClick={() => setLabors(labors.filter((_, i) => i !== idx))} className="text-red-500 hover:text-red-700 font-bold">✕</button>
+                          <td className="px-1 py-1 text-center">
+                            <button type="button" onClick={() => setLabors(labors.filter((_, i) => i !== idx))} className="text-red-500 hover:text-red-700 font-bold text-xs">✕</button>
                           </td>
                         </tr>
                       ))}
@@ -2614,7 +2611,7 @@ export function EstimateForm({
                 </div>
               )}
               <select 
-                className="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm outline-none text-gray-700 bg-gray-50 focus:border-blue-500 cursor-pointer"
+                className="w-full rounded-lg border-gray-300 border px-2.5 py-1.5 text-xs sm:text-sm outline-none text-gray-700 bg-gray-50 focus:border-blue-500 cursor-pointer"
                 onChange={(e) => {
                   if(!e.target.value) return;
                   const item = standardLabors.find(i => i.id === e.target.value)
@@ -2634,30 +2631,30 @@ export function EstimateForm({
 
             {/* 차량 추가 */}
             <div>
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="font-medium text-gray-900">투입 차량</h3>
+              <div className="flex justify-between items-center mb-1.5">
+                <h3 className="font-bold text-gray-900 text-xs sm:text-sm">투입 차량</h3>
               </div>
               
-              <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 mb-3 space-y-2">
-                <div className="flex items-center justify-between text-sm">
+              <div className="bg-blue-50 p-2.5 sm:p-3 rounded-lg border border-blue-100 mb-2 space-y-1.5">
+                <div className="flex items-center justify-between text-xs sm:text-sm">
                   <span className="text-gray-700">산출 CBM: <strong>{totalCbm.toFixed(2)}</strong></span>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <span className="text-gray-600 text-xs">데드스페이스</span>
                     <input 
                       type="number" 
                       value={deadSpaceRatio} 
                       onChange={e => setDeadSpaceRatio(Number(e.target.value))} 
-                      className="w-16 rounded border border-gray-300 px-2 py-0.5 text-xs text-right outline-none focus:border-blue-500" 
+                      className="w-12 rounded border border-gray-300 px-1 py-0.5 text-xs text-right outline-none focus:border-blue-500" 
                     />
                     <span className="text-gray-600 text-xs">%</span>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-blue-900 font-bold">필요 적재 CBM: {requiredCbm.toFixed(2)}</span>
+                  <span className="text-xs sm:text-sm text-blue-900 font-bold">필요 적재 CBM: {requiredCbm.toFixed(2)}</span>
                   <button 
                     type="button"
                     onClick={handleRecommendVehicles}
-                    className="px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors shadow-sm"
+                    className="px-2.5 py-0.5 bg-blue-600 text-white text-xs font-semibold rounded hover:bg-blue-700 transition-colors shadow-2xs whitespace-nowrap"
                   >
                     최적 차량 추천
                   </button>
@@ -2666,37 +2663,37 @@ export function EstimateForm({
 
               {vehicles.length > 0 && (
                 <div className="border border-gray-200 rounded-lg mb-2 overflow-x-auto">
-                  <table className="w-full text-sm text-left min-w-[280px]">
+                  <table className="w-full text-xs sm:text-sm text-left min-w-0">
                     <thead className="bg-gray-50 text-gray-600 border-b">
                       <tr>
-                        <th className="whitespace-nowrap px-3 py-2 font-medium">차량 구분</th>
-                        <th className="whitespace-nowrap px-3 py-2 font-medium w-24">대수</th>
-                        <th className="whitespace-nowrap px-3 py-2 font-medium w-12 text-center">삭제</th>
+                        <th className="whitespace-nowrap px-2.5 py-1.5 font-medium">차량 구분</th>
+                        <th className="whitespace-nowrap px-2 py-1.5 font-medium w-16 sm:w-20 text-right">대수</th>
+                        <th className="whitespace-nowrap px-1 py-1.5 font-medium w-8 text-center">삭제</th>
                       </tr>
                     </thead>
                     <tbody>
                       {vehicles.map((vehicle, idx) => (
                         <tr key={idx} className="border-b last:border-0 hover:bg-gray-50">
-                          <td className="px-3 py-2">
+                          <td className="px-2.5 py-1.5">
                             <div>{vehicle.name}</div>
                             {(() => {
                               const sv = standardVehicles.find(s => s.id === vehicle.id) || vehicle;
                               if ((sv.maxCbm || 0) > 0) {
                                 const effective = sv.maxCbm / (1 + deadSpaceRatio / 100);
-                                return <div className="text-xs text-gray-500 mt-0.5">실적재: {(effective * (vehicle.count || 1)).toFixed(1)} CBM</div>
+                                return <div className="text-[11px] text-gray-500 mt-0.5">실적재: {(effective * (vehicle.count || 1)).toFixed(1)} CBM</div>
                               }
                               return null;
                             })()}
                           </td>
-                          <td className="px-3 py-2">
+                          <td className="px-2 py-1">
                             <input type="number" min="1" value={vehicle.count} onChange={e => {
                               const newVehicles = [...vehicles]
                               newVehicles[idx].count = parseInt(e.target.value) || 1
                               setVehicles(newVehicles)
-                            }} onFocus={handleSelectAllOnFocus} className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm outline-none focus:border-blue-500 text-right" />
+                            }} onFocus={handleSelectAllOnFocus} className="w-full rounded border border-gray-300 bg-white px-1.5 py-0.5 text-xs sm:text-sm outline-none focus:border-blue-500 text-right" />
                           </td>
-                          <td className="px-3 py-2 text-center">
-                            <button type="button" onClick={() => setVehicles(vehicles.filter((_, i) => i !== idx))} className="text-red-500 hover:text-red-700 font-bold">✕</button>
+                          <td className="px-1 py-1 text-center">
+                            <button type="button" onClick={() => setVehicles(vehicles.filter((_, i) => i !== idx))} className="text-red-500 hover:text-red-700 font-bold text-xs">✕</button>
                           </td>
                         </tr>
                       ))}
@@ -2705,7 +2702,7 @@ export function EstimateForm({
                 </div>
               )}
               <select 
-                className="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm outline-none text-gray-700 bg-gray-50 focus:border-blue-500 cursor-pointer"
+                className="w-full rounded-lg border-gray-300 border px-2.5 py-1.5 text-xs sm:text-sm outline-none text-gray-700 bg-gray-50 focus:border-blue-500 cursor-pointer"
                 onChange={(e) => {
                   if(!e.target.value) return;
                   const item = standardVehicles.find(i => i.id === e.target.value)
@@ -2728,14 +2725,14 @@ export function EstimateForm({
         </div>
 
         {/* 이사 비용 및 결제 플랜 통합 섹션 */}
-        <div className="bg-white p-3.5 sm:p-5 rounded-xl shadow-sm border border-gray-100 space-y-3.5">
+        <div className="bg-white p-3 sm:p-4 md:p-5 rounded-xl shadow-sm border border-gray-100 space-y-3">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-2 gap-2">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2">
               <h2 className="text-base sm:text-lg font-bold text-blue-600">이사 비용 및 결제 플랜</h2>
               <button
                 type="button"
                 onClick={handleOpenCostModal}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1 ${
+                className={`px-2 sm:px-2.5 py-1 rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1 ${
                   isPastMovingDate 
                     ? 'bg-gray-400 hover:bg-gray-500 text-white opacity-70 cursor-not-allowed' 
                     : 'bg-blue-600 hover:bg-blue-700 text-white active:scale-95'
@@ -2746,12 +2743,12 @@ export function EstimateForm({
                     : "CBM별 가이드, 캘린더 할증, 특수물품 분해조립 비용을 종합하여 이사비용 산출"
                 }
               >
-                <Calculator size={13} />
+                <Calculator size={12} />
                 <span>이사비용 산출</span>
                 {isPastMovingDate && <span className="text-[10px] bg-gray-600 px-1 rounded ml-0.5">기한만료</span>}
               </button>
             </div>
-            <div className="flex items-center gap-3 text-xs sm:text-sm text-gray-700 bg-gray-50 px-2.5 py-1 rounded-lg border border-gray-200">
+            <div className="flex items-center gap-2.5 text-xs text-gray-700 bg-gray-50 px-2 py-1 rounded-lg border border-gray-200">
               <span className="font-bold text-gray-600">결제 기준:</span>
               <label className="flex items-center gap-1 cursor-pointer font-medium text-gray-800 hover:text-blue-600 whitespace-nowrap">
                 <input 
@@ -2776,8 +2773,8 @@ export function EstimateForm({
             </div>
           </div>
 
-          {/* 1. 비용 입력 */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+          {/* 1. 비용 입력 (태블릿/PC에서 4열 1줄로 나란히 표시) */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap">기본 이사 비용</label>
@@ -2795,7 +2792,7 @@ export function EstimateForm({
                   <span>산출</span>
                 </button>
               </div>
-              <NumberInput name="movingCost" value={movingCost} onChange={v => { setMovingCost(v); setIsCostEdited(true); }} className="block w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-right outline-none focus:border-blue-500 font-semibold" />
+              <NumberInput name="movingCost" value={movingCost} onChange={v => { setMovingCost(v); setIsCostEdited(true); }} className="block w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs sm:text-sm text-right outline-none focus:border-blue-500 font-semibold" />
             </div>
             <div>
               <label className="block text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap mb-1">가산비용 내역</label>
@@ -2810,59 +2807,50 @@ export function EstimateForm({
                     setAppliedDistanceCost(0);
                   }
                 }} 
-                className="block w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-right outline-none focus:border-blue-500" 
+                className="block w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs sm:text-sm text-right outline-none focus:border-blue-500" 
               />
               {/* 산출 가산운임 반영 버튼 및 내역 (한 가지로 통합) */}
               {(totalLadderCost > 0 || calculatedExtraCost > 0) && (
-                <div className="mt-1.5 space-y-1">
+                <div className="mt-1 space-y-0.5">
                   <button
                     type="button"
                     onClick={handleApplyAllAdditionalCosts}
-                    className={`text-[11px] font-bold px-2.5 py-1 rounded-md flex items-center gap-1 transition-colors w-full justify-center border shadow-xs ${
+                    className={`text-[10px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1 transition-colors w-full justify-center border shadow-2xs whitespace-nowrap ${
                       isAllApplied
                         ? 'bg-amber-100/80 text-amber-900 border-amber-300 hover:bg-amber-200/80'
                         : 'bg-amber-500 hover:bg-amber-600 text-white active:scale-95'
                     }`}
                     title="산출된 사다리차 및 거리가산 운임 일괄 반영"
                   >
-                    {isAllApplied ? <CheckCircle2 size={12} className="text-amber-800" /> : <Plus size={12} />}
+                    {isAllApplied ? <CheckCircle2 size={11} className="text-amber-800" /> : <Plus size={11} />}
                     <span>
                       {isAllApplied 
-                        ? `가산운임 반영 완료 (${totalExtraCost.toLocaleString()}원)` 
-                        : `산출 가산운임 (+${totalExtraCost.toLocaleString()}원) 반영`}
+                        ? `가산반영완료 (+${totalExtraCost.toLocaleString()}원)` 
+                        : `산출가산 (+${totalExtraCost.toLocaleString()}원)`}
                     </span>
                   </button>
-                  <div className="text-[11px] text-gray-500 text-center truncate" title={[
-                    totalLadderCost > 0 ? `사다리차 ${totalLadderCost.toLocaleString()}원` : null,
-                    calculatedExtraCost > 0 ? `거리가산 ${calculatedExtraCost.toLocaleString()}원` : null,
-                  ].filter(Boolean).join(' + ')}>
-                    {[
-                      totalLadderCost > 0 ? `사다리차 ${totalLadderCost.toLocaleString()}원` : null,
-                      calculatedExtraCost > 0 ? `거리가산 ${calculatedExtraCost.toLocaleString()}원` : null,
-                    ].filter(Boolean).join(' + ')}
-                  </div>
                 </div>
               )}
             </div>
             <div>
               <label className="block text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap mb-1">보관 비용</label>
-              <NumberInput name="storageCost" value={storageCost} onChange={v => { setStorageCost(v); setIsCostEdited(true); }} className="block w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-right outline-none focus:border-blue-500" />
+              <NumberInput name="storageCost" value={storageCost} onChange={v => { setStorageCost(v); setIsCostEdited(true); }} className="block w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs sm:text-sm text-right outline-none focus:border-blue-500" />
             </div>
             <div>
               <label className="block text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap mb-1">부가세</label>
-              <NumberInput name="vat" value={vat} onChange={setVat} className="block w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-right outline-none focus:border-blue-500" />
+              <NumberInput name="vat" value={vat} onChange={setVat} className="block w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs sm:text-sm text-right outline-none focus:border-blue-500" />
             </div>
           </div>
 
           {/* 2. 합계 금액 바 */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 bg-blue-50/70 px-3 py-2 rounded-lg border border-blue-100">
-            <div className="flex flex-wrap items-center justify-between sm:justify-start gap-2 sm:gap-4 text-xs sm:text-sm">
-              <div className="flex items-center gap-1.5">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-1.5 bg-blue-50/70 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg border border-blue-100">
+            <div className="flex flex-wrap items-center justify-between sm:justify-start gap-2 sm:gap-3 text-xs sm:text-sm">
+              <div className="flex items-center gap-1">
                 <span className="text-gray-600 font-medium whitespace-nowrap">공급가액:</span>
                 <span className="font-bold text-gray-800">{supplyAmount.toLocaleString()} 원</span>
               </div>
               <span className="text-gray-300 hidden sm:inline">|</span>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1">
                 <span className="text-blue-900 font-bold whitespace-nowrap">총 합계(공급대가):</span>
                 <span className="text-sm sm:text-base font-black text-blue-700">{totalAmount.toLocaleString()} 원</span>
               </div>
@@ -2875,60 +2863,60 @@ export function EstimateForm({
 
           {/* 3. 결제 플랜 테이블 (계약금, 중도금, 잔금) */}
           <div className="overflow-x-auto border border-gray-200 rounded-lg">
-            <table className="w-full text-xs sm:text-sm border-collapse min-w-[460px]">
+            <table className="w-full text-xs sm:text-sm border-collapse min-w-0">
               <thead className="bg-gray-50 border-b border-gray-200 text-gray-700 font-semibold">
                 <tr>
-                  <th className="px-3 py-2 text-left w-16 sm:w-20 whitespace-nowrap">구분</th>
-                  <th className="px-3 py-2 text-right whitespace-nowrap">금액 (원)</th>
-                  <th className="px-3 py-2 text-center w-36 sm:w-44 whitespace-nowrap">일자</th>
-                  <th className="px-3 py-2 text-center w-24 sm:w-28 whitespace-nowrap">입금 상태</th>
+                  <th className="px-2.5 py-1.5 text-left w-14 sm:w-16 whitespace-nowrap">구분</th>
+                  <th className="px-2.5 py-1.5 text-right whitespace-nowrap">금액 (원)</th>
+                  <th className="px-2 py-1.5 text-center w-28 sm:w-36 whitespace-nowrap">일자</th>
+                  <th className="px-2 py-1.5 text-center w-20 sm:w-24 whitespace-nowrap">입금 상태</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
                 {/* 계약금 */}
                 <tr className="hover:bg-gray-50/60 transition-colors">
-                  <td className="px-3 py-2 font-bold text-gray-800 whitespace-nowrap">계약금</td>
-                  <td className="px-3 py-2">
-                    <NumberInput value={downPayment} onChange={setDownPayment} className="w-full h-8 rounded border border-gray-300 px-2.5 text-right text-xs sm:text-sm font-semibold outline-none focus:border-blue-500" />
+                  <td className="px-2.5 py-1.5 font-bold text-gray-800 whitespace-nowrap">계약금</td>
+                  <td className="px-2.5 py-1">
+                    <NumberInput value={downPayment} onChange={setDownPayment} className="w-full h-7 sm:h-8 rounded border border-gray-300 px-2 text-right text-xs sm:text-sm font-semibold outline-none focus:border-blue-500" />
                   </td>
-                  <td className="px-3 py-2">
-                    <CustomDatePicker selected={downPaymentDate} onChange={setDownPaymentDate} className="w-full h-8 rounded border border-gray-300 px-2 text-xs outline-none focus:border-blue-500" />
+                  <td className="px-2 py-1">
+                    <CustomDatePicker selected={downPaymentDate} onChange={setDownPaymentDate} className="w-full h-7 sm:h-8 rounded border border-gray-300 px-1.5 text-xs outline-none focus:border-blue-500" />
                   </td>
-                  <td className="px-3 py-2 text-center">
-                    <label className={`inline-flex items-center gap-1.5 px-2.5 h-8 rounded-md text-xs font-semibold cursor-pointer transition-all border ${downPaymentPaid ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}>
-                      <input type="checkbox" checked={downPaymentPaid} onChange={e => setDownPaymentPaid(e.target.checked)} className="rounded text-green-600 focus:ring-green-500 w-3.5 h-3.5" />
+                  <td className="px-2 py-1 text-center">
+                    <label className={`inline-flex items-center gap-1 px-2 h-7 sm:h-8 rounded-md text-xs font-semibold cursor-pointer transition-all border whitespace-nowrap ${downPaymentPaid ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}>
+                      <input type="checkbox" checked={downPaymentPaid} onChange={e => setDownPaymentPaid(e.target.checked)} className="rounded text-green-600 focus:ring-green-500 w-3 h-3" />
                       <span>{downPaymentPaid ? '입금완료' : '미입금'}</span>
                     </label>
                   </td>
                 </tr>
                 {/* 중도금 */}
                 <tr className="hover:bg-gray-50/60 transition-colors">
-                  <td className="px-3 py-2 font-bold text-gray-800 whitespace-nowrap">중도금</td>
-                  <td className="px-3 py-2">
-                    <NumberInput value={intermediatePayment} onChange={setIntermediatePayment} className="w-full h-8 rounded border border-gray-300 px-2.5 text-right text-xs sm:text-sm font-semibold outline-none focus:border-blue-500" />
+                  <td className="px-2.5 py-1.5 font-bold text-gray-800 whitespace-nowrap">중도금</td>
+                  <td className="px-2.5 py-1">
+                    <NumberInput value={intermediatePayment} onChange={setIntermediatePayment} className="w-full h-7 sm:h-8 rounded border border-gray-300 px-2 text-right text-xs sm:text-sm font-semibold outline-none focus:border-blue-500" />
                   </td>
-                  <td className="px-3 py-2">
-                    <CustomDatePicker selected={intermediateDate} onChange={setIntermediateDate} className="w-full h-8 rounded border border-gray-300 px-2 text-xs outline-none focus:border-blue-500" />
+                  <td className="px-2 py-1">
+                    <CustomDatePicker selected={intermediateDate} onChange={setIntermediateDate} className="w-full h-7 sm:h-8 rounded border border-gray-300 px-1.5 text-xs outline-none focus:border-blue-500" />
                   </td>
-                  <td className="px-3 py-2 text-center">
-                    <label className={`inline-flex items-center gap-1.5 px-2.5 h-8 rounded-md text-xs font-semibold cursor-pointer transition-all border ${intermediatePaymentPaid ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}>
-                      <input type="checkbox" checked={intermediatePaymentPaid} onChange={e => setIntermediatePaymentPaid(e.target.checked)} className="rounded text-green-600 focus:ring-green-500 w-3.5 h-3.5" />
+                  <td className="px-2 py-1 text-center">
+                    <label className={`inline-flex items-center gap-1 px-2 h-7 sm:h-8 rounded-md text-xs font-semibold cursor-pointer transition-all border whitespace-nowrap ${intermediatePaymentPaid ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}>
+                      <input type="checkbox" checked={intermediatePaymentPaid} onChange={e => setIntermediatePaymentPaid(e.target.checked)} className="rounded text-green-600 focus:ring-green-500 w-3 h-3" />
                       <span>{intermediatePaymentPaid ? '입금완료' : '미입금'}</span>
                     </label>
                   </td>
                 </tr>
                 {/* 잔금 */}
                 <tr className="hover:bg-gray-50/60 transition-colors">
-                  <td className="px-3 py-2 font-bold text-gray-800 whitespace-nowrap">잔금</td>
-                  <td className="px-3 py-2">
-                    <NumberInput value={balance} onChange={setBalance} className="w-full h-8 rounded border border-gray-300 px-2.5 text-right text-xs sm:text-sm font-semibold outline-none focus:border-blue-500" />
+                  <td className="px-2.5 py-1.5 font-bold text-gray-800 whitespace-nowrap">잔금</td>
+                  <td className="px-2.5 py-1">
+                    <NumberInput value={balance} onChange={setBalance} className="w-full h-7 sm:h-8 rounded border border-gray-300 px-2 text-right text-xs sm:text-sm font-semibold outline-none focus:border-blue-500" />
                   </td>
-                  <td className="px-3 py-2">
-                    <CustomDatePicker selected={balanceDate} onChange={setBalanceDate} className="w-full h-8 rounded border border-gray-300 px-2 text-xs outline-none focus:border-blue-500" />
+                  <td className="px-2 py-1">
+                    <CustomDatePicker selected={balanceDate} onChange={setBalanceDate} className="w-full h-7 sm:h-8 rounded border border-gray-300 px-1.5 text-xs outline-none focus:border-blue-500" />
                   </td>
-                  <td className="px-3 py-2 text-center">
-                    <label className={`inline-flex items-center gap-1.5 px-2.5 h-8 rounded-md text-xs font-semibold cursor-pointer transition-all border ${balancePaid ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}>
-                      <input type="checkbox" checked={balancePaid} onChange={e => setBalancePaid(e.target.checked)} className="rounded text-green-600 focus:ring-green-500 w-3.5 h-3.5" />
+                  <td className="px-2 py-1 text-center">
+                    <label className={`inline-flex items-center gap-1 px-2 h-7 sm:h-8 rounded-md text-xs font-semibold cursor-pointer transition-all border whitespace-nowrap ${balancePaid ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}>
+                      <input type="checkbox" checked={balancePaid} onChange={e => setBalancePaid(e.target.checked)} className="rounded text-green-600 focus:ring-green-500 w-3 h-3" />
                       <span>{balancePaid ? '입금완료' : '미입금'}</span>
                     </label>
                   </td>
@@ -2938,9 +2926,9 @@ export function EstimateForm({
           </div>
 
           {/* 4. 미할당 잔액 안내 바 */}
-          <div className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 text-xs sm:text-sm">
+          <div className="flex items-center justify-between bg-gray-50 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs sm:text-sm">
             <span className="text-gray-700 font-medium whitespace-nowrap">남은 잔액 (미할당 금액)</span>
-            <span className={`font-bold text-sm sm:text-base ${remainingAmount === 0 ? 'text-green-600' : remainingAmount < 0 ? 'text-red-600' : 'text-blue-600'}`}>
+            <span className={`font-bold text-xs sm:text-sm md:text-base ${remainingAmount === 0 ? 'text-green-600' : remainingAmount < 0 ? 'text-red-600' : 'text-blue-600'}`}>
               {remainingAmount.toLocaleString()} 원
             </span>
           </div>
@@ -2949,17 +2937,17 @@ export function EstimateForm({
         </div>
 
         {/* 고객 서명 */}
-        <div className="bg-white p-3.5 sm:p-4 rounded-xl shadow-sm border border-gray-100 space-y-3">
+        <div className="bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-gray-100 space-y-2">
           <div className="flex justify-between items-center border-b pb-1.5">
             <h2 className="text-base sm:text-lg font-bold text-blue-600">고객 서명</h2>
             {!isSigning && signature ? (
-              <button type="button" onClick={() => { setIsSigning(true); setSignature(''); }} className="text-xs sm:text-sm text-red-600 hover:text-red-800 font-medium px-3 py-1 bg-red-50 rounded-lg">서명 다시하기</button>
+              <button type="button" onClick={() => { setIsSigning(true); setSignature(''); }} className="text-xs text-red-600 hover:text-red-800 font-medium px-2.5 py-1 bg-red-50 rounded-lg">서명 다시하기</button>
             ) : (
-              <button type="button" onClick={() => { sigCanvas.current?.clear(); setSignature(''); }} className="text-xs sm:text-sm text-gray-600 hover:text-gray-800 font-medium px-3 py-1 bg-gray-100 rounded-lg">초기화</button>
+              <button type="button" onClick={() => { sigCanvas.current?.clear(); setSignature(''); }} className="text-xs text-gray-600 hover:text-gray-800 font-medium px-2.5 py-1 bg-gray-100 rounded-lg">초기화</button>
             )}
           </div>
           
-          <div className="border border-gray-300 rounded-lg overflow-hidden bg-gray-50 h-28 sm:h-32 relative touch-none">
+          <div className="border border-gray-300 rounded-lg overflow-hidden bg-gray-50 h-24 sm:h-28 relative touch-none">
             {isSigning ? (
               <SignatureCanvas 
                 ref={sigCanvas}
@@ -2973,7 +2961,7 @@ export function EstimateForm({
           <input type="hidden" name="signature" value={signature} />
         </div>
 
-        <div className="fixed bottom-0 left-0 right-0 lg:left-64 bg-white border-t p-3 sm:p-4 shadow-lg flex justify-end gap-3 sm:gap-4 z-20">
+        <div className="fixed bottom-0 left-0 right-0 lg:left-64 bg-white border-t p-2.5 sm:p-3 shadow-lg flex justify-end gap-2.5 sm:gap-3 z-20">
           <button 
             type="button" 
             onClick={() => {
@@ -2981,11 +2969,11 @@ export function EstimateForm({
                 window.location.href = '/estimates'
               }
             }}
-            className="px-5 sm:px-6 py-2 rounded-lg text-gray-600 font-medium hover:bg-gray-100 transition-colors text-sm sm:text-base"
+            className="px-4 sm:px-6 py-1.5 sm:py-2 rounded-lg text-gray-600 font-medium hover:bg-gray-100 transition-colors text-xs sm:text-sm"
           >
             취소
           </button>
-          <button type="submit" className="px-5 sm:px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-md text-sm sm:text-base">견적 저장하기</button>
+          <button type="submit" className="px-4 sm:px-6 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-md text-xs sm:text-sm">견적 저장하기</button>
         </div>
       </form>
 

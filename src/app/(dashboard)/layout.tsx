@@ -38,7 +38,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         <div className="print:hidden sticky top-0 z-20">
           <SyncStatusBar />
         </div>
-        <div className="p-3 sm:p-4 md:p-6 lg:p-8 print:p-0 flex-1">
+        <div className="p-2 sm:p-3 md:p-4 lg:p-5 xl:p-6 print:p-0 flex-1">
           {children}
         </div>
       </main>
