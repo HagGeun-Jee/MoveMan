@@ -10,12 +10,15 @@ import { getDistance } from '@/app/actions/distance'
 import { getLadderFares } from '@/app/actions/ladder'
 import type { LadderFareItem } from '@/types/ladder'
 import DaumPostcodeEmbed from 'react-daum-postcode'
-import { MapPin, Search, ChevronDown, ChevronUp, Navigation, RefreshCw, Car, AlertCircle, CheckCircle2, Calculator, Truck, Plus, FileText, Sparkles } from 'lucide-react'
+import { MapPin, Search, ChevronDown, ChevronUp, Navigation, RefreshCw, Car, AlertCircle, CheckCircle2, Calculator, Truck, Plus, FileText, Sparkles, Zap, Smartphone, Table } from 'lucide-react'
 import { CustomDatePicker } from '@/components/CustomDatePicker'
 import { format } from 'date-fns'
 import { formatPhoneNumber, handleSelectAllOnFocus } from '@/lib/format'
 import { MovingCostCalculatorModal } from '@/components/MovingCostCalculatorModal'
 import { AiCbmEstimateModal, type AiIdentifiedItem } from '@/components/AiCbmEstimateModal'
+import { EstimatePresetModal } from '@/components/EstimatePresetModal'
+import { QuickTouchCbmPanel } from '@/components/QuickTouchCbmPanel'
+import type { PresetItem } from '@/lib/estimatePresets'
 
 const NumberInput = ({ value, onChange, className, name }: { value: number, onChange: (val: number) => void, className?: string, name?: string }) => {
   const [localVal, setLocalVal] = useState(value === 0 ? '' : value.toLocaleString())
@@ -428,6 +431,84 @@ export function EstimateForm({
 
   const [isCbmCalculatorOpen, setIsCbmCalculatorOpen] = useState(false)
   const [isAiModalOpen, setIsAiModalOpen] = useState(false)
+  const [isPresetModalOpen, setIsPresetModalOpen] = useState(false)
+  const [cbmInputMode, setCbmInputMode] = useState<'touch' | 'table'>('touch')
+
+  // 백그라운드 AI 분석 태스크 상태
+  interface BackgroundAiTask {
+    id: string
+    location: string
+    status: 'analyzing' | 'done' | 'error'
+    items?: AiIdentifiedItem[]
+    error?: string
+  }
+  const [backgroundAiTasks, setBackgroundAiTasks] = useState<BackgroundAiTask[]>([])
+
+  const handleStartBackgroundAnalysis = ({ location, promise }: { location: string; promise: Promise<any> }) => {
+    const taskId = `bg_${Date.now()}`
+    setBackgroundAiTasks(prev => [...prev, { id: taskId, location, status: 'analyzing' }])
+
+    promise
+      .then(res => {
+        setBackgroundAiTasks(prev =>
+          prev.map(t => (t.id === taskId ? { ...t, status: 'done', items: res.items } : t))
+        )
+      })
+      .catch(err => {
+        setBackgroundAiTasks(prev =>
+          prev.map(t => (t.id === taskId ? { ...t, status: 'error', error: err?.message || '분석 실패' } : t))
+        )
+      })
+  }
+
+  const handleApplyPreset = (presetItems: PresetItem[], mode: 'replace' | 'append') => {
+    if (!presetItems || presetItems.length === 0) return
+
+    setItems(prevItems => {
+      let nextList = mode === 'replace' ? [] : [...prevItems]
+
+      presetItems.forEach(pItem => {
+        const locCat = categories.find(c => c.name === pItem.locationName)
+        const locId = locCat ? locCat.id : ''
+        const locName = locCat ? locCat.name : pItem.locationName
+
+        const existingIdx = nextList.findIndex(
+          it => (it.locationId || '') === locId &&
+                it.name === pItem.name &&
+                (it.spec || '') === (pItem.spec || '')
+        )
+
+        if (existingIdx >= 0) {
+          const cur = nextList[existingIdx]
+          const currentQty = Number(cur.quantity) || 0
+          const newQty = mode === 'replace' ? pItem.quantity : currentQty + pItem.quantity
+          nextList[existingIdx] = {
+            ...cur,
+            quantity: newQty,
+            cbm: pItem.cbm,
+            innerBoxCbm: pItem.innerBoxCbm,
+            treatment: pItem.treatment || cur.treatment || '이동'
+          }
+        } else {
+          nextList.push(ensureItemUid({
+            locationId: locId,
+            locationName: locName,
+            name: pItem.name,
+            spec: pItem.spec || '',
+            quantity: pItem.quantity,
+            cbm: pItem.cbm,
+            innerBoxCbm: pItem.innerBoxCbm,
+            treatment: pItem.treatment || '이동'
+          }))
+        }
+      })
+
+      return nextList.map(ensureItemUid)
+    })
+
+    setExpandedCategories({})
+  }
+
   const [cbmLength, setCbmLength] = useState<number | ''>('')
   const [cbmWidth, setCbmWidth] = useState<number | ''>('')
   const [cbmHeight, setCbmHeight] = useState<number | ''>('')
@@ -1946,26 +2027,43 @@ export function EstimateForm({
         <div className="bg-white p-3.5 sm:p-5 md:p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
           <h2 className="text-base sm:text-lg font-bold text-blue-600 border-b pb-2">물품 및 작업 환경</h2>
           
-          <div className="space-y-2">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <h3 className="font-medium text-gray-900">물품 목록 (CBM 산출용)</h3>
-                <button 
-                  type="button" 
-                  onClick={() => setIsCbmCalculatorOpen(true)}
-                  className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-md hover:bg-blue-200 font-medium transition-colors border border-blue-200"
+          <div className="space-y-3">
+            {/* CBM 물품 목록 액션 바 */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-2.5 bg-gray-50/80 p-2.5 rounded-xl border border-gray-200">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <h3 className="font-bold text-gray-900 text-sm sm:text-base mr-1">물품 목록 (CBM)</h3>
+                
+                {/* 1. 평형별 템플릿 원클릭 버튼 */}
+                <button
+                  type="button"
+                  onClick={() => setIsPresetModalOpen(true)}
+                  className="px-2.5 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs rounded-lg font-extrabold transition-all shadow-xs flex items-center gap-1 active:scale-95"
+                  title="원룸, 24평, 34평 등 평형별 표준 이삿짐을 원클릭으로 자동 구성합니다"
                 >
-                  CBM 계산기
+                  <Zap size={13} className="text-amber-300 fill-amber-300" />
+                  <span>⚡ 평형 템플릿 (5초)</span>
                 </button>
+
+                {/* 2. AI CBM 견적 버튼 */}
                 <button
                   type="button"
                   onClick={() => setIsAiModalOpen(true)}
-                  className="px-2.5 py-1 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white text-xs rounded-md font-bold transition-all shadow-xs flex items-center gap-1 active:scale-95"
+                  className="px-2.5 py-1.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white text-xs rounded-lg font-bold transition-all shadow-xs flex items-center gap-1 active:scale-95"
                   title="촬영한 현장 영상이나 사진을 AI로 분석하여 CBM 물품을 자동 추출합니다"
                 >
                   <Sparkles size={13} className="text-amber-300 animate-pulse" />
-                  <span>AI 영상·사진 CBM 견적</span>
+                  <span>AI 영상·사진 분석</span>
                 </button>
+
+                {/* 3. CBM 계산기 */}
+                <button 
+                  type="button" 
+                  onClick={() => setIsCbmCalculatorOpen(true)}
+                  className="px-2 py-1.5 bg-white text-blue-700 hover:bg-blue-50 text-xs rounded-lg font-bold transition-colors border border-blue-200 shadow-2xs"
+                >
+                  CBM 계산기
+                </button>
+
                 {/* 특이 처리 항목 (폐기, 내림, 경유) 요약 뱃지 */}
                 {(() => {
                   const validItems = items.filter(it => {
@@ -2003,11 +2101,112 @@ export function EstimateForm({
                   )
                 })()}
               </div>
-              <div className="text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100 shadow-sm">
-                총 합계: {totalCbm.toFixed(2)} CBM
+
+              {/* 우측: 뷰 모드 토글 (초고속 터치 모드 vs 상세 테이블) 및 총 합계 */}
+              <div className="flex items-center justify-between w-full lg:w-auto gap-2">
+                {/* 뷰 모드 세그먼트 스위처 */}
+                <div className="flex items-center bg-gray-200/80 p-0.5 rounded-lg border border-gray-300">
+                  <button
+                    type="button"
+                    onClick={() => setCbmInputMode('touch')}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-extrabold transition-all ${
+                      cbmInputMode === 'touch'
+                        ? 'bg-blue-600 text-white shadow-2xs'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <Smartphone size={13} />
+                    <span>⚡ 초고속 터치</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCbmInputMode('table')}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-extrabold transition-all ${
+                      cbmInputMode === 'table'
+                        ? 'bg-white text-gray-900 shadow-2xs'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <Table size={13} />
+                    <span>📋 상세 테이블</span>
+                  </button>
+                </div>
+
+                <div className="text-sm font-extrabold text-blue-700 bg-white px-3 py-1 rounded-lg border border-blue-200 shadow-2xs shrink-0">
+                  총 {totalCbm.toFixed(2)} CBM
+                </div>
               </div>
             </div>
-            <div className="space-y-4">
+
+            {/* 백그라운드 AI 분석 알림 배너 */}
+            {backgroundAiTasks.length > 0 && (
+              <div className="space-y-1.5">
+                {backgroundAiTasks.map(task => (
+                  <div
+                    key={task.id}
+                    className={`px-3 py-2 rounded-xl text-xs font-bold border flex items-center justify-between gap-2 shadow-xs animate-in fade-in ${
+                      task.status === 'analyzing'
+                        ? 'bg-amber-50 text-amber-900 border-amber-200'
+                        : task.status === 'done'
+                        ? 'bg-emerald-50 text-emerald-900 border-emerald-300'
+                        : 'bg-red-50 text-red-900 border-red-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      {task.status === 'analyzing' ? (
+                        <div className="w-4 h-4 rounded-full border-2 border-amber-600 border-t-transparent animate-spin shrink-0" />
+                      ) : task.status === 'done' ? (
+                        <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                      ) : (
+                        <AlertCircle size={16} className="text-red-600 shrink-0" />
+                      )}
+                      <span>
+                        {task.status === 'analyzing'
+                          ? `[${task.location}] AI가 백그라운드에서 분석 중입니다... (다른 방 짐을 계속 체크하세요)`
+                          : task.status === 'done'
+                          ? `🎉 [${task.location}] AI 분석 완료! (${task.items?.length || 0}개 물품 감지됨)`
+                          : `[${task.location}] 분석 실패: ${task.error}`}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {task.status === 'done' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (task.items) {
+                              handleApplyAiItems(task.items, 'append')
+                            }
+                            setBackgroundAiTasks(prev => prev.filter(t => t.id !== task.id))
+                          }}
+                          className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[11px] shadow-2xs"
+                        >
+                          + 견적서에 즉시 반영
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setBackgroundAiTasks(prev => prev.filter(t => t.id !== task.id))}
+                        className="px-2 py-1 rounded-lg bg-white/80 hover:bg-white text-gray-600 text-[11px] border border-gray-300"
+                      >
+                        닫기
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* 입력 뷰: 초고속 터치 모드 vs 상세 테이블 모드 */}
+            {cbmInputMode === 'touch' ? (
+              <QuickTouchCbmPanel
+                categories={categories}
+                items={items}
+                setItems={setItems}
+                standardItems={standardItems}
+              />
+            ) : (
+              <div className="space-y-4">
               {[...categories, { id: '', name: '기타/미지정' }].map(cat => {
                 // 실시간 동적 정렬 제거: 타이핑 중 행 위치가 변경되어 모바일 한글 조합(IME)이 깨지는 현상 방지
                 const catItems = items.filter(i => (i.locationId || '') === cat.id)
@@ -2320,6 +2519,7 @@ export function EstimateForm({
                 )
               })}
             </div>
+            )}
             <input type="hidden" name="cbmItems" value={JSON.stringify(filterValidCbmItems(items))} />
           </div>
 
@@ -2851,6 +3051,17 @@ export function EstimateForm({
           locations={categories}
           standardItems={standardItems}
           onApplyToEstimate={handleApplyAiItems}
+          onStartBackgroundAnalysis={handleStartBackgroundAnalysis}
+        />
+      )}
+
+      {/* 평형별 표준 템플릿 모달 */}
+      {isPresetModalOpen && (
+        <EstimatePresetModal
+          isOpen={isPresetModalOpen}
+          onClose={() => setIsPresetModalOpen(false)}
+          onApplyPreset={handleApplyPreset}
+          currentItemsCount={items.filter(it => (Number(it.quantity) || 0) > 0).length}
         />
       )}
     </div>

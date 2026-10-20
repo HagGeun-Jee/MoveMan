@@ -19,6 +19,7 @@ import {
   Layers,
   ArrowRight
 } from 'lucide-react'
+import { compressImageFile } from '@/lib/imageCompressor'
 
 export interface AiIdentifiedItem {
   id?: string
@@ -39,6 +40,7 @@ interface AiCbmEstimateModalProps {
   locations: { id: string; name: string }[]
   standardItems: { id: string; name: string; spec: string; defaultCbm: number; defaultInnerCbm: number }[]
   onApplyToEstimate: (items: AiIdentifiedItem[], mode: 'append' | 'replace') => void
+  onStartBackgroundAnalysis?: (task: { location: string; promise: Promise<any> }) => void
 }
 
 export function AiCbmEstimateModal({
@@ -46,7 +48,8 @@ export function AiCbmEstimateModal({
   onClose,
   locations,
   standardItems,
-  onApplyToEstimate
+  onApplyToEstimate,
+  onStartBackgroundAnalysis
 }: AiCbmEstimateModalProps) {
   const [activeTab, setActiveTab] = useState<'video' | 'image'>('video')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -71,6 +74,7 @@ export function AiCbmEstimateModal({
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
+  const activeAnalysisPromiseRef = useRef<{ location: string; promise: Promise<any> } | null>(null)
 
   // 로컬스토리지에서 커스텀 API 키 불러오기
   useEffect(() => {
@@ -154,49 +158,71 @@ export function AiCbmEstimateModal({
     setLoadingStep('미디어 파일 업로드 준비 중...')
 
     try {
-      const formData = new FormData()
-      formData.append('file', selectedFile)
-      if (hintLocation) formData.append('hintLocation', hintLocation)
-      if (customApiKey) formData.append('customApiKey', customApiKey)
-
-      setLoadingStep(
-        activeTab === 'video'
-          ? 'AI 모델이 360도 공간과 가구·가전을 면밀히 식별하는 중입니다 (약 15~30초 소요)...'
-          : 'AI 모델이 사진 속 물품을 식별하고 CBM을 매핑하는 중입니다...'
-      )
-
-      const res = await fetch('/api/ai/analyze-media', {
-        method: 'POST',
-        body: formData
-      })
-
-      let data: any = {}
-      try {
-        data = await res.json()
-      } catch {
-        throw new Error(`서버 통신 실패 (HTTP ${res.status}): 잠시 후 다시 시도해주세요.`)
-      }
-
-      if (!res.ok) {
-        if (data.error === 'GEMINI_API_KEY_MISSING') {
-          setShowKeyInput(true)
+      const execAnalysis = async () => {
+        let fileToUpload = selectedFile
+        if (activeTab === 'image' && selectedFile.type.startsWith('image/')) {
+          setLoadingStep('사진을 AI 초고속 모드로 경량화 중...')
+          try {
+            fileToUpload = await compressImageFile(selectedFile)
+          } catch (e) {
+            console.warn('사진 압축 실패, 원본 사용:', e)
+          }
         }
-        throw new Error(data.message || `분석 실패 (코드: ${res.status})`)
+
+        const formData = new FormData()
+        formData.append('file', fileToUpload)
+        if (hintLocation) formData.append('hintLocation', hintLocation)
+        if (customApiKey) formData.append('customApiKey', customApiKey)
+
+        setLoadingStep(
+          activeTab === 'video'
+            ? 'AI 모델이 360도 공간과 가구·가전을 면밀히 식별하는 중입니다 (약 15~30초 소요)...'
+            : 'AI 모델이 사진 속 물품을 식별하고 CBM을 매핑하는 중입니다 (약 2~4초)...'
+        )
+
+        const res = await fetch('/api/ai/analyze-media', {
+          method: 'POST',
+          body: formData
+        })
+
+        let data: any = {}
+        try {
+          data = await res.json()
+        } catch {
+          throw new Error(`서버 통신 실패 (HTTP ${res.status}): 잠시 후 다시 시도해주세요.`)
+        }
+
+        if (!res.ok) {
+          if (data.error === 'GEMINI_API_KEY_MISSING') {
+            setShowKeyInput(true)
+          }
+          throw new Error(data.message || `분석 실패 (코드: ${res.status})`)
+        }
+
+        return {
+          summary: data.summary,
+          items: (data.items || []).map((item: any, idx: number) => ({
+            ...item,
+            id: `ai_${Date.now()}_${idx}`
+          }))
+        }
       }
 
-      setAnalysisResult({
-        summary: data.summary,
-        items: (data.items || []).map((item: any, idx: number) => ({
-          ...item,
-          id: `ai_${Date.now()}_${idx}`
-        }))
-      })
+      const p = execAnalysis()
+      activeAnalysisPromiseRef.current = {
+        location: hintLocation || '기타/미지정',
+        promise: p
+      }
+
+      const result = await p
+      setAnalysisResult(result)
     } catch (err: any) {
       console.error('분석 에러:', err)
       setErrorMessage(err.message || '영상/사진 분석에 실패했습니다.')
     } finally {
       setIsLoading(false)
       setLoadingStep('')
+      activeAnalysisPromiseRef.current = null
     }
   }
 
@@ -576,9 +602,28 @@ export function AiCbmEstimateModal({
                 <Sparkles className="w-5 h-5 text-indigo-600 absolute inset-0 m-auto animate-pulse" />
               </div>
               <div>
-                <p className="text-sm font-bold text-blue-900">AI가 영상 속 가구와 가전을 식별하고 있습니다</p>
+                <p className="text-sm font-bold text-blue-900">AI가 영상/사진 속 가구와 가전을 식별하고 있습니다</p>
                 <p className="text-xs text-blue-700 mt-1">{loadingStep}</p>
               </div>
+
+              {/* 백그라운드 전환 버튼 */}
+              {onStartBackgroundAnalysis && activeAnalysisPromiseRef.current && (
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (activeAnalysisPromiseRef.current) {
+                        onStartBackgroundAnalysis(activeAnalysisPromiseRef.current)
+                        onClose()
+                      }
+                    }}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-blue-700 bg-white hover:bg-blue-50 border border-blue-300 shadow-2xs inline-flex items-center gap-1.5 transition-all active:scale-95"
+                  >
+                    <ArrowRight size={14} className="text-blue-600" />
+                    <span>기다리지 않고 다른 방으로 이동 (백그라운드에서 분석 계속)</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
