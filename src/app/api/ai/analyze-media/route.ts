@@ -266,7 +266,14 @@ ${JSON.stringify(masterItemsSummary)}
       const key = `${item.name}__${item.spec || ''}`
       const matched = masterMap.get(key) || masterMap.get(item.name)
 
-      const finalLocation = item.location || hintLocation || locations[0]?.name || '거실'
+      // 촬영 공간 결정: 지정된 힌트가 있으면 힌트 우선, 없으면 AI 감지 공간 검증, 감지 실패 시 미지정("")으로 처리
+      let finalLocation = ''
+      if (hintLocation) {
+        finalLocation = hintLocation
+      } else if (item.location) {
+        const matchedLoc = locations.find(l => l.name === item.location || l.name.includes(item.location) || item.location.includes(l.name))
+        finalLocation = matchedLoc ? matchedLoc.name : (item.location.trim() === '미지정' || item.location.trim() === '기타' ? '' : item.location)
+      }
       const finalName = matched ? matched.name : item.name
       const finalSpec = matched ? matched.spec : (item.spec || '')
       const finalCbm = matched ? matched.defaultCbm : (Number(item.cbm) || 0)

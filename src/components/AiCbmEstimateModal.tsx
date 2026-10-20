@@ -142,6 +142,13 @@ export function AiCbmEstimateModal({
       return
     }
 
+    if (!hintLocation) {
+      const proceed = window.confirm(
+        '촬영 공간이 선택되지 않았습니다.\n공간을 선택하지 않고 AI 자동 감지로 계속 진행하시겠습니까?\n\n(확인을 누르면 AI 자동 감지로 분석되며, 감지되지 않으면 "기타/미지정"으로 배정됩니다)'
+      )
+      if (!proceed) return
+    }
+
     setIsLoading(true)
     setErrorMessage(null)
     setLoadingStep('미디어 파일 업로드 준비 중...')
@@ -226,7 +233,7 @@ export function AiCbmEstimateModal({
 
   const handleAddItem = () => {
     if (!analysisResult) return
-    const defaultLoc = hintLocation || locations[0]?.name || '거실'
+    const defaultLoc = hintLocation || ''
     const defaultStd = standardItems[0] || { name: '기타', spec: '', defaultCbm: 0.1, defaultInnerCbm: 0 }
     const newItem: AiIdentifiedItem = {
       id: `ai_${Date.now()}_${Math.random()}`,
@@ -486,7 +493,15 @@ export function AiCbmEstimateModal({
                     {/* 모바일 직접 촬영 버튼 */}
                     <button
                       type="button"
-                      onClick={() => cameraInputRef.current?.click()}
+                      onClick={() => {
+                        if (!hintLocation) {
+                          const proceed = window.confirm(
+                            '촬영 공간이 선택되지 않았습니다.\n공간을 선택하지 않고 AI 자동 감지로 촬영을 진행하시겠습니까?\n\n(확인을 누르면 AI 자동 감지로 진행되며, 감지되지 않으면 "기타/미지정"으로 배정됩니다)'
+                          )
+                          if (!proceed) return
+                        }
+                        cameraInputRef.current?.click()
+                      }}
                       className="px-3.5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs flex items-center gap-1.5 transition-colors"
                     >
                       <Camera className="w-4 h-4" />
@@ -495,7 +510,15 @@ export function AiCbmEstimateModal({
                     {/* 파일 선택 버튼 */}
                     <button
                       type="button"
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={() => {
+                        if (!hintLocation) {
+                          const proceed = window.confirm(
+                            '촬영 공간이 선택되지 않았습니다.\n공간을 선택하지 않고 AI 자동 감지로 파일을 선택하시겠습니까?\n\n(확인을 누르면 AI 자동 감지로 진행되며, 감지되지 않으면 "기타/미지정"으로 배정됩니다)'
+                          )
+                          if (!proceed) return
+                        }
+                        fileInputRef.current?.click()
+                      }}
                       className="px-3.5 py-2 text-xs font-bold text-gray-700 bg-white hover:bg-gray-100 border border-gray-300 rounded-xl shadow-xs flex items-center gap-1.5 transition-colors"
                     >
                       <Upload className="w-4 h-4" />
@@ -630,10 +653,11 @@ export function AiCbmEstimateModal({
                               {/* 공간 드롭다운 */}
                               <td className="py-1.5 px-2.5">
                                 <select
-                                  value={item.location}
+                                  value={item.location || ''}
                                   onChange={e => handleItemChange(idx, 'location', e.target.value)}
                                   className="w-full bg-gray-50 border border-gray-200 rounded px-1.5 py-1 text-xs font-semibold text-gray-700 focus:bg-white"
                                 >
+                                  <option value="">기타/미지정</option>
                                   {locations.map(loc => (
                                     <option key={loc.id} value={loc.name}>
                                       {loc.name}

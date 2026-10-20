@@ -446,7 +446,10 @@ export function EstimateForm({
       let nextList = mode === 'replace' ? [] : [...prevItems]
 
       aiItems.forEach(aiItem => {
-        const locId = locationMap.get(aiItem.location) || ''
+        const locCat = categories.find(c => c.name === aiItem.location)
+        const locId = locCat ? locCat.id : ''
+        const locName = locCat ? locCat.name : (aiItem.location && aiItem.location !== '기타/미지정' ? aiItem.location : '기타/미지정')
+
         const existingIdx = nextList.findIndex(
           it => (it.locationId || '') === locId &&
                 it.name === aiItem.name &&
@@ -459,6 +462,8 @@ export function EstimateForm({
           const newQty = mode === 'replace' ? aiItem.quantity : (currentQty > 0 ? currentQty + aiItem.quantity : aiItem.quantity)
           nextList[existingIdx] = {
             ...cur,
+            locationId: locId,
+            locationName: locName,
             quantity: newQty,
             cbm: aiItem.cbm,
             innerBoxCbm: aiItem.innerBoxCbm,
@@ -467,6 +472,7 @@ export function EstimateForm({
         } else {
           nextList.push(ensureItemUid({
             locationId: locId,
+            locationName: locName,
             name: aiItem.name,
             spec: aiItem.spec || '',
             quantity: aiItem.quantity,
@@ -480,7 +486,10 @@ export function EstimateForm({
       return nextList.map(ensureItemUid)
     })
 
-    const touchedLocIds = aiItems.map(item => locationMap.get(item.location) || '')
+    const touchedLocIds = aiItems.map(item => {
+      const c = categories.find(cat => cat.name === item.location)
+      return c ? c.id : ''
+    })
     setExpandedCategories(prev => {
       const updated = { ...prev }
       touchedLocIds.forEach(id => {
@@ -1249,9 +1258,12 @@ export function EstimateForm({
         
         {/* 기본 정보 */}
         <div className="bg-white p-3.5 sm:p-5 md:p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
-          <h2 className="text-base sm:text-lg font-bold text-blue-600 border-b pb-2">기본 정보</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse border border-gray-200 text-sm">
+          <div className="flex items-center justify-between border-b pb-2">
+            <h2 className="text-base sm:text-lg font-bold text-blue-600">기본 정보</h2>
+            <span className="sm:hidden text-[11px] text-gray-400 font-medium">👉 좌우로 스크롤하여 확인</span>
+          </div>
+          <div className="overflow-x-auto -mx-1 sm:mx-0 pb-1">
+            <table className="w-full border-collapse border border-gray-200 text-sm min-w-[580px]">
               <tbody>
                 <tr>
                   <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-3 sm:px-4 py-3 text-left font-medium text-gray-700 w-28 sm:w-36">
@@ -1340,8 +1352,8 @@ export function EstimateForm({
               )}
             </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse border border-gray-200 text-sm">
+          <div className="overflow-x-auto -mx-1 sm:mx-0 pb-1">
+            <table className="w-full border-collapse border border-gray-200 text-sm min-w-[620px]">
               <tbody>
                 <tr>
                   <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-3 sm:px-4 py-3 text-left font-medium text-gray-700 w-28 sm:w-36">
