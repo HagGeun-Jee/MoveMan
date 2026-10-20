@@ -10,11 +10,12 @@ import { getDistance } from '@/app/actions/distance'
 import { getLadderFares } from '@/app/actions/ladder'
 import type { LadderFareItem } from '@/types/ladder'
 import DaumPostcodeEmbed from 'react-daum-postcode'
-import { MapPin, Search, ChevronDown, ChevronUp, Navigation, RefreshCw, Car, AlertCircle, CheckCircle2, Calculator, Truck, Plus, FileText } from 'lucide-react'
+import { MapPin, Search, ChevronDown, ChevronUp, Navigation, RefreshCw, Car, AlertCircle, CheckCircle2, Calculator, Truck, Plus, FileText, Sparkles } from 'lucide-react'
 import { CustomDatePicker } from '@/components/CustomDatePicker'
 import { format } from 'date-fns'
 import { formatPhoneNumber, handleSelectAllOnFocus } from '@/lib/format'
 import { MovingCostCalculatorModal } from '@/components/MovingCostCalculatorModal'
+import { AiCbmEstimateModal, type AiIdentifiedItem } from '@/components/AiCbmEstimateModal'
 
 const NumberInput = ({ value, onChange, className, name }: { value: number, onChange: (val: number) => void, className?: string, name?: string }) => {
   const [localVal, setLocalVal] = useState(value === 0 ? '' : value.toLocaleString())
@@ -416,6 +417,7 @@ export function EstimateForm({
   const [selectedItemNames, setSelectedItemNames] = useState<Record<string, string>>({})
 
   const [isCbmCalculatorOpen, setIsCbmCalculatorOpen] = useState(false)
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false)
   const [cbmLength, setCbmLength] = useState<number | ''>('')
   const [cbmWidth, setCbmWidth] = useState<number | ''>('')
   const [cbmHeight, setCbmHeight] = useState<number | ''>('')
@@ -423,6 +425,62 @@ export function EstimateForm({
   const [deadSpaceRatio, setDeadSpaceRatio] = useState(20)
   const totalCbm = items.reduce((acc, item) => acc + getItemEffectiveCbm(item), 0)
   const requiredCbm = totalCbm * (1 + deadSpaceRatio / 100)
+
+  const handleApplyAiItems = (aiItems: AiIdentifiedItem[], mode: 'append' | 'replace') => {
+    if (!aiItems || aiItems.length === 0) return
+
+    const locationMap = new Map<string, string>()
+    categories.forEach(c => locationMap.set(c.name, c.id))
+
+    setItems(prevItems => {
+      let nextList = mode === 'replace' ? [] : [...prevItems]
+
+      aiItems.forEach(aiItem => {
+        const locId = locationMap.get(aiItem.location) || ''
+        const existingIdx = nextList.findIndex(
+          it => (it.locationId || '') === locId &&
+                it.name === aiItem.name &&
+                (it.spec || '') === (aiItem.spec || '')
+        )
+
+        if (existingIdx >= 0) {
+          const cur = nextList[existingIdx]
+          const currentQty = Number(cur.quantity) || 0
+          const newQty = mode === 'replace' ? aiItem.quantity : (currentQty > 0 ? currentQty + aiItem.quantity : aiItem.quantity)
+          nextList[existingIdx] = {
+            ...cur,
+            quantity: newQty,
+            cbm: aiItem.cbm,
+            innerBoxCbm: aiItem.innerBoxCbm,
+            treatment: aiItem.treatment || cur.treatment || '이동'
+          }
+        } else {
+          nextList.push({
+            locationId: locId,
+            name: aiItem.name,
+            spec: aiItem.spec || '',
+            quantity: aiItem.quantity,
+            cbm: aiItem.cbm,
+            innerBoxCbm: aiItem.innerBoxCbm,
+            treatment: aiItem.treatment || '이동'
+          })
+        }
+      })
+
+      return nextList
+    })
+
+    const touchedLocIds = aiItems.map(item => locationMap.get(item.location) || '')
+    setExpandedCategories(prev => {
+      const updated = { ...prev }
+      touchedLocIds.forEach(id => {
+        updated[id] = true
+      })
+      return updated
+    })
+
+    alert(`AI가 분석한 ${aiItems.length}개 품목이 견적서에 성공적으로 반영되었습니다!`)
+  }
 
   const handleRecommendVehicles = () => {
     const valid = standardVehicles.filter(v => (v.maxCbm || 0) > 0)
@@ -1877,6 +1935,15 @@ export function EstimateForm({
                 >
                   CBM 계산기
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setIsAiModalOpen(true)}
+                  className="px-2.5 py-1 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white text-xs rounded-md font-bold transition-all shadow-xs flex items-center gap-1 active:scale-95"
+                  title="촬영한 현장 영상이나 사진을 AI로 분석하여 CBM 물품을 자동 추출합니다"
+                >
+                  <Sparkles size={13} className="text-amber-300 animate-pulse" />
+                  <span>AI 영상·사진 CBM 견적</span>
+                </button>
                 {/* 특이 처리 항목 (폐기, 내림, 경유) 요약 뱃지 */}
                 {(() => {
                   const validItems = items.filter(it => {
@@ -2758,6 +2825,17 @@ export function EstimateForm({
             setBalance(newBalance)
             alert(`산출된 이사비용 (${calculatedCost.toLocaleString()}원)이 기본 이사 비용에 반영되었습니다!\n(총 공급대가: ${newTotal.toLocaleString()}원 / 잔금: ${newBalance.toLocaleString()}원)`)
           }}
+        />
+      )}
+
+      {/* AI 영상·사진 CBM 자동 견적 모달 */}
+      {isAiModalOpen && (
+        <AiCbmEstimateModal
+          isOpen={isAiModalOpen}
+          onClose={() => setIsAiModalOpen(false)}
+          locations={categories}
+          standardItems={standardItems}
+          onApplyToEstimate={handleApplyAiItems}
         />
       )}
     </div>
