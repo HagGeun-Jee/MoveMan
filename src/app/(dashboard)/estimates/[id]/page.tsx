@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import prisma from '@/lib/prisma'
 import { format } from 'date-fns'
-import { MapPin } from 'lucide-react'
+import { MapPin, Phone } from 'lucide-react'
 import { PrintButton } from '@/components/PrintButton'
 import { formatPhoneNumber } from '@/lib/format'
 
@@ -191,7 +191,21 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                 <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900 w-1/4 sm:w-1/6 whitespace-nowrap">고객명</th>
                 <td className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900 w-1/4 sm:w-2/6">{estimate.customerName}</td>
                 <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900 w-1/4 sm:w-1/6 whitespace-nowrap">연락처</th>
-                <td className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900 w-1/4 sm:w-2/6">{formatPhoneNumber(estimate.contact)}</td>
+                <td className="border border-gray-300 px-3 py-2 print:px-2 print:py-1 font-semibold text-gray-900 w-1/4 sm:w-2/6">
+                  <div className="flex items-center justify-between gap-1.5 flex-wrap sm:flex-nowrap">
+                    <span>{formatPhoneNumber(estimate.contact)}</span>
+                    {estimate.contact && (
+                      <a
+                        href={`tel:${estimate.contact.replace(/[^0-9]/g, '')}`}
+                        className="print:hidden inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-300 transition-colors shadow-2xs shrink-0 active:scale-95"
+                        title="고객에게 전화 걸기"
+                      >
+                        <Phone size={12} className="text-emerald-600" />
+                        <span>통화</span>
+                      </a>
+                    )}
+                  </div>
+                </td>
               </tr>
               <tr>
                 <th className="border border-gray-300 bg-gray-100 px-3 py-2 print:px-2 print:py-1 text-left font-bold text-gray-900 whitespace-nowrap">이사종류</th>
