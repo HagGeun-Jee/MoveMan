@@ -38,7 +38,28 @@ export function QuickTouchCbmPanel({
         if (it._uid === itemUid) {
           const currentQty = Number(it.quantity) || 0
           const nextQty = Math.max(0, currentQty + delta)
-          return { ...it, quantity: nextQty }
+          let nextCbm = Number(it.cbm) || 0
+          let nextInnerCbm = Number(it.innerBoxCbm) || 0
+          let nextSpec = it.spec || ''
+
+          // 수량을 올리는데 cbm과 innerBoxCbm이 0이면 standardItems에서 자동 보강
+          if (nextQty > 0 && nextCbm === 0 && nextInnerCbm === 0) {
+            const matched = standardItems.find(s => s.name === it.name && (nextSpec ? (s.spec || '기본') === nextSpec : true))
+              || standardItems.find(s => s.name === it.name)
+            if (matched) {
+              nextCbm = matched.defaultCbm
+              nextInnerCbm = matched.defaultInnerCbm || 0
+              if (!nextSpec) nextSpec = matched.spec || ''
+            }
+          }
+
+          return {
+            ...it,
+            spec: nextSpec,
+            cbm: nextCbm,
+            innerBoxCbm: nextInnerCbm,
+            quantity: nextQty
+          }
         }
         return it
       })
@@ -239,7 +260,16 @@ export function QuickTouchCbmPanel({
 
               {/* 중단: CBM 단가 및 합계 */}
               <div className="my-2 flex items-center justify-between text-[11px] text-gray-500">
-                <span>CBM: {effCbm > 0 ? `${effCbm.toFixed(2)}` : `${((Number(item.cbm) || 0) + (Number(item.innerBoxCbm) || 0)).toFixed(2)}`}</span>
+                <div className="flex items-center gap-1 flex-wrap">
+                  <span className="font-semibold text-gray-700">
+                    CBM: {effCbm > 0 ? `${effCbm.toFixed(2)}` : `${((Number(item.cbm) || 0) + (Number(item.innerBoxCbm) || 0)).toFixed(2)}`}
+                  </span>
+                  {(Number(item.innerBoxCbm) || 0) > 0 && (
+                    <span className="px-1 py-0.2 rounded bg-amber-100 text-amber-800 font-bold text-[9px] border border-amber-200" title="내부 짐 포장 박스 CBM 가산">
+                      내품 +{item.innerBoxCbm}
+                    </span>
+                  )}
+                </div>
                 {hasQty && (
                   <button
                     type="button"

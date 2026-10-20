@@ -230,7 +230,7 @@ export default function ItemsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">내부 짐 추가 CBM (선택)</label>
+              <label className="block text-sm font-medium text-gray-700">내품 CBM (선택 - 장농, 서랍장 등 내부 짐 포장 박스용)</label>
               <input type="number" step="0.01" name="defaultInnerCbm" defaultValue={0} className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 outline-none focus:border-blue-500" />
             </div>
             <button type="submit" className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors">
@@ -272,7 +272,7 @@ export default function ItemsPage() {
                   <th className="p-4 font-medium">품목</th>
                   <th className="p-4 font-medium">규격</th>
                   <th className="p-4 font-medium">기본 CBM</th>
-                  <th className="p-4 font-medium">추가 CBM</th>
+                  <th className="p-4 font-medium">내품 CBM</th>
                   <th className="p-4 font-medium text-right">관리</th>
                 </tr>
               </thead>

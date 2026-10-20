@@ -423,7 +423,7 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                             <th className="px-4 py-2 text-right w-16 print:px-2 print:py-1">수량</th>
                             <th className="px-4 py-2 text-center w-20 print:px-2 print:py-1">처리</th>
                             <th className="px-4 py-2 text-right w-24 print:px-2 print:py-1">기본 CBM</th>
-                            <th className="px-4 py-2 text-right w-24 print:px-2 print:py-1">추가 CBM</th>
+                            <th className="px-4 py-2 text-right w-24 print:px-2 print:py-1">내품 CBM</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 print:divide-gray-200">

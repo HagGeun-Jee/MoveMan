@@ -472,6 +472,17 @@ export function EstimateForm({
         const locId = locCat ? locCat.id : ''
         const locName = locCat ? locCat.name : pItem.locationName
 
+        // standardItems에서 해당 품목/규격의 defaultInnerCbm 및 defaultCbm 조회
+        const stdMatch = standardItems.find(
+          s => s.name === pItem.name && (pItem.spec ? (s.spec || '기본') === pItem.spec : true)
+        )
+        const finalCbm = pItem.cbm !== undefined && pItem.cbm > 0
+          ? pItem.cbm
+          : (stdMatch ? stdMatch.defaultCbm : 0)
+        const finalInnerCbm = pItem.innerBoxCbm !== undefined && pItem.innerBoxCbm > 0
+          ? pItem.innerBoxCbm
+          : (stdMatch ? (stdMatch.defaultInnerCbm || 0) : 0)
+
         const existingIdx = nextList.findIndex(
           it => (it.locationId || '') === locId &&
                 it.name === pItem.name &&
@@ -485,8 +496,8 @@ export function EstimateForm({
           nextList[existingIdx] = {
             ...cur,
             quantity: newQty,
-            cbm: pItem.cbm,
-            innerBoxCbm: pItem.innerBoxCbm,
+            cbm: finalCbm,
+            innerBoxCbm: finalInnerCbm,
             treatment: pItem.treatment || cur.treatment || '이동'
           }
         } else {
@@ -496,8 +507,8 @@ export function EstimateForm({
             name: pItem.name,
             spec: pItem.spec || '',
             quantity: pItem.quantity,
-            cbm: pItem.cbm,
-            innerBoxCbm: pItem.innerBoxCbm,
+            cbm: finalCbm,
+            innerBoxCbm: finalInnerCbm,
             treatment: pItem.treatment || '이동'
           }))
         }
@@ -2239,7 +2250,7 @@ export function EstimateForm({
                               <th className="whitespace-nowrap px-1.5 sm:px-2 py-1.5 sm:py-2 font-semibold w-14 sm:w-16 text-right">수량</th>
                               <th className="whitespace-nowrap px-1 sm:px-1.5 py-1.5 sm:py-2 font-semibold w-16 sm:w-20 text-center">처리</th>
                               <th className="whitespace-nowrap px-1.5 sm:px-2 py-1.5 sm:py-2 font-semibold w-18 sm:w-22 text-right">기본 CBM</th>
-                              <th className="whitespace-nowrap px-1.5 sm:px-2 py-1.5 sm:py-2 font-semibold w-18 sm:w-22 text-right">추가 CBM</th>
+                              <th className="whitespace-nowrap px-1.5 sm:px-2 py-1.5 sm:py-2 font-semibold w-18 sm:w-22 text-right">내품 CBM</th>
                               <th className="whitespace-nowrap px-1 py-1.5 sm:py-2 font-semibold w-8 sm:w-10 text-center">삭제</th>
                             </tr>
                           </thead>
@@ -2394,7 +2405,12 @@ export function EstimateForm({
                                       setItems(newItems)
                                     }} 
                                     onFocus={handleSelectAllOnFocus} 
-                                    className="w-full rounded border border-gray-300 bg-white px-1.5 py-1 text-xs sm:text-sm outline-none focus:border-blue-500 text-right" 
+                                    className={`w-full rounded border px-1.5 py-1 text-xs sm:text-sm outline-none text-right transition-colors ${
+                                      (Number(item.innerBoxCbm) || 0) > 0
+                                        ? 'border-amber-300 bg-amber-50/80 text-amber-900 font-bold focus:border-amber-500'
+                                        : 'border-gray-300 bg-white text-gray-700 focus:border-blue-500'
+                                    }`} 
+                                    title="장농, 서랍장 등 내부 짐을 옷 박스로 포장하기 위해 가산되는 내품 CBM"
                                   />
                                 </td>
                                 <td className="px-1 py-1 text-center">
@@ -2495,7 +2511,9 @@ export function EstimateForm({
                                       .sort((a, b) => (a.spec || '').localeCompare(b.spec || '', 'ko'))
                                       .map(i => (
                                         <option key={i.id} value={i.id}>
-                                          {i.spec ? `${i.spec} (${i.defaultCbm} CBM)` : `기본 규격 (${i.defaultCbm} CBM)`}
+                                          {i.spec
+                                            ? `${i.spec} (${i.defaultCbm} CBM${(i.defaultInnerCbm || 0) > 0 ? ` + 내품 ${i.defaultInnerCbm}` : ''})`
+                                            : `기본 규격 (${i.defaultCbm} CBM${(i.defaultInnerCbm || 0) > 0 ? ` + 내품 ${i.defaultInnerCbm}` : ''})`}
                                         </option>
                                       ))}
                                   </select>
