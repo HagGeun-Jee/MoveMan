@@ -2,8 +2,8 @@
  * 안드로이드 모바일 앱 릴리즈 정보 메타데이터 (자동 갱신됨)
  */
 export const APP_RELEASE_INFO = {
-  version: 'v1.0.37',
-  releaseDate: '2026-10-19 12:55',
+  version: 'v1.0.38',
+  releaseDate: '2026-10-20 10:16',
   fileSize: '8.9 MB',
   fileName: 'moveman.apk',
   note: '최신 안드로이드 네이티브 빌드 자동 배포'
