@@ -16,7 +16,7 @@ interface IdentifiedItemResult {
   quantity: number
   cbm: number
   innerBoxCbm: number
-  treatment: '이동' | '폐기' | '내림' | '경유'
+  treatment: '이동' | '폐기' | '내림' | '경유' | '존치'
   confidence?: number
   description?: string
 }
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
    ${hintLocation ? `- 사용자가 지정한 촬영 공간 힌트: "${hintLocation}" (다른 방으로 이동한 명확한 장면이 아니라면 이 공간으로 분류)` : ''}
    - 아래 [MEMAN 표준 공간 목록] 중 가장 알맞은 공간을 배정하십시오.
 5. 처리옵션(treatment):
-   - 특별히 '버린다'거나 폐기 스티커/메모가 없는 한 기본값은 "이동"으로 설정하십시오. (선택지: "이동", "폐기", "내림", "경유")
+   - 특별히 '버린다'거나 폐기 스티커/메모가 없는 한 기본값은 "이동"으로 설정하십시오. (선택지: "이동", "폐기", "내림", "경유", "존치")
 6. 수납 내부 짐(innerBoxCbm):
    - 장롱, 서랍장, 씽크대, 냉장고 등 내부 짐이 많은 품목은 표준 마스터의 innerBoxCbm 값을 참고하여 반영하십시오.
 
@@ -286,7 +286,7 @@ ${JSON.stringify(masterItemsSummary)}
         quantity: Math.max(1, Number(item.quantity) || 1),
         cbm: finalCbm,
         innerBoxCbm: finalInnerBoxCbm,
-        treatment: (['이동', '폐기', '내림', '경유'].includes(item.treatment) ? item.treatment : '이동') as '이동' | '폐기' | '내림' | '경유',
+        treatment: (['이동', '폐기', '내림', '경유', '존치'].includes(item.treatment) ? item.treatment : '이동') as '이동' | '폐기' | '내림' | '경유' | '존치',
         confidence: item.confidence || 0.9,
         description: item.description || ''
       }
@@ -294,7 +294,7 @@ ${JSON.stringify(masterItemsSummary)}
 
     // 재계산된 총 CBM
     const totalCbm = validatedItems.reduce((acc, cur) => {
-      const isExcluded = cur.treatment === '폐기' || cur.treatment === '내림'
+      const isExcluded = cur.treatment === '폐기' || cur.treatment === '내림' || cur.treatment === '존치'
       const base = isExcluded ? 0 : cur.cbm
       return acc + (base + cur.innerBoxCbm) * cur.quantity
     }, 0)

@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 }
 
 const isBaseCbmExcluded = (treatment?: string): boolean => 
-  treatment === '폐기' || treatment === '내림'
+  treatment === '폐기' || treatment === '내림' || treatment === '존치'
 
 const getItemEffectiveCbm = (item: any): number => {
   const qty = item.quantity !== undefined ? Number(item.quantity) : 1
@@ -368,7 +368,7 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                 <h3 className="font-medium text-gray-900">
                   산출 물품 목록 (총 {items.reduce((acc: number, item: any) => acc + getItemEffectiveCbm(item), 0).toFixed(2)} CBM)
                 </h3>
-                {/* 특이 처리 항목 (폐기, 내림, 경유) 요약 뱃지 */}
+                {/* 특이 처리 항목 (폐기, 내림, 경유, 존치) 요약 뱃지 */}
                 {(() => {
                   const summary = items.reduce((acc: any, it: any) => {
                     const t = it.treatment || '이동'
@@ -395,6 +395,11 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                       {summary['경유'] && (
                         <span className="px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-700 border border-purple-300 shadow-2xs print:border print:border-black print:text-black">
                           경유 {summary['경유']}개
+                        </span>
+                      )}
+                      {summary['존치'] && (
+                        <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-300 shadow-2xs print:border print:border-black print:text-black">
+                          존치 {summary['존치']}개
                         </span>
                       )}
                     </div>
@@ -431,7 +436,7 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                             const treatment = item.treatment || '이동'
                             return (
                               <tr key={idx} className={`hover:bg-gray-50 transition-colors ${
-                                treatment === '폐기' ? 'bg-red-50/20' : treatment === '내림' ? 'bg-amber-50/20' : treatment === '경유' ? 'bg-purple-50/20' : ''
+                                treatment === '폐기' ? 'bg-red-50/20' : treatment === '내림' ? 'bg-amber-50/20' : treatment === '경유' ? 'bg-purple-50/20' : treatment === '존치' ? 'bg-slate-50/40' : ''
                               }`}>
                                 <td className="px-4 py-2 font-bold text-gray-900 print:px-2 print:py-1">{item.name}</td>
                                 <td className="px-4 py-2 text-gray-800 font-medium print:px-2 print:py-1">{item.spec || '-'}</td>
@@ -448,6 +453,10 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                                   ) : treatment === '경유' ? (
                                     <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-black bg-purple-100 text-purple-700 border border-purple-300 shadow-2xs print:border print:border-black print:text-black print:bg-transparent">
                                       경유
+                                    </span>
+                                  ) : treatment === '존치' ? (
+                                    <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-black bg-slate-100 text-slate-700 border border-slate-300 shadow-2xs print:border print:border-black print:text-black print:bg-transparent">
+                                      존치
                                     </span>
                                   ) : null}
                                 </td>

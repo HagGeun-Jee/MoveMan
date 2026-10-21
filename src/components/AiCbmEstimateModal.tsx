@@ -29,7 +29,7 @@ export interface AiIdentifiedItem {
   quantity: number
   cbm: number
   innerBoxCbm: number
-  treatment: '이동' | '폐기' | '내림' | '경유'
+  treatment: '이동' | '폐기' | '내림' | '경유' | '존치'
   confidence?: number
   description?: string
 }
@@ -281,7 +281,7 @@ export function AiCbmEstimateModal({
   // 총 CBM 계산
   const calculatedTotalCbm = analysisResult
     ? analysisResult.items.reduce((acc, cur) => {
-        const isExcluded = cur.treatment === '폐기' || cur.treatment === '내림'
+        const isExcluded = cur.treatment === '폐기' || cur.treatment === '내림' || cur.treatment === '존치'
         const base = isExcluded ? 0 : cur.cbm
         return acc + (base + cur.innerBoxCbm) * cur.quantity
       }, 0)
@@ -692,7 +692,7 @@ export function AiCbmEstimateModal({
                         </tr>
                       ) : (
                         analysisResult.items.map((item, idx) => {
-                          const isExcluded = item.treatment === '폐기' || item.treatment === '내림'
+                          const isExcluded = item.treatment === '폐기' || item.treatment === '내림' || item.treatment === '존치'
                           return (
                             <tr key={item.id || idx} className="hover:bg-blue-50/30 transition-colors">
                               {/* 공간 드롭다운 */}
@@ -769,6 +769,8 @@ export function AiCbmEstimateModal({
                                       ? 'bg-amber-50 text-amber-700 border-amber-200'
                                       : item.treatment === '경유'
                                       ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                      : item.treatment === '존치'
+                                      ? 'bg-slate-50 text-slate-700 border-slate-300'
                                       : 'bg-gray-50 text-gray-700 border-gray-200'
                                   }`}
                                 >
@@ -776,6 +778,7 @@ export function AiCbmEstimateModal({
                                   <option value="폐기">폐기</option>
                                   <option value="내림">내림</option>
                                   <option value="경유">경유</option>
+                                  <option value="존치">존치</option>
                                 </select>
                               </td>
 

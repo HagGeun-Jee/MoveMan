@@ -56,7 +56,7 @@ export const isBoxItem = (name: string): boolean => {
 }
 
 export const isBaseCbmExcluded = (treatment?: string): boolean => 
-  treatment === '폐기' || treatment === '내림'
+  treatment === '폐기' || treatment === '내림' || treatment === '존치'
 
 export const getItemEffectiveCbm = (item: any): number => {
   const qty = item.quantity !== undefined ? Number(item.quantity) : 1
@@ -2072,7 +2072,7 @@ export function EstimateForm({
                   CBM 계산기
                 </button>
 
-                {/* 특이 처리 항목 (폐기, 내림, 경유) 요약 뱃지 */}
+                {/* 특이 처리 항목 (폐기, 내림, 경유, 존치) 요약 뱃지 */}
                 {(() => {
                   const validItems = items.filter(it => {
                     const q = it.quantity !== undefined ? Number(it.quantity) : 1
@@ -2103,6 +2103,11 @@ export function EstimateForm({
                       {countBy['경유'] && (
                         <span className="px-1.5 py-0.2 rounded-full bg-purple-100 text-purple-700 border border-purple-200 shadow-2xs text-[11px]">
                           경유 {countBy['경유']}
+                        </span>
+                      )}
+                      {countBy['존치'] && (
+                        <span className="px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-700 border border-slate-300 shadow-2xs text-[11px]">
+                          존치 {countBy['존치']}
                         </span>
                       )}
                     </div>
@@ -2356,6 +2361,8 @@ export function EstimateForm({
                                         ? 'bg-amber-50 text-amber-700 border-amber-300'
                                         : (item.treatment || '이동') === '경유'
                                         ? 'bg-purple-50 text-purple-700 border-purple-300'
+                                        : (item.treatment || '이동') === '존치'
+                                        ? 'bg-slate-100 text-slate-700 border-slate-300'
                                         : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
                                     }`}
                                   >
@@ -2363,6 +2370,7 @@ export function EstimateForm({
                                     <option value="폐기">폐기</option>
                                     <option value="내림">내림</option>
                                     <option value="경유">경유</option>
+                                    <option value="존치">존치</option>
                                   </select>
                                 </td>
                                 <td className="px-1 sm:px-1.5 py-1">

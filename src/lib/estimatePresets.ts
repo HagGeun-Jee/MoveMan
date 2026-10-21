@@ -5,7 +5,7 @@ export interface PresetItem {
   quantity: number
   cbm: number
   innerBoxCbm: number
-  treatment?: '이동' | '폐기' | '내림' | '경유'
+  treatment?: '이동' | '폐기' | '내림' | '경유' | '존치'
 }
 
 export interface EstimatePreset {

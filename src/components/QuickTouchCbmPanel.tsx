@@ -87,13 +87,14 @@ export function QuickTouchCbmPanel({
     })
   }
 
-  // 처리옵션 변경 (이동 -> 폐기 -> 내림 -> 경유 -> 이동 순환)
+  // 처리옵션 변경 (이동 -> 폐기 -> 내림 -> 경유 -> 존치 -> 이동 순환)
   const handleCycleTreatment = (itemUid: string) => {
     const cycle: Record<string, string> = {
       '이동': '폐기',
       '폐기': '내림',
       '내림': '경유',
-      '경유': '이동'
+      '경유': '존치',
+      '존치': '이동'
     }
     setItems(prev => {
       return prev.map(it => {
@@ -243,7 +244,7 @@ export function QuickTouchCbmPanel({
                 <button
                   type="button"
                   onClick={() => handleCycleTreatment(item._uid)}
-                  title="클릭하여 처리 변경 (이동 -> 폐기 -> 내림 -> 경유)"
+                  title="클릭하여 처리 변경 (이동 -> 폐기 -> 내림 -> 경유 -> 존치)"
                   className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold transition-all border ${
                     treatment === '폐기'
                       ? 'bg-red-100 text-red-700 border-red-200'
@@ -251,6 +252,8 @@ export function QuickTouchCbmPanel({
                       ? 'bg-amber-100 text-amber-700 border-amber-200'
                       : treatment === '경유'
                       ? 'bg-purple-100 text-purple-700 border-purple-200'
+                      : treatment === '존치'
+                      ? 'bg-slate-100 text-slate-700 border-slate-300'
                       : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
                   }`}
                 >
