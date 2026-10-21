@@ -26,7 +26,7 @@ export const ESTIMATE_PRESETS: EstimatePreset[] = [
     badge: '소형 (원룸·오피스텔)',
     estimatedCbm: '약 8 ~ 12 CBM',
     estimatedTonnage: '1톤 ~ 1.5톤',
-    targetDescription: '원룸, 오피스텔 거주 1인 단독 가구 추천',
+    targetDescription: '원룸, 오피스텔 거주 1인 단독 가구 추천 (비수납 순수 잔짐 반영)',
     color: 'emerald',
     items: [
       { locationName: '안방', name: '침대', spec: 'S/SS', quantity: 1, cbm: 1.2, innerBoxCbm: 0 },
@@ -38,17 +38,16 @@ export const ESTIMATE_PRESETS: EstimatePreset[] = [
       { locationName: '주방', name: '냉장고', spec: '일반 300 이하', quantity: 1, cbm: 0.5, innerBoxCbm: 0.2 },
       { locationName: '주방', name: '주방가전', spec: '전자레인지', quantity: 1, cbm: 0.1, innerBoxCbm: 0 },
       { locationName: '베란다', name: '세탁기', spec: '일반/드럼', quantity: 1, cbm: 1.0, innerBoxCbm: 0 },
-      { locationName: '기타/미지정', name: 'BOX', spec: '옷', quantity: 10, cbm: 0.25, innerBoxCbm: 0 },
-      { locationName: '기타/미지정', name: 'BOX', spec: '중', quantity: 10, cbm: 0.17, innerBoxCbm: 0 },
+      { locationName: '기타/미지정', name: 'BOX', spec: '중', quantity: 8, cbm: 0.17, innerBoxCbm: 0 },
     ]
   },
   {
     id: 'preset_two_room',
     name: '투룸 / 신혼 (15~20평)',
     badge: '중소형 (15~20평)',
-    estimatedCbm: '약 18 ~ 25 CBM',
-    estimatedTonnage: '2.5톤 ~ 3톤',
-    targetDescription: '신혼부부, 2인 가구, 빌라/투룸 추천',
+    estimatedCbm: '약 18 ~ 22 CBM',
+    estimatedTonnage: '2.5톤',
+    targetDescription: '신혼부부, 2인 가구, 빌라/투룸 추천 (비수납 순수 잔짐 반영)',
     color: 'blue',
     items: [
       { locationName: '안방', name: '침대', spec: 'Q/K', quantity: 1, cbm: 1.8, innerBoxCbm: 0 },
@@ -66,21 +65,20 @@ export const ESTIMATE_PRESETS: EstimatePreset[] = [
       { locationName: '방1', name: '책상', spec: '소형', quantity: 1, cbm: 0.5, innerBoxCbm: 0 },
       { locationName: '방1', name: '의자', spec: '책상용', quantity: 1, cbm: 0.5, innerBoxCbm: 0 },
       { locationName: '베란다', name: '세탁기', spec: '일반/드럼', quantity: 1, cbm: 1.0, innerBoxCbm: 0 },
-      { locationName: '기타/미지정', name: 'BOX', spec: '옷', quantity: 15, cbm: 0.25, innerBoxCbm: 0 },
-      { locationName: '기타/미지정', name: 'BOX', spec: '중', quantity: 15, cbm: 0.17, innerBoxCbm: 0 },
+      { locationName: '기타/미지정', name: 'BOX', spec: '중', quantity: 12, cbm: 0.17, innerBoxCbm: 0 },
     ]
   },
   {
     id: 'preset_three_room_24',
     name: '아파트 24~26평 (3인 가구)',
     badge: '국민평형 (24평 3인)',
-    estimatedCbm: '약 32 ~ 40 CBM',
+    estimatedCbm: '약 28 ~ 35 CBM',
     estimatedTonnage: '5톤 1대 (기본)',
-    targetDescription: '아파트 24~26평, 방3개, 3인 가구 표준 (장농 내품 박스 CBM 포함)',
+    targetDescription: '아파트 24~26평, 방3개, 3인 가구 표준 (장농 내품 박스 반영, 순수 잔짐 중복 제거)',
     color: 'indigo',
     items: [
       { locationName: '안방', name: '침대', spec: 'Q/K', quantity: 1, cbm: 1.8, innerBoxCbm: 0 },
-      { locationName: '안방', name: '장농', spec: '1통', quantity: 3, cbm: 1.1, innerBoxCbm: 0.9 }, // 1통당 1.1 + 0.9 = 2.0 CBM
+      { locationName: '안방', name: '장농', spec: '1통', quantity: 3, cbm: 1.1, innerBoxCbm: 0.9 }, // 1통당 1.1 + 0.9 = 2.0 CBM (옷/이불 내품 포함)
       { locationName: '안방', name: '화장대', spec: '수납(120x50x150)', quantity: 1, cbm: 1.0, innerBoxCbm: 0 },
       { locationName: '안방', name: '서랍장', spec: '5단 800', quantity: 1, cbm: 0.5, innerBoxCbm: 0.5 },
       { locationName: '거실', name: '소파', spec: '4인', quantity: 1, cbm: 2.3, innerBoxCbm: 0 },
@@ -99,8 +97,6 @@ export const ESTIMATE_PRESETS: EstimatePreset[] = [
       { locationName: '방2', name: '서랍장', spec: '3단 800', quantity: 1, cbm: 0.25, innerBoxCbm: 0.25 },
       { locationName: '베란다', name: '세탁기', spec: '일반/드럼', quantity: 1, cbm: 1.0, innerBoxCbm: 0 },
       { locationName: '베란다', name: '건조기', spec: '일반/드럼', quantity: 1, cbm: 1.0, innerBoxCbm: 0 },
-      { locationName: '기타/미지정', name: 'BOX', spec: '옷', quantity: 20, cbm: 0.25, innerBoxCbm: 0 },
-      { locationName: '기타/미지정', name: 'BOX', spec: '이불', quantity: 10, cbm: 0.33, innerBoxCbm: 0 },
       { locationName: '기타/미지정', name: 'BOX', spec: '중', quantity: 15, cbm: 0.17, innerBoxCbm: 0 },
     ]
   },
@@ -108,9 +104,9 @@ export const ESTIMATE_PRESETS: EstimatePreset[] = [
     id: 'preset_four_room_34',
     name: '아파트 32~34평 (4인 가구)',
     badge: '대중적 평형 (34평 4인)',
-    estimatedCbm: '약 48 ~ 58 CBM',
-    estimatedTonnage: '5톤 1대 + 1톤~2.5톤',
-    targetDescription: '아파트 32~34평, 방3~4개, 4인 가구 표준 풀세트 (장농·서랍장·냉장고 내품 CBM 합산)',
+    estimatedCbm: '약 38 ~ 46 CBM',
+    estimatedTonnage: '5톤 1대 + 1톤',
+    targetDescription: '아파트 32~34평, 방3~4개, 4인 가구 표준 (가구 내품 합산, 비수납 순수 잔짐 반영)',
     color: 'purple',
     items: [
       { locationName: '안방', name: '침대', spec: '라지킹', quantity: 1, cbm: 2.3, innerBoxCbm: 0 },
@@ -138,8 +134,6 @@ export const ESTIMATE_PRESETS: EstimatePreset[] = [
       { locationName: '방3', name: '앵글', spec: '철재 120x45x180', quantity: 1, cbm: 1.0, innerBoxCbm: 0.5 },
       { locationName: '베란다', name: '세탁기', spec: '콤보/신형', quantity: 1, cbm: 1.5, innerBoxCbm: 0 },
       { locationName: '베란다', name: '건조기', spec: '대형', quantity: 1, cbm: 1.1, innerBoxCbm: 0 },
-      { locationName: '기타/미지정', name: 'BOX', spec: '옷', quantity: 30, cbm: 0.25, innerBoxCbm: 0 },
-      { locationName: '기타/미지정', name: 'BOX', spec: '이불', quantity: 15, cbm: 0.33, innerBoxCbm: 0 },
       { locationName: '기타/미지정', name: 'BOX', spec: '중', quantity: 20, cbm: 0.17, innerBoxCbm: 0 },
     ]
   },
@@ -147,9 +141,9 @@ export const ESTIMATE_PRESETS: EstimatePreset[] = [
     id: 'preset_large_45',
     name: '아파트 40평형 이상 대형',
     badge: '대형 평형 (40평 이상)',
-    estimatedCbm: '약 65 ~ 80 CBM',
-    estimatedTonnage: '5톤 2대 or 5톤+5톤',
-    targetDescription: '아파트 40평형 이상, 방4~5개, 다량 가구 및 짐 (장농 5통 내품 CBM 풀세트)',
+    estimatedCbm: '약 52 ~ 65 CBM',
+    estimatedTonnage: '5톤 2대 or 5톤+2.5톤',
+    targetDescription: '아파트 40평형 이상, 방4~5개, 다량 가구 및 짐 (장농 5통 내품 CBM 풀세트, 순수 잔짐 반영)',
     color: 'rose',
     items: [
       { locationName: '안방', name: '침대', spec: '라지킹', quantity: 1, cbm: 2.3, innerBoxCbm: 0 },
@@ -176,8 +170,6 @@ export const ESTIMATE_PRESETS: EstimatePreset[] = [
       { locationName: '베란다', name: '세탁기', spec: '콤보/신형', quantity: 1, cbm: 1.5, innerBoxCbm: 0 },
       { locationName: '베란다', name: '건조기', spec: '대형', quantity: 1, cbm: 1.1, innerBoxCbm: 0 },
       { locationName: '베란다', name: '앵글', spec: '철재 120x45x180', quantity: 2, cbm: 1.0, innerBoxCbm: 0.5 },
-      { locationName: '기타/미지정', name: 'BOX', spec: '옷', quantity: 40, cbm: 0.25, innerBoxCbm: 0 },
-      { locationName: '기타/미지정', name: 'BOX', spec: '이불', quantity: 20, cbm: 0.33, innerBoxCbm: 0 },
       { locationName: '기타/미지정', name: 'BOX', spec: '중', quantity: 25, cbm: 0.17, innerBoxCbm: 0 },
     ]
   }
