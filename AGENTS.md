@@ -465,6 +465,30 @@
 4. **검증 및 배포**:
    - Next.js 16 프로덕션 빌드(`npx next build`) 컴파일 완료.
 
+### DD. 평형 템플릿 기타/미지정 잔짐 박스 포함 내역 안내 툴팁 탑재
+1. **요구사항**:
+   - 평형별 템플릿 적용 시 [기타/미지정]에 자동 배치되는 잔짐 박스(BOX)에 어떤 짐들이 포함되는지(신발, 욕실, 거실 바닥 짐 등) 사용자가 툴팁을 통해 직관적으로 확인할 수 있도록 구현.
+2. **조치 내역**:
+   - **전용 툴팁/팝오버 컴포넌트 신규 개발 ([UnassignedBoxTooltip.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/components/UnassignedBoxTooltip.tsx))**:
+     - `variant` 옵션 지원: `badge` (뱃지 버튼), `icon` (물음표 아이콘), `banner` (가로 배너 바).
+     - 마우스 호버 및 모바일 터치 클릭 지원 (바깥 영역 클릭 시 자동 닫힘).
+     - 포함 내역 구성:
+       - **현관/신발장**: 신발류(신발장 수납분 일부), 우산, 슬리퍼, 현관 잡화
+       - **욕실/화장실**: 수건, 세면도구, 샴푸/바디워시, 드라이기, 욕실 소품
+       - **거실/침실**: 화장품, 탁상 스탠드, 멀티탭/전선, 쿠션, 인형, 액자, 생활 소품
+       - **베란다/다용도실**: 빨래바구니, 건조대 소품, 청소도구 부속품, 화분 주변 잡화
+       - **중복 제외 안내**: 장농·서랍장의 옷/이불, 냉장고 음식물, 책장 도서는 해당 가구의 [내품 CBM]에 이미 포함되어 본 박스와 중복되지 않음을 명시.
+   - **견적 작성 화면 연동 ([EstimateForm.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/components/EstimateForm.tsx))**:
+     - `[기타/미지정]` 아코디언 헤더에 `[ℹ️ 박스 포함내역 안내]` 뱃지 탑재.
+     - 아코디언 확장 시 테이블 상단에 클릭 가능한 안내 배너 바 제공.
+   - **초고속 원터치 모드 연동 ([QuickTouchCbmPanel.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/components/QuickTouchCbmPanel.tsx))**:
+     - `기타/미지정` 공간 탭 선택 시 상단 팁 영역에 `[ℹ️ 박스 포함내역 안내]` 뱃지 탑재.
+   - **평형 템플릿 모달 연동 ([EstimatePresetModal.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/components/EstimatePresetModal.tsx))**:
+     - 템플릿 선택 모달의 포함 품목 미리보기에서 `[기타/미지정]` 항목 옆에 ℹ️ 툴팁 아이콘을 탑재하여 템플릿 적용 전에도 즉시 확인 가능.
+3. **검증 및 배포**:
+   - Next.js 16 프로덕션 빌드(`npx next build`) 검증 완료.
+
+
 
 
 

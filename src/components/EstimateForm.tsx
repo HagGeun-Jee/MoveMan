@@ -18,6 +18,7 @@ import { MovingCostCalculatorModal } from '@/components/MovingCostCalculatorModa
 import { AiCbmEstimateModal, type AiIdentifiedItem } from '@/components/AiCbmEstimateModal'
 import { EstimatePresetModal } from '@/components/EstimatePresetModal'
 import { QuickTouchCbmPanel } from '@/components/QuickTouchCbmPanel'
+import { UnassignedBoxTooltip } from '@/components/UnassignedBoxTooltip'
 import type { PresetItem } from '@/lib/estimatePresets'
 
 const NumberInput = ({ value, onChange, className, name }: { value: number, onChange: (val: number) => void, className?: string, name?: string }) => {
@@ -2237,13 +2238,22 @@ export function EstimateForm({
                       <div className="flex items-center gap-1.5 sm:gap-2">
                         {isExpanded ? <ChevronUp size={18} className="text-blue-600" /> : <ChevronDown size={18} className="text-gray-400" />}
                         <span className="text-gray-900 font-bold text-xs sm:text-sm">{cat.name}</span>
+                        {(cat.name === '기타/미지정' || cat.id === '') && (
+                          <UnassignedBoxTooltip variant="badge" />
+                        )}
                       </div>
                       <span className="text-xs sm:text-sm font-semibold text-blue-700 bg-white/90 px-2 sm:px-2.5 py-0.5 rounded-full border border-blue-200 shadow-2xs">
                         {catItems.reduce((acc, item) => acc + getItemEffectiveCbm(item), 0).toFixed(2)} CBM
                       </span>
                     </div>
                     {isExpanded && (
-                      <div className="overflow-x-auto">
+                      <div>
+                        {(cat.name === '기타/미지정' || cat.id === '') && (
+                          <div className="px-3 py-1.5 bg-gray-50/80 border-b border-gray-200">
+                            <UnassignedBoxTooltip variant="banner" className="w-full" />
+                          </div>
+                        )}
+                        <div className="overflow-x-auto">
                         <table className="w-full text-xs sm:text-sm text-left bg-white min-w-[560px] sm:min-w-0">
                           <thead className="bg-gray-50 text-gray-700 border-b border-gray-200">
                             <tr>
@@ -2538,6 +2548,7 @@ export function EstimateForm({
                           </tr>
                         </tbody>
                       </table>
+                        </div>
                       </div>
                     )}
                   </div>

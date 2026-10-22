@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { ESTIMATE_PRESETS, type EstimatePreset, type PresetItem } from '@/lib/estimatePresets'
 import { Zap, X, Check, ArrowRight, Layers, Sparkles, AlertTriangle } from 'lucide-react'
+import { UnassignedBoxTooltip } from './UnassignedBoxTooltip'
 
 interface EstimatePresetModalProps {
   isOpen: boolean
@@ -149,6 +150,9 @@ export function EstimatePresetModal({
                   <span className="font-medium">{it.name}</span>
                   <span className="text-gray-400">({it.spec})</span>
                   <span className="font-extrabold text-blue-600">×{it.quantity}</span>
+                  {it.locationName === '기타/미지정' && (
+                    <UnassignedBoxTooltip variant="icon" />
+                  )}
                 </span>
               ))}
             </div>

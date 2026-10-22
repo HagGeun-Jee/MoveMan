@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { Plus, Minus, Trash2, Box, Layers, CheckCircle2, ChevronRight, Sparkles } from 'lucide-react'
 import { isBoxItem, getItemEffectiveCbm, ensureItemUid } from './EstimateForm'
+import { UnassignedBoxTooltip } from './UnassignedBoxTooltip'
 
 interface QuickTouchCbmPanelProps {
   categories: any[]
@@ -183,12 +184,15 @@ export function QuickTouchCbmPanel({
       </div>
 
       {/* 공간 안내 및 원터치 팁 */}
-      <div className="flex items-center justify-between text-xs text-gray-600 bg-blue-50/60 px-3 py-1.5 rounded-lg border border-blue-100">
-        <div className="flex items-center gap-1.5">
+      <div className="flex items-center justify-between text-xs text-gray-600 bg-blue-50/60 px-3 py-1.5 rounded-lg border border-blue-100 flex-wrap gap-2">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <Sparkles size={13} className="text-blue-600 shrink-0" />
           <span className="font-semibold text-gray-800">
             <strong>[{activeCategory?.name}]</strong> 공간을 둘러보며 카드를 탭하여 수량을 가감하세요.
           </span>
+          {(!activeCategoryId || activeCategory?.name === '기타/미지정') && (
+            <UnassignedBoxTooltip variant="badge" />
+          )}
         </div>
         <div className="text-blue-700 font-bold sm:hidden">
           {currentCategoryCbm.toFixed(2)} CBM
