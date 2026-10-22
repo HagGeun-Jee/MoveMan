@@ -472,16 +472,16 @@ export function EstimateForm({
         const locId = locCat ? locCat.id : ''
         const locName = locCat ? locCat.name : pItem.locationName
 
-        // standardItems에서 해당 품목/규격의 defaultInnerCbm 및 defaultCbm 조회
+        // standardItems에서 해당 품목/규격의 최신 실측치(defaultCbm, defaultInnerCbm) 조회 (DB 실측치 우선 적용)
         const stdMatch = standardItems.find(
           s => s.name === pItem.name && (pItem.spec ? (s.spec || '기본') === pItem.spec : true)
         )
-        const finalCbm = pItem.cbm !== undefined && pItem.cbm > 0
-          ? pItem.cbm
-          : (stdMatch ? stdMatch.defaultCbm : 0)
-        const finalInnerCbm = pItem.innerBoxCbm !== undefined && pItem.innerBoxCbm > 0
-          ? pItem.innerBoxCbm
-          : (stdMatch ? (stdMatch.defaultInnerCbm || 0) : 0)
+        const finalCbm = stdMatch
+          ? stdMatch.defaultCbm
+          : (pItem.cbm !== undefined ? pItem.cbm : 0)
+        const finalInnerCbm = stdMatch
+          ? (stdMatch.defaultInnerCbm || 0)
+          : (pItem.innerBoxCbm !== undefined ? pItem.innerBoxCbm : 0)
 
         const existingIdx = nextList.findIndex(
           it => (it.locationId || '') === locId &&
@@ -2308,7 +2308,9 @@ export function EstimateForm({
                                         >
                                           <option value="">규격 선택</option>
                                           {availableSpecs.map(s => (
-                                            <option key={s.id} value={s.spec || '기본'}>{s.spec || '기본'}</option>
+                                            <option key={s.id} value={s.spec || '기본'}>
+                                              {s.spec || '기본'} ({s.defaultCbm} CBM{(s.defaultInnerCbm || 0) > 0 ? ` + 내품 ${s.defaultInnerCbm}` : ''})
+                                            </option>
                                           ))}
                                         </select>
                                       )

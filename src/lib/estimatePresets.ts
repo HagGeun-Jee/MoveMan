@@ -38,7 +38,7 @@ export const ESTIMATE_PRESETS: EstimatePreset[] = [
       { locationName: '주방', name: '냉장고', spec: '일반 300 이하', quantity: 1, cbm: 0.5, innerBoxCbm: 0.2 },
       { locationName: '주방', name: '주방가전', spec: '전자레인지', quantity: 1, cbm: 0.1, innerBoxCbm: 0 },
       { locationName: '베란다', name: '세탁기', spec: '일반/드럼', quantity: 1, cbm: 1.0, innerBoxCbm: 0 },
-      { locationName: '기타/미지정', name: 'BOX', spec: '중', quantity: 8, cbm: 0.17, innerBoxCbm: 0 },
+      { locationName: '기타/미지정', name: 'BOX', spec: '중', quantity: 8, cbm: 0.10, innerBoxCbm: 0 },
     ]
   },
   {
@@ -65,7 +65,7 @@ export const ESTIMATE_PRESETS: EstimatePreset[] = [
       { locationName: '방1', name: '책상', spec: '소형', quantity: 1, cbm: 0.5, innerBoxCbm: 0 },
       { locationName: '방1', name: '의자', spec: '책상용', quantity: 1, cbm: 0.5, innerBoxCbm: 0 },
       { locationName: '베란다', name: '세탁기', spec: '일반/드럼', quantity: 1, cbm: 1.0, innerBoxCbm: 0 },
-      { locationName: '기타/미지정', name: 'BOX', spec: '중', quantity: 12, cbm: 0.17, innerBoxCbm: 0 },
+      { locationName: '기타/미지정', name: 'BOX', spec: '중', quantity: 12, cbm: 0.10, innerBoxCbm: 0 },
     ]
   },
   {
@@ -97,7 +97,7 @@ export const ESTIMATE_PRESETS: EstimatePreset[] = [
       { locationName: '방2', name: '서랍장', spec: '3단 800', quantity: 1, cbm: 0.25, innerBoxCbm: 0.25 },
       { locationName: '베란다', name: '세탁기', spec: '일반/드럼', quantity: 1, cbm: 1.0, innerBoxCbm: 0 },
       { locationName: '베란다', name: '건조기', spec: '일반/드럼', quantity: 1, cbm: 1.0, innerBoxCbm: 0 },
-      { locationName: '기타/미지정', name: 'BOX', spec: '중', quantity: 15, cbm: 0.17, innerBoxCbm: 0 },
+      { locationName: '기타/미지정', name: 'BOX', spec: '중', quantity: 15, cbm: 0.10, innerBoxCbm: 0 },
     ]
   },
   {
@@ -134,7 +134,7 @@ export const ESTIMATE_PRESETS: EstimatePreset[] = [
       { locationName: '방3', name: '앵글', spec: '철재 120x45x180', quantity: 1, cbm: 1.0, innerBoxCbm: 0.5 },
       { locationName: '베란다', name: '세탁기', spec: '콤보/신형', quantity: 1, cbm: 1.5, innerBoxCbm: 0 },
       { locationName: '베란다', name: '건조기', spec: '대형', quantity: 1, cbm: 1.1, innerBoxCbm: 0 },
-      { locationName: '기타/미지정', name: 'BOX', spec: '중', quantity: 20, cbm: 0.17, innerBoxCbm: 0 },
+      { locationName: '기타/미지정', name: 'BOX', spec: '중', quantity: 20, cbm: 0.10, innerBoxCbm: 0 },
     ]
   },
   {
@@ -170,7 +170,7 @@ export const ESTIMATE_PRESETS: EstimatePreset[] = [
       { locationName: '베란다', name: '세탁기', spec: '콤보/신형', quantity: 1, cbm: 1.5, innerBoxCbm: 0 },
       { locationName: '베란다', name: '건조기', spec: '대형', quantity: 1, cbm: 1.1, innerBoxCbm: 0 },
       { locationName: '베란다', name: '앵글', spec: '철재 120x45x180', quantity: 2, cbm: 1.0, innerBoxCbm: 0.5 },
-      { locationName: '기타/미지정', name: 'BOX', spec: '중', quantity: 25, cbm: 0.17, innerBoxCbm: 0 },
+      { locationName: '기타/미지정', name: 'BOX', spec: '중', quantity: 25, cbm: 0.10, innerBoxCbm: 0 },
     ]
   }
 ]

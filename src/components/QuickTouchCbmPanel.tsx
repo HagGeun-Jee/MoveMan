@@ -229,7 +229,7 @@ export function QuickTouchCbmPanel({
                     >
                       {availableSpecs.map(s => (
                         <option key={s.id} value={s.spec || '기본'}>
-                          {s.spec || '기본'}
+                          {s.spec || '기본'} ({s.defaultCbm} CBM{(s.defaultInnerCbm || 0) > 0 ? ` + 내품 ${s.defaultInnerCbm}` : ''})
                         </option>
                       ))}
                     </select>
