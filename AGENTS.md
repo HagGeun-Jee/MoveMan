@@ -485,6 +485,12 @@
      - `기타/미지정` 공간 탭 선택 시 상단 팁 영역에 `[ℹ️ 박스 포함내역 안내]` 뱃지 탑재.
    - **평형 템플릿 모달 연동 ([EstimatePresetModal.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/components/EstimatePresetModal.tsx))**:
      - 템플릿 선택 모달의 포함 품목 미리보기에서 `[기타/미지정]` 항목 옆에 ℹ️ 툴팁 아이콘을 탑재하여 템플릿 적용 전에도 즉시 확인 가능.
+   - **태블릿 및 모바일 우측 잘림 방지 스마트 뷰포트 고정 포지셔닝 적용**:
+     - 기존 `absolute` 위치 지정 시 부모 요소의 `overflow-hidden`이나 태블릿 화면 우측 경계선에 걸려 내용이 잘리던 현상 해결.
+     - `position: fixed` 및 버튼 좌표(`getBoundingClientRect`) 기반 스마트 Clamp 계산 적용:
+       - 팝오버 너비를 `min(360px, calc(100vw - 32px))`로 제한.
+       - 버튼이 화면 오른쪽에 치우쳐 있어도 화면 우측 여백 16px 이내로 팝오버를 자동 보정(`left = window.innerWidth - popoverWidth - 16`)하여 우측 잘림을 100% 원천 차단.
+       - 팝오버 바깥 클릭 시 부드럽게 닫히는 반투명 백드롭(`fixed inset-0 z-50 bg-black/15`) 탑재.
 3. **검증 및 배포**:
    - Next.js 16 프로덕션 빌드(`npx next build`) 검증 완료.
 
