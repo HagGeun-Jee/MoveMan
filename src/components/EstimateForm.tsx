@@ -2244,15 +2244,15 @@ export function EstimateForm({
                     </div>
                     {isExpanded && (
                       <div className="overflow-x-auto">
-                        <table className="w-full text-xs sm:text-sm text-left bg-white min-w-0">
+                        <table className="w-full text-xs sm:text-sm text-left bg-white min-w-[560px] sm:min-w-0">
                           <thead className="bg-gray-50 text-gray-700 border-b border-gray-200">
                             <tr>
-                              <th className="whitespace-nowrap px-1.5 sm:px-2 py-1.5 font-semibold">품목</th>
-                              <th className="whitespace-nowrap px-1.5 sm:px-2 py-1.5 font-semibold w-24 sm:w-32 md:w-36">규격</th>
-                              <th className="whitespace-nowrap px-1 sm:px-1.5 py-1.5 font-semibold w-11 sm:w-13 text-right">수량</th>
-                              <th className="whitespace-nowrap px-1 sm:px-1.5 py-1.5 font-semibold w-13 sm:w-15 text-center">처리</th>
-                              <th className="whitespace-nowrap px-1 sm:px-1.5 py-1.5 font-semibold w-13 sm:w-15 text-right">기본 CBM</th>
-                              <th className="whitespace-nowrap px-1 sm:px-1.5 py-1.5 font-semibold w-13 sm:w-15 text-right">내품 CBM</th>
+                              <th className="whitespace-nowrap px-1.5 sm:px-2 py-1.5 font-semibold w-28 sm:w-36 md:w-44">품목</th>
+                              <th className="whitespace-nowrap px-1.5 sm:px-2 py-1.5 font-semibold min-w-[160px] sm:min-w-[220px]">규격</th>
+                              <th className="whitespace-nowrap px-1 sm:px-1.5 py-1.5 font-semibold w-11 sm:w-14 text-right">수량</th>
+                              <th className="whitespace-nowrap px-1 sm:px-1.5 py-1.5 font-semibold w-13 sm:w-16 text-center">처리</th>
+                              <th className="whitespace-nowrap px-1 sm:px-1.5 py-1.5 font-semibold w-14 sm:w-18 text-right">기본 CBM</th>
+                              <th className="whitespace-nowrap px-1 sm:px-1.5 py-1.5 font-semibold w-14 sm:w-18 text-right">내품 CBM</th>
                               <th className="whitespace-nowrap px-0.5 sm:px-1 py-1.5 font-semibold w-7 sm:w-8 text-center">삭제</th>
                             </tr>
                           </thead>
@@ -2501,7 +2501,7 @@ export function EstimateForm({
                                 
                                 {selectedItemNames[cat.id] && (
                                   <select
-                                    className="min-w-[140px] sm:min-w-[190px] max-w-[240px] rounded-lg border-blue-400 border px-2 sm:px-2.5 py-1.5 text-xs sm:text-sm font-semibold outline-none text-blue-900 bg-blue-50/80 focus:border-blue-600 cursor-pointer shadow-2xs"
+                                    className="min-w-[150px] sm:min-w-[200px] max-w-[340px] rounded-lg border-blue-400 border px-2 sm:px-2.5 py-1.5 text-xs sm:text-sm font-semibold outline-none text-blue-900 bg-blue-50/80 focus:border-blue-600 cursor-pointer shadow-2xs"
                                     value=""
                                     onChange={(e) => {
                                       if(!e.target.value) return;

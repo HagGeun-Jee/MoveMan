@@ -423,12 +423,12 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                         <table className="w-full text-sm text-left print:text-xs min-w-[520px] print:min-w-0">
                         <thead className="bg-gray-50 text-gray-700 font-semibold border-b border-gray-200 print:bg-transparent">
                           <tr>
-                            <th className="px-4 py-2 print:px-2 print:py-1">품목</th>
-                            <th className="px-4 py-2 print:px-2 print:py-1">규격</th>
-                            <th className="px-4 py-2 text-right w-16 print:px-2 print:py-1">수량</th>
-                            <th className="px-4 py-2 text-center w-20 print:px-2 print:py-1">처리</th>
-                            <th className="px-4 py-2 text-right w-24 print:px-2 print:py-1">기본 CBM</th>
-                            <th className="px-4 py-2 text-right w-24 print:px-2 print:py-1">내품 CBM</th>
+                            <th className="px-4 py-2 print:px-2 print:py-1 w-32 sm:w-44 print:w-28 whitespace-nowrap">품목</th>
+                            <th className="px-4 py-2 print:px-2 print:py-1 min-w-[150px] sm:min-w-[200px]">규격</th>
+                            <th className="px-4 py-2 text-right w-16 print:px-2 print:py-1 whitespace-nowrap">수량</th>
+                            <th className="px-4 py-2 text-center w-20 print:px-2 print:py-1 whitespace-nowrap">처리</th>
+                            <th className="px-4 py-2 text-right w-24 print:px-2 print:py-1 whitespace-nowrap">기본 CBM</th>
+                            <th className="px-4 py-2 text-right w-24 print:px-2 print:py-1 whitespace-nowrap">내품 CBM</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 print:divide-gray-200">
