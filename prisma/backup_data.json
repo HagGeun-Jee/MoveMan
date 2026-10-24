@@ -1290,7 +1290,7 @@
           "id": "cmvlvp7tv0000attrxibvz7zo",
           "name": "팬트리선반",
           "spec": "5단 1자형",
-          "defaultCbm": 0.3,
+          "defaultCbm": 0,
           "defaultInnerCbm": 0.8,
           "createdAt": "2026-10-24T04:08:16.867Z"
         },
@@ -1298,7 +1298,7 @@
           "id": "cmvlvp8ce0001attr36p5m8ob",
           "name": "팬트리선반",
           "spec": "5단 ㄴ자형",
-          "defaultCbm": 0.6,
+          "defaultCbm": 0,
           "defaultInnerCbm": 1.5,
           "createdAt": "2026-10-24T04:08:17.535Z"
         },
@@ -1306,7 +1306,7 @@
           "id": "cmvlvp8ma0002attrfz0yzwl6",
           "name": "팬트리선반",
           "spec": "5단 ㄷ자형",
-          "defaultCbm": 1,
+          "defaultCbm": 0,
           "defaultInnerCbm": 2.5,
           "createdAt": "2026-10-24T04:08:17.890Z"
         }
@@ -1410,7 +1410,7 @@
           "id": "cmvlvp7tv0000attrxibvz7zo",
           "name": "팬트리선반",
           "spec": "5단 1자형",
-          "defaultCbm": 0.3,
+          "defaultCbm": 0,
           "defaultInnerCbm": 0.8,
           "createdAt": "2026-10-24T04:08:16.867Z"
         },
@@ -1418,7 +1418,7 @@
           "id": "cmvlvp8ce0001attr36p5m8ob",
           "name": "팬트리선반",
           "spec": "5단 ㄴ자형",
-          "defaultCbm": 0.6,
+          "defaultCbm": 0,
           "defaultInnerCbm": 1.5,
           "createdAt": "2026-10-24T04:08:17.535Z"
         },
@@ -1426,7 +1426,7 @@
           "id": "cmvlvp8ma0002attrfz0yzwl6",
           "name": "팬트리선반",
           "spec": "5단 ㄷ자형",
-          "defaultCbm": 1,
+          "defaultCbm": 0,
           "defaultInnerCbm": 2.5,
           "createdAt": "2026-10-24T04:08:17.890Z"
         }
@@ -1449,7 +1449,7 @@
           "id": "cmvlvp7tv0000attrxibvz7zo",
           "name": "팬트리선반",
           "spec": "5단 1자형",
-          "defaultCbm": 0.3,
+          "defaultCbm": 0,
           "defaultInnerCbm": 0.8,
           "createdAt": "2026-10-24T04:08:16.867Z"
         },
@@ -1457,7 +1457,7 @@
           "id": "cmvlvp8ce0001attr36p5m8ob",
           "name": "팬트리선반",
           "spec": "5단 ㄴ자형",
-          "defaultCbm": 0.6,
+          "defaultCbm": 0,
           "defaultInnerCbm": 1.5,
           "createdAt": "2026-10-24T04:08:17.535Z"
         },
@@ -1465,7 +1465,7 @@
           "id": "cmvlvp8ma0002attrfz0yzwl6",
           "name": "팬트리선반",
           "spec": "5단 ㄷ자형",
-          "defaultCbm": 1,
+          "defaultCbm": 0,
           "defaultInnerCbm": 2.5,
           "createdAt": "2026-10-24T04:08:17.890Z"
         }
@@ -3406,7 +3406,7 @@
       "id": "cmvlvp7tv0000attrxibvz7zo",
       "name": "팬트리선반",
       "spec": "5단 1자형",
-      "defaultCbm": 0.3,
+      "defaultCbm": 0,
       "defaultInnerCbm": 0.8,
       "createdAt": "2026-10-24T04:08:16.867Z",
       "locations": [
@@ -3434,7 +3434,7 @@
       "id": "cmvlvp8ce0001attr36p5m8ob",
       "name": "팬트리선반",
       "spec": "5단 ㄴ자형",
-      "defaultCbm": 0.6,
+      "defaultCbm": 0,
       "defaultInnerCbm": 1.5,
       "createdAt": "2026-10-24T04:08:17.535Z",
       "locations": [
@@ -3462,7 +3462,7 @@
       "id": "cmvlvp8ma0002attrfz0yzwl6",
       "name": "팬트리선반",
       "spec": "5단 ㄷ자형",
-      "defaultCbm": 1,
+      "defaultCbm": 0,
       "defaultInnerCbm": 2.5,
       "createdAt": "2026-10-24T04:08:17.890Z",
       "locations": [
