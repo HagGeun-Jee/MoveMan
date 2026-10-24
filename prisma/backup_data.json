@@ -3,22 +3,22 @@
     {
       "id": "cmtq5czfz0000aq10gkmy2jxj",
       "userId": "admin",
-      "password": "$2b$10$sUVYM/E9TJmTZyPOhsNzsuZIVA7G9queqkPme3q8vbnvk.KBw71OS",
+      "password": "$2b$10$9Fi9C8haVrhkwjPoCaZDM.j49Lp9c0YgD8hYjAq0TCnf3CSlwTKa2",
       "name": "최고관리자",
       "role": "ADMIN",
       "level": 9,
-      "createdAt": "2026-09-06T18:30:22.319Z",
-      "updatedAt": "2026-10-06T03:46:29.936Z"
+      "createdAt": "2026-10-11T19:22:16.122Z",
+      "updatedAt": "2026-10-12T23:14:26.548Z"
     },
     {
       "id": "cmuw5ehxq0004cjbc7vsupww6",
       "userId": "jkjee",
-      "password": "$2b$10$N/JzPHqQi6MtP8AEr3hMbuZl0FUABvB6uRu2.iddarS9tee4cUe/W",
+      "password": "$2b$10$lMj2g/o0QiGOEHq/MZ2PXeQ0mRQJwVp6/X3kaD7TMiOOh1882qf9C",
       "name": "지종근",
       "role": "ADMIN",
-      "level": 1,
-      "createdAt": "2026-10-06T03:57:52.335Z",
-      "updatedAt": "2026-10-06T03:59:12.703Z"
+      "level": 9,
+      "createdAt": "2026-10-11T19:22:16.417Z",
+      "updatedAt": "2026-10-13T00:42:23.055Z"
     }
   ],
   "permissions": [
@@ -27,32 +27,32 @@
       "menuPath": "/users",
       "menuName": "사용자 및 권한",
       "minLevel": 9,
-      "createdAt": "2026-10-06T03:45:25.288Z",
-      "updatedAt": "2026-10-06T03:45:25.288Z"
+      "createdAt": "2026-10-11T19:22:16.600Z",
+      "updatedAt": "2026-10-11T19:22:16.600Z"
     },
     {
       "id": "cmuw4yreg0001cjbc9b1xq936",
       "menuPath": "/items",
       "menuName": "물품정보",
       "minLevel": 9,
-      "createdAt": "2026-10-06T03:45:38.105Z",
-      "updatedAt": "2026-10-06T03:45:38.105Z"
+      "createdAt": "2026-10-11T19:22:16.893Z",
+      "updatedAt": "2026-10-11T19:22:16.893Z"
     },
     {
       "id": "cmuw4yxk40002cjbcdiizfe3a",
       "menuPath": "/vehicles",
       "menuName": "차량정보",
       "minLevel": 9,
-      "createdAt": "2026-10-06T03:45:46.085Z",
-      "updatedAt": "2026-10-06T03:45:46.085Z"
+      "createdAt": "2026-10-11T19:22:17.075Z",
+      "updatedAt": "2026-10-11T19:22:17.075Z"
     },
     {
       "id": "cmuw4z34e0003cjbc30rmdtsl",
       "menuPath": "/labors",
       "menuName": "인건비정보",
       "minLevel": 9,
-      "createdAt": "2026-10-06T03:45:53.294Z",
-      "updatedAt": "2026-10-06T03:45:53.294Z"
+      "createdAt": "2026-10-11T19:22:17.258Z",
+      "updatedAt": "2026-10-11T19:22:17.258Z"
     }
   ],
   "categories": [
@@ -60,31 +60,31 @@
       "id": "cmut73vls0000cisokpdkkuxn",
       "name": "안방",
       "order": 0,
-      "createdAt": "2026-10-04T02:22:17.536Z",
+      "createdAt": "2026-10-11T19:22:17.443Z",
       "items": [
         {
-          "id": "cmtv5th7d00018nhuq6ds33sy",
-          "name": "장농",
-          "spec": "1통",
-          "defaultCbm": 1.1,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-09-10T06:42:02.713Z"
+          "id": "cmv3ltbdb00021ipiy5of2yvl",
+          "name": "서랍장",
+          "spec": "3단 600",
+          "defaultCbm": 0.22,
+          "defaultInnerCbm": 0.22,
+          "createdAt": "2026-10-11T19:22:30.039Z"
         },
         {
-          "id": "cmuuh2urq0001zfpswe4cxb32",
+          "id": "cmv3ksfvl00011ipi2lzvwmw3",
           "name": "침대",
-          "spec": "S/SS",
-          "defaultCbm": 1.1,
+          "spec": "돌/흙(Q)",
+          "defaultCbm": 2.4,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-04T23:49:12.134Z"
+          "createdAt": "2026-10-11T19:22:29.779Z"
         },
         {
           "id": "cmuuh3dbw0003zfpsugaavy5u",
           "name": "침대",
           "spec": "Q/K",
-          "defaultCbm": 1.6,
+          "defaultCbm": 1.8,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-04T23:49:36.188Z"
+          "createdAt": "2026-10-11T19:22:20.615Z"
         },
         {
           "id": "cmuuhaa730005zfpsuorzibqc",
@@ -92,7 +92,7 @@
           "spec": "콘솔(80x40x80)",
           "defaultCbm": 0.3,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-04T23:54:58.719Z"
+          "createdAt": "2026-10-11T19:22:20.868Z"
         },
         {
           "id": "cmuuhb0ck0007zfps37uhyiuu",
@@ -100,7 +100,7 @@
           "spec": "일반(100x50x140)",
           "defaultCbm": 0.7,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-04T23:55:32.612Z"
+          "createdAt": "2026-10-11T19:22:21.121Z"
         },
         {
           "id": "cmuuhc6bp0009zfpsz6pibqjh",
@@ -108,79 +108,31 @@
           "spec": "수납(120x50x150)",
           "defaultCbm": 1,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-04T23:56:27.014Z"
-        },
-        {
-          "id": "cmuui4b540000gqu8y5yec3u5",
-          "name": "서랍장",
-          "spec": "3단 일반",
-          "defaultCbm": 0.2,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:18:19.625Z"
-        },
-        {
-          "id": "cmuui73v70001gqu828mbct92",
-          "name": "서랍장",
-          "spec": "5단 표준",
-          "defaultCbm": 0.5,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:20:30.163Z"
-        },
-        {
-          "id": "cmuui88vl0002gqu8c1g6za57",
-          "name": "서랍장",
-          "spec": "5단 가슴높이",
-          "defaultCbm": 1.5,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:21:23.313Z"
+          "createdAt": "2026-10-11T19:22:21.381Z"
         },
         {
           "id": "cmuuiq8go0007gqu8awer3mcq",
           "name": "책장",
           "spec": "소형",
-          "defaultCbm": 0.5,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:35:22.585Z"
+          "defaultCbm": 0.25,
+          "defaultInnerCbm": 0.25,
+          "createdAt": "2026-10-11T19:22:23.573Z"
         },
         {
           "id": "cmuuisak00008gqu8af39a5cd",
           "name": "책장",
           "spec": "2x5단",
+          "defaultCbm": 0.6,
+          "defaultInnerCbm": 0.45,
+          "createdAt": "2026-10-11T19:22:23.828Z"
+        },
+        {
+          "id": "cmvg98ylx0003gt1xajazoz1o",
+          "name": "침대",
+          "spec": "매트리스",
           "defaultCbm": 1,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:36:58.608Z"
-        },
-        {
-          "id": "cmuuitcz40009gqu8u383rul0",
-          "name": "책장",
-          "spec": "3x5단",
-          "defaultCbm": 1.2,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:37:48.401Z"
-        },
-        {
-          "id": "cmv3ksfvl00011ipi2lzvwmw3",
-          "name": "침대",
-          "spec": "돌/흙(Q)",
-          "defaultCbm": 2,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-11T08:43:00.321Z"
-        },
-        {
-          "id": "cmv3ltbdb00021ipiy5of2yvl",
-          "name": "서랍장",
-          "spec": "3단 와이드",
-          "defaultCbm": 0.4,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-11T09:11:40.752Z"
-        },
-        {
-          "id": "cmv3luz5n00031ipiil3ef52c",
-          "name": "서랍장",
-          "spec": "4단",
-          "defaultCbm": 0.3,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-11T09:12:58.235Z"
+          "createdAt": "2026-10-20T05:40:55.919Z"
         },
         {
           "id": "cmv3m2ba400041ipihi2vjd57",
@@ -188,7 +140,111 @@
           "spec": "협탁",
           "defaultCbm": 0.1,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-11T09:18:40.540Z"
+          "createdAt": "2026-10-11T19:22:30.554Z"
+        },
+        {
+          "id": "cmtv5th7d00018nhuq6ds33sy",
+          "name": "장농",
+          "spec": "1통",
+          "defaultCbm": 1.1,
+          "defaultInnerCbm": 0.9,
+          "createdAt": "2026-10-11T19:22:19.011Z"
+        },
+        {
+          "id": "cmuui4b540000gqu8y5yec3u5",
+          "name": "서랍장",
+          "spec": "3단 800",
+          "defaultCbm": 0.25,
+          "defaultInnerCbm": 0.25,
+          "createdAt": "2026-10-11T19:22:21.639Z"
+        },
+        {
+          "id": "cmuui88vl0002gqu8c1g6za57",
+          "name": "서랍장",
+          "spec": "5단 600",
+          "defaultCbm": 0.35,
+          "defaultInnerCbm": 0.35,
+          "createdAt": "2026-10-11T19:22:22.225Z"
+        },
+        {
+          "id": "cmuuitcz40009gqu8u383rul0",
+          "name": "책장",
+          "spec": "3x5단",
+          "defaultCbm": 0.85,
+          "defaultInnerCbm": 0.7,
+          "createdAt": "2026-10-11T19:22:24.087Z"
+        },
+        {
+          "id": "cmv3luz5n00031ipiil3ef52c",
+          "name": "서랍장",
+          "spec": "4단 600",
+          "defaultCbm": 0.29,
+          "defaultInnerCbm": 0.3,
+          "createdAt": "2026-10-11T19:22:30.298Z"
+        },
+        {
+          "id": "cmuui73v70001gqu828mbct92",
+          "name": "서랍장",
+          "spec": "5단 800",
+          "defaultCbm": 0.5,
+          "defaultInnerCbm": 0.5,
+          "createdAt": "2026-10-11T19:22:21.965Z"
+        },
+        {
+          "id": "cmuuh2urq0001zfpswe4cxb32",
+          "name": "침대",
+          "spec": "S/SS",
+          "defaultCbm": 1.2,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-11T19:22:20.359Z"
+        },
+        {
+          "id": "cmvg9583z0002gt1xn91e0pi4",
+          "name": "침대",
+          "spec": "라지킹",
+          "defaultCbm": 2.3,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-20T05:38:01.243Z"
+        },
+        {
+          "id": "cmvhlb2gp0000uleopwyxvy8l",
+          "name": "공기청정기",
+          "spec": "일반",
+          "defaultCbm": 0.2,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-21T04:06:15.865Z"
+        },
+        {
+          "id": "cmvhlb44m0007uleortnwfgop",
+          "name": "스타일러",
+          "spec": "일반/3벌",
+          "defaultCbm": 0.7,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-21T04:06:18.022Z"
+        },
+        {
+          "id": "cmvhlb4c50008uleokdaqpmn1",
+          "name": "스타일러",
+          "spec": "대형/5벌",
+          "defaultCbm": 0.9,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-21T04:06:18.294Z"
+        },
+        {
+          "id": "cmvhlb5dm000duleoql0d2599",
+          "name": "안마의자",
+          "spec": "일반",
+          "defaultCbm": 1.5,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-21T04:06:19.643Z"
+        },
+        {
+          "id": "cmvhlb5l4000euleoat579rej",
+          "name": "안마의자",
+          "spec": "프리미엄/대형",
+          "defaultCbm": 2.5,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-21T04:06:19.912Z"
         }
       ]
     },
@@ -196,55 +252,23 @@
       "id": "cmut74o7o0002cisoqr0a5f00",
       "name": "방1",
       "order": 0,
-      "createdAt": "2026-10-04T02:22:54.613Z",
+      "createdAt": "2026-10-11T19:22:17.731Z",
       "items": [
         {
-          "id": "cmtv5th7d00018nhuq6ds33sy",
-          "name": "장농",
-          "spec": "1통",
-          "defaultCbm": 1.1,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-09-10T06:42:02.713Z"
-        },
-        {
-          "id": "cmuuh2urq0001zfpswe4cxb32",
-          "name": "침대",
-          "spec": "S/SS",
-          "defaultCbm": 1.1,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-04T23:49:12.134Z"
+          "id": "cmv3ltbdb00021ipiy5of2yvl",
+          "name": "서랍장",
+          "spec": "3단 600",
+          "defaultCbm": 0.22,
+          "defaultInnerCbm": 0.22,
+          "createdAt": "2026-10-11T19:22:30.039Z"
         },
         {
           "id": "cmuuh3dbw0003zfpsugaavy5u",
           "name": "침대",
           "spec": "Q/K",
-          "defaultCbm": 1.6,
+          "defaultCbm": 1.8,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-04T23:49:36.188Z"
-        },
-        {
-          "id": "cmuui4b540000gqu8y5yec3u5",
-          "name": "서랍장",
-          "spec": "3단 일반",
-          "defaultCbm": 0.2,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:18:19.625Z"
-        },
-        {
-          "id": "cmuui73v70001gqu828mbct92",
-          "name": "서랍장",
-          "spec": "5단 표준",
-          "defaultCbm": 0.5,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:20:30.163Z"
-        },
-        {
-          "id": "cmuui88vl0002gqu8c1g6za57",
-          "name": "서랍장",
-          "spec": "5단 가슴높이",
-          "defaultCbm": 1.5,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:21:23.313Z"
+          "createdAt": "2026-10-11T19:22:20.615Z"
         },
         {
           "id": "cmuuihw5n0003gqu87v7hgcxl",
@@ -252,15 +276,7 @@
           "spec": "분리형/1M이하",
           "defaultCbm": 1,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:28:53.387Z"
-        },
-        {
-          "id": "cmuuiit670004gqu85ju2h9kp",
-          "name": "책상",
-          "spec": "대형/라운드",
-          "defaultCbm": 2,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:29:36.175Z"
+          "createdAt": "2026-10-11T19:22:22.478Z"
         },
         {
           "id": "cmuuiorqg0006gqu8x8av7698",
@@ -268,47 +284,111 @@
           "spec": "책상용",
           "defaultCbm": 0.5,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:34:14.248Z"
+          "createdAt": "2026-10-11T19:22:23.316Z"
         },
         {
           "id": "cmuuiq8go0007gqu8awer3mcq",
           "name": "책장",
           "spec": "소형",
-          "defaultCbm": 0.5,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:35:22.585Z"
+          "defaultCbm": 0.25,
+          "defaultInnerCbm": 0.25,
+          "createdAt": "2026-10-11T19:22:23.573Z"
         },
         {
           "id": "cmuuisak00008gqu8af39a5cd",
           "name": "책장",
           "spec": "2x5단",
-          "defaultCbm": 1,
+          "defaultCbm": 0.6,
+          "defaultInnerCbm": 0.45,
+          "createdAt": "2026-10-11T19:22:23.828Z"
+        },
+        {
+          "id": "cmv7o2h670002tz1ucdevzfj8",
+          "name": "책상",
+          "spec": "소형",
+          "defaultCbm": 0.5,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:36:58.608Z"
+          "createdAt": "2026-10-14T05:25:52.074Z"
+        },
+        {
+          "id": "cmuuiit670004gqu85ju2h9kp",
+          "name": "책상",
+          "spec": "대형/라운드",
+          "defaultCbm": 2,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-11T19:22:22.810Z"
+        },
+        {
+          "id": "cmtv5th7d00018nhuq6ds33sy",
+          "name": "장농",
+          "spec": "1통",
+          "defaultCbm": 1.1,
+          "defaultInnerCbm": 0.9,
+          "createdAt": "2026-10-11T19:22:19.011Z"
+        },
+        {
+          "id": "cmva9gtzh0000mwu9hr8tz4m8",
+          "name": "장농",
+          "spec": "중/주니어",
+          "defaultCbm": 1,
+          "defaultInnerCbm": 0.8,
+          "createdAt": "2026-10-16T01:00:26.151Z"
+        },
+        {
+          "id": "cmuui4b540000gqu8y5yec3u5",
+          "name": "서랍장",
+          "spec": "3단 800",
+          "defaultCbm": 0.25,
+          "defaultInnerCbm": 0.25,
+          "createdAt": "2026-10-11T19:22:21.639Z"
+        },
+        {
+          "id": "cmuui88vl0002gqu8c1g6za57",
+          "name": "서랍장",
+          "spec": "5단 600",
+          "defaultCbm": 0.35,
+          "defaultInnerCbm": 0.35,
+          "createdAt": "2026-10-11T19:22:22.225Z"
         },
         {
           "id": "cmuuitcz40009gqu8u383rul0",
           "name": "책장",
           "spec": "3x5단",
-          "defaultCbm": 1.2,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:37:48.401Z"
-        },
-        {
-          "id": "cmv3ltbdb00021ipiy5of2yvl",
-          "name": "서랍장",
-          "spec": "3단 와이드",
-          "defaultCbm": 0.4,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-11T09:11:40.752Z"
+          "defaultCbm": 0.85,
+          "defaultInnerCbm": 0.7,
+          "createdAt": "2026-10-11T19:22:24.087Z"
         },
         {
           "id": "cmv3luz5n00031ipiil3ef52c",
           "name": "서랍장",
-          "spec": "4단",
-          "defaultCbm": 0.3,
+          "spec": "4단 600",
+          "defaultCbm": 0.29,
+          "defaultInnerCbm": 0.3,
+          "createdAt": "2026-10-11T19:22:30.298Z"
+        },
+        {
+          "id": "cmuui73v70001gqu828mbct92",
+          "name": "서랍장",
+          "spec": "5단 800",
+          "defaultCbm": 0.5,
+          "defaultInnerCbm": 0.5,
+          "createdAt": "2026-10-11T19:22:21.965Z"
+        },
+        {
+          "id": "cmuuh2urq0001zfpswe4cxb32",
+          "name": "침대",
+          "spec": "S/SS",
+          "defaultCbm": 1.2,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-11T09:12:58.235Z"
+          "createdAt": "2026-10-11T19:22:20.359Z"
+        },
+        {
+          "id": "cmvhlb32s0002uleos9xg9d4x",
+          "name": "피아노",
+          "spec": "디지털",
+          "defaultCbm": 0.6,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-21T04:06:16.660Z"
         }
       ]
     },
@@ -316,55 +396,23 @@
       "id": "cmut74tq30003ciso8gosyp5o",
       "name": "방2",
       "order": 0,
-      "createdAt": "2026-10-04T02:23:01.755Z",
+      "createdAt": "2026-10-11T19:22:17.915Z",
       "items": [
         {
-          "id": "cmtv5th7d00018nhuq6ds33sy",
-          "name": "장농",
-          "spec": "1통",
-          "defaultCbm": 1.1,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-09-10T06:42:02.713Z"
-        },
-        {
-          "id": "cmuuh2urq0001zfpswe4cxb32",
-          "name": "침대",
-          "spec": "S/SS",
-          "defaultCbm": 1.1,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-04T23:49:12.134Z"
+          "id": "cmv3ltbdb00021ipiy5of2yvl",
+          "name": "서랍장",
+          "spec": "3단 600",
+          "defaultCbm": 0.22,
+          "defaultInnerCbm": 0.22,
+          "createdAt": "2026-10-11T19:22:30.039Z"
         },
         {
           "id": "cmuuh3dbw0003zfpsugaavy5u",
           "name": "침대",
           "spec": "Q/K",
-          "defaultCbm": 1.6,
+          "defaultCbm": 1.8,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-04T23:49:36.188Z"
-        },
-        {
-          "id": "cmuui4b540000gqu8y5yec3u5",
-          "name": "서랍장",
-          "spec": "3단 일반",
-          "defaultCbm": 0.2,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:18:19.625Z"
-        },
-        {
-          "id": "cmuui73v70001gqu828mbct92",
-          "name": "서랍장",
-          "spec": "5단 표준",
-          "defaultCbm": 0.5,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:20:30.163Z"
-        },
-        {
-          "id": "cmuui88vl0002gqu8c1g6za57",
-          "name": "서랍장",
-          "spec": "5단 가슴높이",
-          "defaultCbm": 1.5,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:21:23.313Z"
+          "createdAt": "2026-10-11T19:22:20.615Z"
         },
         {
           "id": "cmuuihw5n0003gqu87v7hgcxl",
@@ -372,15 +420,7 @@
           "spec": "분리형/1M이하",
           "defaultCbm": 1,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:28:53.387Z"
-        },
-        {
-          "id": "cmuuiit670004gqu85ju2h9kp",
-          "name": "책상",
-          "spec": "대형/라운드",
-          "defaultCbm": 2,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:29:36.175Z"
+          "createdAt": "2026-10-11T19:22:22.478Z"
         },
         {
           "id": "cmuuiorqg0006gqu8x8av7698",
@@ -388,47 +428,103 @@
           "spec": "책상용",
           "defaultCbm": 0.5,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:34:14.248Z"
+          "createdAt": "2026-10-11T19:22:23.316Z"
         },
         {
           "id": "cmuuiq8go0007gqu8awer3mcq",
           "name": "책장",
           "spec": "소형",
-          "defaultCbm": 0.5,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:35:22.585Z"
+          "defaultCbm": 0.25,
+          "defaultInnerCbm": 0.25,
+          "createdAt": "2026-10-11T19:22:23.573Z"
         },
         {
           "id": "cmuuisak00008gqu8af39a5cd",
           "name": "책장",
           "spec": "2x5단",
-          "defaultCbm": 1,
+          "defaultCbm": 0.6,
+          "defaultInnerCbm": 0.45,
+          "createdAt": "2026-10-11T19:22:23.828Z"
+        },
+        {
+          "id": "cmv7o2h670002tz1ucdevzfj8",
+          "name": "책상",
+          "spec": "소형",
+          "defaultCbm": 0.5,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:36:58.608Z"
+          "createdAt": "2026-10-14T05:25:52.074Z"
+        },
+        {
+          "id": "cmuuiit670004gqu85ju2h9kp",
+          "name": "책상",
+          "spec": "대형/라운드",
+          "defaultCbm": 2,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-11T19:22:22.810Z"
+        },
+        {
+          "id": "cmtv5th7d00018nhuq6ds33sy",
+          "name": "장농",
+          "spec": "1통",
+          "defaultCbm": 1.1,
+          "defaultInnerCbm": 0.9,
+          "createdAt": "2026-10-11T19:22:19.011Z"
+        },
+        {
+          "id": "cmva9gtzh0000mwu9hr8tz4m8",
+          "name": "장농",
+          "spec": "중/주니어",
+          "defaultCbm": 1,
+          "defaultInnerCbm": 0.8,
+          "createdAt": "2026-10-16T01:00:26.151Z"
+        },
+        {
+          "id": "cmuui4b540000gqu8y5yec3u5",
+          "name": "서랍장",
+          "spec": "3단 800",
+          "defaultCbm": 0.25,
+          "defaultInnerCbm": 0.25,
+          "createdAt": "2026-10-11T19:22:21.639Z"
+        },
+        {
+          "id": "cmuui88vl0002gqu8c1g6za57",
+          "name": "서랍장",
+          "spec": "5단 600",
+          "defaultCbm": 0.35,
+          "defaultInnerCbm": 0.35,
+          "createdAt": "2026-10-11T19:22:22.225Z"
         },
         {
           "id": "cmuuitcz40009gqu8u383rul0",
           "name": "책장",
           "spec": "3x5단",
-          "defaultCbm": 1.2,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:37:48.401Z"
-        },
-        {
-          "id": "cmv3ltbdb00021ipiy5of2yvl",
-          "name": "서랍장",
-          "spec": "3단 와이드",
-          "defaultCbm": 0.4,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-11T09:11:40.752Z"
+          "defaultCbm": 0.85,
+          "defaultInnerCbm": 0.7,
+          "createdAt": "2026-10-11T19:22:24.087Z"
         },
         {
           "id": "cmv3luz5n00031ipiil3ef52c",
           "name": "서랍장",
-          "spec": "4단",
-          "defaultCbm": 0.3,
+          "spec": "4단 600",
+          "defaultCbm": 0.29,
+          "defaultInnerCbm": 0.3,
+          "createdAt": "2026-10-11T19:22:30.298Z"
+        },
+        {
+          "id": "cmuui73v70001gqu828mbct92",
+          "name": "서랍장",
+          "spec": "5단 800",
+          "defaultCbm": 0.5,
+          "defaultInnerCbm": 0.5,
+          "createdAt": "2026-10-11T19:22:21.965Z"
+        },
+        {
+          "id": "cmuuh2urq0001zfpswe4cxb32",
+          "name": "침대",
+          "spec": "S/SS",
+          "defaultCbm": 1.2,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-11T09:12:58.235Z"
+          "createdAt": "2026-10-11T19:22:20.359Z"
         }
       ]
     },
@@ -436,55 +532,23 @@
       "id": "cmut75o8m0004ciso46h35253",
       "name": "방3",
       "order": 0,
-      "createdAt": "2026-10-04T02:23:41.303Z",
+      "createdAt": "2026-10-11T19:22:18.100Z",
       "items": [
         {
-          "id": "cmtv5th7d00018nhuq6ds33sy",
-          "name": "장농",
-          "spec": "1통",
-          "defaultCbm": 1.1,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-09-10T06:42:02.713Z"
-        },
-        {
-          "id": "cmuuh2urq0001zfpswe4cxb32",
-          "name": "침대",
-          "spec": "S/SS",
-          "defaultCbm": 1.1,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-04T23:49:12.134Z"
+          "id": "cmv3ltbdb00021ipiy5of2yvl",
+          "name": "서랍장",
+          "spec": "3단 600",
+          "defaultCbm": 0.22,
+          "defaultInnerCbm": 0.22,
+          "createdAt": "2026-10-11T19:22:30.039Z"
         },
         {
           "id": "cmuuh3dbw0003zfpsugaavy5u",
           "name": "침대",
           "spec": "Q/K",
-          "defaultCbm": 1.6,
+          "defaultCbm": 1.8,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-04T23:49:36.188Z"
-        },
-        {
-          "id": "cmuui4b540000gqu8y5yec3u5",
-          "name": "서랍장",
-          "spec": "3단 일반",
-          "defaultCbm": 0.2,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:18:19.625Z"
-        },
-        {
-          "id": "cmuui73v70001gqu828mbct92",
-          "name": "서랍장",
-          "spec": "5단 표준",
-          "defaultCbm": 0.5,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:20:30.163Z"
-        },
-        {
-          "id": "cmuui88vl0002gqu8c1g6za57",
-          "name": "서랍장",
-          "spec": "5단 가슴높이",
-          "defaultCbm": 1.5,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:21:23.313Z"
+          "createdAt": "2026-10-11T19:22:20.615Z"
         },
         {
           "id": "cmuuihw5n0003gqu87v7hgcxl",
@@ -492,15 +556,7 @@
           "spec": "분리형/1M이하",
           "defaultCbm": 1,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:28:53.387Z"
-        },
-        {
-          "id": "cmuuiit670004gqu85ju2h9kp",
-          "name": "책상",
-          "spec": "대형/라운드",
-          "defaultCbm": 2,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:29:36.175Z"
+          "createdAt": "2026-10-11T19:22:22.478Z"
         },
         {
           "id": "cmuuiorqg0006gqu8x8av7698",
@@ -508,47 +564,103 @@
           "spec": "책상용",
           "defaultCbm": 0.5,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:34:14.248Z"
+          "createdAt": "2026-10-11T19:22:23.316Z"
         },
         {
           "id": "cmuuiq8go0007gqu8awer3mcq",
           "name": "책장",
           "spec": "소형",
-          "defaultCbm": 0.5,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:35:22.585Z"
+          "defaultCbm": 0.25,
+          "defaultInnerCbm": 0.25,
+          "createdAt": "2026-10-11T19:22:23.573Z"
         },
         {
           "id": "cmuuisak00008gqu8af39a5cd",
           "name": "책장",
           "spec": "2x5단",
-          "defaultCbm": 1,
+          "defaultCbm": 0.6,
+          "defaultInnerCbm": 0.45,
+          "createdAt": "2026-10-11T19:22:23.828Z"
+        },
+        {
+          "id": "cmv7o2h670002tz1ucdevzfj8",
+          "name": "책상",
+          "spec": "소형",
+          "defaultCbm": 0.5,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:36:58.608Z"
+          "createdAt": "2026-10-14T05:25:52.074Z"
+        },
+        {
+          "id": "cmuuiit670004gqu85ju2h9kp",
+          "name": "책상",
+          "spec": "대형/라운드",
+          "defaultCbm": 2,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-11T19:22:22.810Z"
+        },
+        {
+          "id": "cmtv5th7d00018nhuq6ds33sy",
+          "name": "장농",
+          "spec": "1통",
+          "defaultCbm": 1.1,
+          "defaultInnerCbm": 0.9,
+          "createdAt": "2026-10-11T19:22:19.011Z"
+        },
+        {
+          "id": "cmva9gtzh0000mwu9hr8tz4m8",
+          "name": "장농",
+          "spec": "중/주니어",
+          "defaultCbm": 1,
+          "defaultInnerCbm": 0.8,
+          "createdAt": "2026-10-16T01:00:26.151Z"
+        },
+        {
+          "id": "cmuui4b540000gqu8y5yec3u5",
+          "name": "서랍장",
+          "spec": "3단 800",
+          "defaultCbm": 0.25,
+          "defaultInnerCbm": 0.25,
+          "createdAt": "2026-10-11T19:22:21.639Z"
+        },
+        {
+          "id": "cmuui88vl0002gqu8c1g6za57",
+          "name": "서랍장",
+          "spec": "5단 600",
+          "defaultCbm": 0.35,
+          "defaultInnerCbm": 0.35,
+          "createdAt": "2026-10-11T19:22:22.225Z"
         },
         {
           "id": "cmuuitcz40009gqu8u383rul0",
           "name": "책장",
           "spec": "3x5단",
-          "defaultCbm": 1.2,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:37:48.401Z"
-        },
-        {
-          "id": "cmv3ltbdb00021ipiy5of2yvl",
-          "name": "서랍장",
-          "spec": "3단 와이드",
-          "defaultCbm": 0.4,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-11T09:11:40.752Z"
+          "defaultCbm": 0.85,
+          "defaultInnerCbm": 0.7,
+          "createdAt": "2026-10-11T19:22:24.087Z"
         },
         {
           "id": "cmv3luz5n00031ipiil3ef52c",
           "name": "서랍장",
-          "spec": "4단",
-          "defaultCbm": 0.3,
+          "spec": "4단 600",
+          "defaultCbm": 0.29,
+          "defaultInnerCbm": 0.3,
+          "createdAt": "2026-10-11T19:22:30.298Z"
+        },
+        {
+          "id": "cmuui73v70001gqu828mbct92",
+          "name": "서랍장",
+          "spec": "5단 800",
+          "defaultCbm": 0.5,
+          "defaultInnerCbm": 0.5,
+          "createdAt": "2026-10-11T19:22:21.965Z"
+        },
+        {
+          "id": "cmuuh2urq0001zfpswe4cxb32",
+          "name": "침대",
+          "spec": "S/SS",
+          "defaultCbm": 1.2,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-11T09:12:58.235Z"
+          "createdAt": "2026-10-11T19:22:20.359Z"
         }
       ]
     },
@@ -556,55 +668,23 @@
       "id": "cmut75sft0005cisouyfhyvch",
       "name": "방4",
       "order": 0,
-      "createdAt": "2026-10-04T02:23:46.745Z",
+      "createdAt": "2026-10-11T19:22:18.282Z",
       "items": [
         {
-          "id": "cmtv5th7d00018nhuq6ds33sy",
-          "name": "장농",
-          "spec": "1통",
-          "defaultCbm": 1.1,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-09-10T06:42:02.713Z"
-        },
-        {
-          "id": "cmuuh2urq0001zfpswe4cxb32",
-          "name": "침대",
-          "spec": "S/SS",
-          "defaultCbm": 1.1,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-04T23:49:12.134Z"
+          "id": "cmv3ltbdb00021ipiy5of2yvl",
+          "name": "서랍장",
+          "spec": "3단 600",
+          "defaultCbm": 0.22,
+          "defaultInnerCbm": 0.22,
+          "createdAt": "2026-10-11T19:22:30.039Z"
         },
         {
           "id": "cmuuh3dbw0003zfpsugaavy5u",
           "name": "침대",
           "spec": "Q/K",
-          "defaultCbm": 1.6,
+          "defaultCbm": 1.8,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-04T23:49:36.188Z"
-        },
-        {
-          "id": "cmuui4b540000gqu8y5yec3u5",
-          "name": "서랍장",
-          "spec": "3단 일반",
-          "defaultCbm": 0.2,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:18:19.625Z"
-        },
-        {
-          "id": "cmuui73v70001gqu828mbct92",
-          "name": "서랍장",
-          "spec": "5단 표준",
-          "defaultCbm": 0.5,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:20:30.163Z"
-        },
-        {
-          "id": "cmuui88vl0002gqu8c1g6za57",
-          "name": "서랍장",
-          "spec": "5단 가슴높이",
-          "defaultCbm": 1.5,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:21:23.313Z"
+          "createdAt": "2026-10-11T19:22:20.615Z"
         },
         {
           "id": "cmuuihw5n0003gqu87v7hgcxl",
@@ -612,15 +692,7 @@
           "spec": "분리형/1M이하",
           "defaultCbm": 1,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:28:53.387Z"
-        },
-        {
-          "id": "cmuuiit670004gqu85ju2h9kp",
-          "name": "책상",
-          "spec": "대형/라운드",
-          "defaultCbm": 2,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:29:36.175Z"
+          "createdAt": "2026-10-11T19:22:22.478Z"
         },
         {
           "id": "cmuuiorqg0006gqu8x8av7698",
@@ -628,95 +700,31 @@
           "spec": "책상용",
           "defaultCbm": 0.5,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:34:14.248Z"
+          "createdAt": "2026-10-11T19:22:23.316Z"
         },
         {
           "id": "cmuuiq8go0007gqu8awer3mcq",
           "name": "책장",
           "spec": "소형",
-          "defaultCbm": 0.5,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:35:22.585Z"
+          "defaultCbm": 0.25,
+          "defaultInnerCbm": 0.25,
+          "createdAt": "2026-10-11T19:22:23.573Z"
         },
         {
           "id": "cmuuisak00008gqu8af39a5cd",
           "name": "책장",
           "spec": "2x5단",
-          "defaultCbm": 1,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:36:58.608Z"
+          "defaultCbm": 0.6,
+          "defaultInnerCbm": 0.45,
+          "createdAt": "2026-10-11T19:22:23.828Z"
         },
         {
-          "id": "cmuuitcz40009gqu8u383rul0",
-          "name": "책장",
-          "spec": "3x5단",
-          "defaultCbm": 1.2,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:37:48.401Z"
-        },
-        {
-          "id": "cmv3ltbdb00021ipiy5of2yvl",
-          "name": "서랍장",
-          "spec": "3단 와이드",
-          "defaultCbm": 0.4,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-11T09:11:40.752Z"
-        },
-        {
-          "id": "cmv3luz5n00031ipiil3ef52c",
-          "name": "서랍장",
-          "spec": "4단",
-          "defaultCbm": 0.3,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-11T09:12:58.235Z"
-        }
-      ]
-    },
-    {
-      "id": "cmut769zi0006cisok59t22zj",
-      "name": "거실",
-      "order": 0,
-      "createdAt": "2026-10-04T02:24:09.487Z",
-      "items": [
-        {
-          "id": "cmtv74mt80000psp4o1zqwdur",
-          "name": "쇼파",
-          "spec": "3인",
-          "defaultCbm": 1.6,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-09-10T07:18:42.812Z"
-        },
-        {
-          "id": "cmtv7575r0001psp4ce7bxc2u",
-          "name": "쇼파",
-          "spec": "4인",
-          "defaultCbm": 2.3,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-09-10T07:19:09.183Z"
-        },
-        {
-          "id": "cmuui4b540000gqu8y5yec3u5",
-          "name": "서랍장",
-          "spec": "3단 일반",
-          "defaultCbm": 0.2,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:18:19.625Z"
-        },
-        {
-          "id": "cmuui73v70001gqu828mbct92",
-          "name": "서랍장",
-          "spec": "5단 표준",
+          "id": "cmv7o2h670002tz1ucdevzfj8",
+          "name": "책상",
+          "spec": "소형",
           "defaultCbm": 0.5,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:20:30.163Z"
-        },
-        {
-          "id": "cmuui88vl0002gqu8c1g6za57",
-          "name": "서랍장",
-          "spec": "5단 가슴높이",
-          "defaultCbm": 1.5,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:21:23.313Z"
+          "createdAt": "2026-10-14T05:25:52.074Z"
         },
         {
           "id": "cmuuiit670004gqu85ju2h9kp",
@@ -724,55 +732,127 @@
           "spec": "대형/라운드",
           "defaultCbm": 2,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:29:36.175Z"
+          "createdAt": "2026-10-11T19:22:22.810Z"
         },
         {
-          "id": "cmuuisak00008gqu8af39a5cd",
-          "name": "책장",
-          "spec": "2x5단",
+          "id": "cmtv5th7d00018nhuq6ds33sy",
+          "name": "장농",
+          "spec": "1통",
+          "defaultCbm": 1.1,
+          "defaultInnerCbm": 0.9,
+          "createdAt": "2026-10-11T19:22:19.011Z"
+        },
+        {
+          "id": "cmva9gtzh0000mwu9hr8tz4m8",
+          "name": "장농",
+          "spec": "중/주니어",
           "defaultCbm": 1,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:36:58.608Z"
+          "defaultInnerCbm": 0.8,
+          "createdAt": "2026-10-16T01:00:26.151Z"
+        },
+        {
+          "id": "cmuui4b540000gqu8y5yec3u5",
+          "name": "서랍장",
+          "spec": "3단 800",
+          "defaultCbm": 0.25,
+          "defaultInnerCbm": 0.25,
+          "createdAt": "2026-10-11T19:22:21.639Z"
+        },
+        {
+          "id": "cmuui88vl0002gqu8c1g6za57",
+          "name": "서랍장",
+          "spec": "5단 600",
+          "defaultCbm": 0.35,
+          "defaultInnerCbm": 0.35,
+          "createdAt": "2026-10-11T19:22:22.225Z"
         },
         {
           "id": "cmuuitcz40009gqu8u383rul0",
           "name": "책장",
           "spec": "3x5단",
-          "defaultCbm": 1.2,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:37:48.401Z"
+          "defaultCbm": 0.85,
+          "defaultInnerCbm": 0.7,
+          "createdAt": "2026-10-11T19:22:24.087Z"
         },
         {
-          "id": "cmuujdo6k000fgqu8n5s2r35e",
-          "name": "TV",
-          "spec": "55미만",
-          "defaultCbm": 0.21,
+          "id": "cmv3luz5n00031ipiil3ef52c",
+          "name": "서랍장",
+          "spec": "4단 600",
+          "defaultCbm": 0.29,
+          "defaultInnerCbm": 0.3,
+          "createdAt": "2026-10-11T19:22:30.298Z"
+        },
+        {
+          "id": "cmuui73v70001gqu828mbct92",
+          "name": "서랍장",
+          "spec": "5단 800",
+          "defaultCbm": 0.5,
+          "defaultInnerCbm": 0.5,
+          "createdAt": "2026-10-11T19:22:21.965Z"
+        },
+        {
+          "id": "cmuuh2urq0001zfpswe4cxb32",
+          "name": "침대",
+          "spec": "S/SS",
+          "defaultCbm": 1.2,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:53:36.045Z"
+          "createdAt": "2026-10-11T19:22:20.359Z"
+        }
+      ]
+    },
+    {
+      "id": "cmut769zi0006cisok59t22zj",
+      "name": "거실",
+      "order": 0,
+      "createdAt": "2026-10-11T19:22:18.461Z",
+      "items": [
+        {
+          "id": "cmv3ltbdb00021ipiy5of2yvl",
+          "name": "서랍장",
+          "spec": "3단 600",
+          "defaultCbm": 0.22,
+          "defaultInnerCbm": 0.22,
+          "createdAt": "2026-10-11T19:22:30.039Z"
+        },
+        {
+          "id": "cmtv74mt80000psp4o1zqwdur",
+          "name": "쇼파",
+          "spec": "3인",
+          "defaultCbm": 1.6,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-11T19:22:19.449Z"
+        },
+        {
+          "id": "cmtv7575r0001psp4ce7bxc2u",
+          "name": "쇼파",
+          "spec": "4인",
+          "defaultCbm": 2.3,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-11T19:22:19.777Z"
+        },
+        {
+          "id": "cmuuisak00008gqu8af39a5cd",
+          "name": "책장",
+          "spec": "2x5단",
+          "defaultCbm": 0.6,
+          "defaultInnerCbm": 0.45,
+          "createdAt": "2026-10-11T19:22:23.828Z"
         },
         {
           "id": "cmuum9acc000ggqu82k5ugzoi",
           "name": "TV",
-          "spec": "65이하",
-          "defaultCbm": 0.31,
+          "spec": "65",
+          "defaultCbm": 0.45,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T02:14:10.333Z"
-        },
-        {
-          "id": "cmuumbrlf000hgqu8j9zaighn",
-          "name": "TV",
-          "spec": "85이하",
-          "defaultCbm": 0.66,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T02:16:06.004Z"
+          "createdAt": "2026-10-11T19:22:25.522Z"
         },
         {
           "id": "cmuumffv2000igqu8ijisnl9r",
           "name": "TV",
-          "spec": "98이하",
-          "defaultCbm": 1.1,
+          "spec": "98이상",
+          "defaultCbm": 1.2,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T02:18:57.423Z"
+          "createdAt": "2026-10-11T19:22:26.034Z"
         },
         {
           "id": "cmuumjpci000jgqu801r1ad1h",
@@ -780,7 +860,7 @@
           "spec": "TV장",
           "defaultCbm": 1,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T02:22:16.338Z"
+          "createdAt": "2026-10-11T19:22:26.287Z"
         },
         {
           "id": "cmuw858dp0000caee5oiogihy",
@@ -788,7 +868,7 @@
           "spec": "아쿠아텍스 코너형",
           "defaultCbm": 5,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-06T05:14:38.893Z"
+          "createdAt": "2026-10-11T19:22:26.542Z"
         },
         {
           "id": "cmuw8808o0001caee1ol9auus",
@@ -796,23 +876,215 @@
           "spec": "스툴",
           "defaultCbm": 0.5,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-06T05:16:48.312Z"
+          "createdAt": "2026-10-11T19:22:26.796Z"
         },
         {
-          "id": "cmv3ltbdb00021ipiy5of2yvl",
-          "name": "서랍장",
-          "spec": "3단 와이드",
-          "defaultCbm": 0.4,
+          "id": "cmv7pfgyj0008tz1ufyeimktm",
+          "name": "장식장",
+          "spec": "기본+내품추가",
+          "defaultCbm": 1,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-11T09:11:40.752Z"
+          "createdAt": "2026-10-14T06:03:57.678Z"
+        },
+        {
+          "id": "cmv7phl5s0009tz1upenq5h5o",
+          "name": "안마",
+          "spec": "의자",
+          "defaultCbm": 2.5,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-14T06:05:36.701Z"
+        },
+        {
+          "id": "cmv7pi0vi000atz1u4ghmxxgz",
+          "name": "안마",
+          "spec": "세라젬",
+          "defaultCbm": 1,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-14T06:05:57.067Z"
+        },
+        {
+          "id": "cmv7pnpw2000btz1upq5oa1ou",
+          "name": "세탁기",
+          "spec": "스타일러",
+          "defaultCbm": 0.7,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-14T06:10:22.512Z"
+        },
+        {
+          "id": "cmv7puakj000ctz1usfm78l9k",
+          "name": "에어컨",
+          "spec": "스탠드",
+          "defaultCbm": 1.1,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-14T06:15:29.234Z"
+        },
+        {
+          "id": "cmuui4b540000gqu8y5yec3u5",
+          "name": "서랍장",
+          "spec": "3단 800",
+          "defaultCbm": 0.25,
+          "defaultInnerCbm": 0.25,
+          "createdAt": "2026-10-11T19:22:21.639Z"
+        },
+        {
+          "id": "cmuui88vl0002gqu8c1g6za57",
+          "name": "서랍장",
+          "spec": "5단 600",
+          "defaultCbm": 0.35,
+          "defaultInnerCbm": 0.35,
+          "createdAt": "2026-10-11T19:22:22.225Z"
+        },
+        {
+          "id": "cmuuitcz40009gqu8u383rul0",
+          "name": "책장",
+          "spec": "3x5단",
+          "defaultCbm": 0.85,
+          "defaultInnerCbm": 0.7,
+          "createdAt": "2026-10-11T19:22:24.087Z"
         },
         {
           "id": "cmv3luz5n00031ipiil3ef52c",
           "name": "서랍장",
-          "spec": "4단",
+          "spec": "4단 600",
+          "defaultCbm": 0.29,
+          "defaultInnerCbm": 0.3,
+          "createdAt": "2026-10-11T19:22:30.298Z"
+        },
+        {
+          "id": "cmuui73v70001gqu828mbct92",
+          "name": "서랍장",
+          "spec": "5단 800",
+          "defaultCbm": 0.5,
+          "defaultInnerCbm": 0.5,
+          "createdAt": "2026-10-11T19:22:21.965Z"
+        },
+        {
+          "id": "cmuujdo6k000fgqu8n5s2r35e",
+          "name": "TV",
+          "spec": "55미만",
           "defaultCbm": 0.3,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-11T09:12:58.235Z"
+          "createdAt": "2026-10-11T19:22:25.262Z"
+        },
+        {
+          "id": "cmvhief3500009948n0oo1dr5",
+          "name": "TV",
+          "spec": "75",
+          "defaultCbm": 0.6,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-21T02:44:53.305Z"
+        },
+        {
+          "id": "cmuumbrlf000hgqu8j9zaighn",
+          "name": "TV",
+          "spec": "85",
+          "defaultCbm": 0.8,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-11T19:22:25.781Z"
+        },
+        {
+          "id": "cmvhlb2gp0000uleopwyxvy8l",
+          "name": "공기청정기",
+          "spec": "일반",
+          "defaultCbm": 0.2,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-21T04:06:15.865Z"
+        },
+        {
+          "id": "cmvhlb2sw0001uleoqeza3v56",
+          "name": "공기청정기",
+          "spec": "타워/대형",
+          "defaultCbm": 0.3,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-21T04:06:16.305Z"
+        },
+        {
+          "id": "cmvhlb32s0002uleos9xg9d4x",
+          "name": "피아노",
+          "spec": "디지털",
+          "defaultCbm": 0.6,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-21T04:06:16.660Z"
+        },
+        {
+          "id": "cmvhlb3a80003uleob6c457xi",
+          "name": "피아노",
+          "spec": "업라이트",
+          "defaultCbm": 1.5,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-21T04:06:16.928Z"
+        },
+        {
+          "id": "cmvhlb3hu0004uleo2pjfg1xh",
+          "name": "피아노",
+          "spec": "그랜드",
+          "defaultCbm": 3,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-21T04:06:17.203Z"
+        },
+        {
+          "id": "cmvhlb44m0007uleortnwfgop",
+          "name": "스타일러",
+          "spec": "일반/3벌",
+          "defaultCbm": 0.7,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-21T04:06:18.022Z"
+        },
+        {
+          "id": "cmvhlb4c50008uleokdaqpmn1",
+          "name": "스타일러",
+          "spec": "대형/5벌",
+          "defaultCbm": 0.9,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-21T04:06:18.294Z"
+        },
+        {
+          "id": "cmvhlb4jo0009uleogy3j53a7",
+          "name": "소파",
+          "spec": "3인",
+          "defaultCbm": 1.6,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-21T04:06:18.564Z"
+        },
+        {
+          "id": "cmvhlb4r7000auleoqfft14c0",
+          "name": "소파",
+          "spec": "4인",
+          "defaultCbm": 2.3,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-21T04:06:18.835Z"
+        },
+        {
+          "id": "cmvhlb4yk000buleo5088iz2d",
+          "name": "소파",
+          "spec": "스툴",
+          "defaultCbm": 0.5,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-21T04:06:19.100Z"
+        },
+        {
+          "id": "cmvhlb567000culeojon9xo38",
+          "name": "소파",
+          "spec": "아쿠아텍스 코너형",
+          "defaultCbm": 5,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-21T04:06:19.376Z"
+        },
+        {
+          "id": "cmvhlb5dm000duleoql0d2599",
+          "name": "안마의자",
+          "spec": "일반",
+          "defaultCbm": 1.5,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-21T04:06:19.643Z"
+        },
+        {
+          "id": "cmvhlb5l4000euleoat579rej",
+          "name": "안마의자",
+          "spec": "프리미엄/대형",
+          "defaultCbm": 2.5,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-21T04:06:19.912Z"
         }
       ]
     },
@@ -820,39 +1092,39 @@
       "id": "cmut76j6c0007ciso5qw1zzkp",
       "name": "주방",
       "order": 0,
-      "createdAt": "2026-10-04T02:24:21.396Z",
+      "createdAt": "2026-10-11T19:22:18.645Z",
       "items": [
-        {
-          "id": "cmut8tnwy000dcisoy16d9icq",
-          "name": "냉장고",
-          "spec": "양문형 2도어 700 이하",
-          "defaultCbm": 1.2,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-04T03:10:20.243Z"
-        },
         {
           "id": "cmuuinfv00005gqu8lyp3867i",
           "name": "의자",
           "spec": "식탁용",
           "defaultCbm": 0.25,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-05T00:33:12.204Z"
+          "createdAt": "2026-10-11T19:22:23.063Z"
         },
         {
-          "id": "cmuw93osc0002caeek4rhrg64",
+          "id": "cmvg6hvr70000gt1xkq5tni8z",
           "name": "냉장고",
-          "spec": "소형150 이하",
-          "defaultCbm": 0.3,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-06T05:41:26.461Z"
+          "spec": "양문형 슬림 4도어",
+          "defaultCbm": 1.5,
+          "defaultInnerCbm": 1.5,
+          "createdAt": "2026-10-20T04:23:52.903Z"
         },
         {
-          "id": "cmuw95mj60003caeeyh9fh0vg",
+          "id": "cmuw9c33y0005caeeddrar329",
           "name": "냉장고",
-          "spec": "일반 300 이하",
-          "defaultCbm": 0.7,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-06T05:42:56.850Z"
+          "spec": "양문형 대형 4도어",
+          "defaultCbm": 2.4,
+          "defaultInnerCbm": 1.6,
+          "createdAt": "2026-10-11T19:22:27.815Z"
+        },
+        {
+          "id": "cmut8tnwy000dcisoy16d9icq",
+          "name": "냉장고",
+          "spec": "양문형 2도어",
+          "defaultCbm": 1.6,
+          "defaultInnerCbm": 1.5,
+          "createdAt": "2026-10-11T19:22:20.029Z"
         },
         {
           "id": "cmuw96h670004caee2tl9rc8h",
@@ -860,39 +1132,183 @@
           "spec": "일반 중형 500 이하",
           "defaultCbm": 1,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-06T05:43:36.559Z"
+          "createdAt": "2026-10-11T19:22:27.561Z"
         },
         {
-          "id": "cmuw9c33y0005caeeddrar329",
-          "name": "냉장고",
-          "spec": "양문형 대형 4도어",
-          "defaultCbm": 1.8,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-06T05:47:58.270Z"
-        },
-        {
-          "id": "cmuw9l68g0006caeeush7qhyg",
+          "id": "cmvg8dq7k0001gt1xuwet6myo",
           "name": "김치냉장고",
-          "spec": "뚜껑형 200",
-          "defaultCbm": 0.9,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-06T05:55:02.224Z"
+          "spec": "뚜껑형 1도어",
+          "defaultCbm": 0.4,
+          "defaultInnerCbm": 0.2,
+          "createdAt": "2026-10-20T05:16:38.338Z"
         },
         {
-          "id": "cmuw9nub20007caee8ueb6h1f",
-          "name": "김치냉장고",
-          "spec": "스탠드 300",
-          "defaultCbm": 1.3,
+          "id": "cmv7p46ks0003tz1uvhq93bcz",
+          "name": "식탁",
+          "spec": "2인",
+          "defaultCbm": 0.5,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-06T05:57:06.735Z"
+          "createdAt": "2026-10-14T05:55:11.027Z"
+        },
+        {
+          "id": "cmv7p5qlu0004tz1ucl1j9zda",
+          "name": "식탁",
+          "spec": "4인",
+          "defaultCbm": 0.8,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-14T05:56:23.887Z"
+        },
+        {
+          "id": "cmv7p71560005tz1uy5cfm5ts",
+          "name": "식탁",
+          "spec": "6인",
+          "defaultCbm": 1.2,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-14T05:57:24.199Z"
+        },
+        {
+          "id": "cmv7p8bem0006tz1u5ot2gh6h",
+          "name": "식탁",
+          "spec": "8인",
+          "defaultCbm": 1.5,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-14T05:58:24.154Z"
+        },
+        {
+          "id": "cmv7p9l3d0007tz1uz3qnkcxl",
+          "name": "식탁",
+          "spec": "아일랜드",
+          "defaultCbm": 0.6,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-14T05:59:23.366Z"
         },
         {
           "id": "cmuw9qc7g0008caee7wnj3odc",
           "name": "김치냉장고",
-          "spec": "스탠드 500",
-          "defaultCbm": 1.8,
+          "spec": "스탠드 대형 4도어",
+          "defaultCbm": 1.3,
+          "defaultInnerCbm": 0.8,
+          "createdAt": "2026-10-11T19:22:28.580Z"
+        },
+        {
+          "id": "cmuw9nub20007caee8ueb6h1f",
+          "name": "김치냉장고",
+          "spec": "스탠드 중형 3도어",
+          "defaultCbm": 0.9,
+          "defaultInnerCbm": 0.6,
+          "createdAt": "2026-10-11T19:22:28.324Z"
+        },
+        {
+          "id": "cmuw95mj60003caeeyh9fh0vg",
+          "name": "냉장고",
+          "spec": "일반 300 이하",
+          "defaultCbm": 0.5,
+          "defaultInnerCbm": 0.2,
+          "createdAt": "2026-10-11T19:22:27.307Z"
+        },
+        {
+          "id": "cmuw9l68g0006caeeush7qhyg",
+          "name": "김치냉장고",
+          "spec": "뚜껑형 2도어",
+          "defaultCbm": 0.8,
+          "defaultInnerCbm": 0.4,
+          "createdAt": "2026-10-11T19:22:28.067Z"
+        },
+        {
+          "id": "cmvhje6re000399487mewumru",
+          "name": "주방소형가전",
+          "spec": "많음",
+          "defaultCbm": 0.4,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-06T05:59:03.245Z"
+          "createdAt": "2026-10-21T03:12:42.132Z"
+        },
+        {
+          "id": "cmvhjdbv300029948vogu9h92",
+          "name": "주방소형가전",
+          "spec": "보통",
+          "defaultCbm": 0.2,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-21T03:12:02.087Z"
+        },
+        {
+          "id": "cmvhjcsjz00019948uxd924a2",
+          "name": "주방소형가전",
+          "spec": "적음",
+          "defaultCbm": 0.1,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-21T03:11:36.795Z"
+        },
+        {
+          "id": "cmvhjkkje00059948hxhiippk",
+          "name": "주방가전",
+          "spec": "광파오븐",
+          "defaultCbm": 0.15,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-21T03:17:39.925Z"
+        },
+        {
+          "id": "cmvhk9sjt000899483a5cb0lv",
+          "name": "주방가전",
+          "spec": "에어프라이어",
+          "defaultCbm": 0.1,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-21T03:37:16.709Z"
+        },
+        {
+          "id": "cmvhkbjf800099948g66jo6cq",
+          "name": "주방가전",
+          "spec": "커피머신 자동",
+          "defaultCbm": 0.1,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-21T03:38:38.188Z"
+        },
+        {
+          "id": "cmvhkcfb9000a99480grbqg2e",
+          "name": "주방가전",
+          "spec": "커피머신 캡슐",
+          "defaultCbm": 0.05,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-21T03:39:19.522Z"
+        },
+        {
+          "id": "cmvhjjta900049948ei5jjoht",
+          "name": "주방가전",
+          "spec": "전자레인지",
+          "defaultCbm": 0.1,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-21T03:17:04.356Z"
+        },
+        {
+          "id": "cmvhk7v2r000699487mhm33ai",
+          "name": "주방가전",
+          "spec": "전기밥솥",
+          "defaultCbm": 0.08,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-21T03:35:46.669Z"
+        },
+        {
+          "id": "cmvlvp7tv0000attrxibvz7zo",
+          "name": "팬트리선반",
+          "spec": "5단 1자형",
+          "defaultCbm": 0.3,
+          "defaultInnerCbm": 0.8,
+          "createdAt": "2026-10-24T04:08:16.867Z"
+        },
+        {
+          "id": "cmvlvp8ce0001attr36p5m8ob",
+          "name": "팬트리선반",
+          "spec": "5단 ㄴ자형",
+          "defaultCbm": 0.6,
+          "defaultInnerCbm": 1.5,
+          "createdAt": "2026-10-24T04:08:17.535Z"
+        },
+        {
+          "id": "cmvlvp8ma0002attrfz0yzwl6",
+          "name": "팬트리선반",
+          "spec": "5단 ㄷ자형",
+          "defaultCbm": 1,
+          "defaultInnerCbm": 2.5,
+          "createdAt": "2026-10-24T04:08:17.890Z"
         }
       ]
     },
@@ -900,39 +1316,23 @@
       "id": "cmut89xrc000bcisojy3izidy",
       "name": "베란다",
       "order": 0,
-      "createdAt": "2026-10-04T02:54:59.881Z",
+      "createdAt": "2026-10-11T19:22:18.825Z",
       "items": [
         {
           "id": "cmut8tnwy000dcisoy16d9icq",
           "name": "냉장고",
-          "spec": "양문형 2도어 700 이하",
-          "defaultCbm": 1.2,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-04T03:10:20.243Z"
+          "spec": "양문형 2도어",
+          "defaultCbm": 1.6,
+          "defaultInnerCbm": 1.5,
+          "createdAt": "2026-10-11T19:22:20.029Z"
         },
         {
-          "id": "cmuw9l68g0006caeeush7qhyg",
+          "id": "cmvg8dq7k0001gt1xuwet6myo",
           "name": "김치냉장고",
-          "spec": "뚜껑형 200",
-          "defaultCbm": 0.9,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-06T05:55:02.224Z"
-        },
-        {
-          "id": "cmuw9nub20007caee8ueb6h1f",
-          "name": "김치냉장고",
-          "spec": "스탠드 300",
-          "defaultCbm": 1.3,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-06T05:57:06.735Z"
-        },
-        {
-          "id": "cmuw9qc7g0008caee7wnj3odc",
-          "name": "김치냉장고",
-          "spec": "스탠드 500",
-          "defaultCbm": 1.8,
-          "defaultInnerCbm": 0,
-          "createdAt": "2026-10-06T05:59:03.245Z"
+          "spec": "뚜껑형 1도어",
+          "defaultCbm": 0.4,
+          "defaultInnerCbm": 0.2,
+          "createdAt": "2026-10-20T05:16:38.338Z"
         },
         {
           "id": "cmuw9sikm0009caeeau3gp70f",
@@ -940,7 +1340,7 @@
           "spec": "일반/드럼",
           "defaultCbm": 1,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-06T06:00:44.807Z"
+          "createdAt": "2026-10-11T19:22:28.829Z"
         },
         {
           "id": "cmuw9tbh4000acaeekkm5p4g7",
@@ -948,7 +1348,7 @@
           "spec": "콤보/신형",
           "defaultCbm": 1.5,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-06T06:01:22.265Z"
+          "createdAt": "2026-10-11T19:22:29.081Z"
         },
         {
           "id": "cmuw9ud55000bcaeez3rp0680",
@@ -956,49 +1356,166 @@
           "spec": "건조기",
           "defaultCbm": 1,
           "defaultInnerCbm": 0,
-          "createdAt": "2026-10-06T06:02:11.082Z"
+          "createdAt": "2026-10-11T19:22:29.338Z"
+        },
+        {
+          "id": "cmuw93osc0002caeek4rhrg64",
+          "name": "냉장고",
+          "spec": "소형150 이하",
+          "defaultCbm": 0.3,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-11T19:22:27.054Z"
+        },
+        {
+          "id": "cmuw9qc7g0008caee7wnj3odc",
+          "name": "김치냉장고",
+          "spec": "스탠드 대형 4도어",
+          "defaultCbm": 1.3,
+          "defaultInnerCbm": 0.8,
+          "createdAt": "2026-10-11T19:22:28.580Z"
+        },
+        {
+          "id": "cmuw9nub20007caee8ueb6h1f",
+          "name": "김치냉장고",
+          "spec": "스탠드 중형 3도어",
+          "defaultCbm": 0.9,
+          "defaultInnerCbm": 0.6,
+          "createdAt": "2026-10-11T19:22:28.324Z"
+        },
+        {
+          "id": "cmuw9l68g0006caeeush7qhyg",
+          "name": "김치냉장고",
+          "spec": "뚜껑형 2도어",
+          "defaultCbm": 0.8,
+          "defaultInnerCbm": 0.4,
+          "createdAt": "2026-10-11T19:22:28.067Z"
+        },
+        {
+          "id": "cmvhlb3pi0005uleoqvvg1i9l",
+          "name": "건조기",
+          "spec": "일반/드럼",
+          "defaultCbm": 1,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-21T04:06:17.478Z"
+        },
+        {
+          "id": "cmvhlb3x00006uleoudymjkgt",
+          "name": "건조기",
+          "spec": "대형",
+          "defaultCbm": 1.1,
+          "defaultInnerCbm": 0,
+          "createdAt": "2026-10-21T04:06:17.748Z"
+        },
+        {
+          "id": "cmvlvp7tv0000attrxibvz7zo",
+          "name": "팬트리선반",
+          "spec": "5단 1자형",
+          "defaultCbm": 0.3,
+          "defaultInnerCbm": 0.8,
+          "createdAt": "2026-10-24T04:08:16.867Z"
+        },
+        {
+          "id": "cmvlvp8ce0001attr36p5m8ob",
+          "name": "팬트리선반",
+          "spec": "5단 ㄴ자형",
+          "defaultCbm": 0.6,
+          "defaultInnerCbm": 1.5,
+          "createdAt": "2026-10-24T04:08:17.535Z"
+        },
+        {
+          "id": "cmvlvp8ma0002attrfz0yzwl6",
+          "name": "팬트리선반",
+          "spec": "5단 ㄷ자형",
+          "defaultCbm": 1,
+          "defaultInnerCbm": 2.5,
+          "createdAt": "2026-10-24T04:08:17.890Z"
+        }
+      ]
+    },
+    {
+      "id": "cmv7tdn33000ftz1utek6vjzq",
+      "name": "화장실",
+      "order": 0,
+      "createdAt": "2026-10-14T07:54:31.034Z",
+      "items": []
+    },
+    {
+      "id": "cmvfydssz0000uarlt5m02no4",
+      "name": "팬트리",
+      "order": 0,
+      "createdAt": "2026-10-20T00:36:45.902Z",
+      "items": [
+        {
+          "id": "cmvlvp7tv0000attrxibvz7zo",
+          "name": "팬트리선반",
+          "spec": "5단 1자형",
+          "defaultCbm": 0.3,
+          "defaultInnerCbm": 0.8,
+          "createdAt": "2026-10-24T04:08:16.867Z"
+        },
+        {
+          "id": "cmvlvp8ce0001attr36p5m8ob",
+          "name": "팬트리선반",
+          "spec": "5단 ㄴ자형",
+          "defaultCbm": 0.6,
+          "defaultInnerCbm": 1.5,
+          "createdAt": "2026-10-24T04:08:17.535Z"
+        },
+        {
+          "id": "cmvlvp8ma0002attrfz0yzwl6",
+          "name": "팬트리선반",
+          "spec": "5단 ㄷ자형",
+          "defaultCbm": 1,
+          "defaultInnerCbm": 2.5,
+          "createdAt": "2026-10-24T04:08:17.890Z"
         }
       ]
     }
   ],
   "items": [
     {
-      "id": "cmtv5th7d00018nhuq6ds33sy",
-      "name": "장농",
-      "spec": "1통",
-      "defaultCbm": 1.1,
-      "defaultInnerCbm": 0,
-      "createdAt": "2026-09-10T06:42:02.713Z",
+      "id": "cmv3ltbdb00021ipiy5of2yvl",
+      "name": "서랍장",
+      "spec": "3단 600",
+      "defaultCbm": 0.22,
+      "defaultInnerCbm": 0.22,
+      "createdAt": "2026-10-11T19:22:30.039Z",
       "locations": [
         {
           "id": "cmut73vls0000cisokpdkkuxn",
           "name": "안방",
           "order": 0,
-          "createdAt": "2026-10-04T02:22:17.536Z"
+          "createdAt": "2026-10-11T19:22:17.443Z"
         },
         {
           "id": "cmut74o7o0002cisoqr0a5f00",
           "name": "방1",
           "order": 0,
-          "createdAt": "2026-10-04T02:22:54.613Z"
+          "createdAt": "2026-10-11T19:22:17.731Z"
         },
         {
           "id": "cmut74tq30003ciso8gosyp5o",
           "name": "방2",
           "order": 0,
-          "createdAt": "2026-10-04T02:23:01.755Z"
+          "createdAt": "2026-10-11T19:22:17.915Z"
         },
         {
           "id": "cmut75o8m0004ciso46h35253",
           "name": "방3",
           "order": 0,
-          "createdAt": "2026-10-04T02:23:41.303Z"
+          "createdAt": "2026-10-11T19:22:18.100Z"
         },
         {
           "id": "cmut75sft0005cisouyfhyvch",
           "name": "방4",
           "order": 0,
-          "createdAt": "2026-10-04T02:23:46.745Z"
+          "createdAt": "2026-10-11T19:22:18.282Z"
+        },
+        {
+          "id": "cmut769zi0006cisok59t22zj",
+          "name": "거실",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.461Z"
         }
       ]
     },
@@ -1008,13 +1525,13 @@
       "spec": "3인",
       "defaultCbm": 1.6,
       "defaultInnerCbm": 0,
-      "createdAt": "2026-09-10T07:18:42.812Z",
+      "createdAt": "2026-10-11T19:22:19.449Z",
       "locations": [
         {
           "id": "cmut769zi0006cisok59t22zj",
           "name": "거실",
           "order": 0,
-          "createdAt": "2026-10-04T02:24:09.487Z"
+          "createdAt": "2026-10-11T19:22:18.461Z"
         }
       ]
     },
@@ -1024,75 +1541,38 @@
       "spec": "4인",
       "defaultCbm": 2.3,
       "defaultInnerCbm": 0,
-      "createdAt": "2026-09-10T07:19:09.183Z",
+      "createdAt": "2026-10-11T19:22:19.777Z",
       "locations": [
         {
           "id": "cmut769zi0006cisok59t22zj",
           "name": "거실",
           "order": 0,
-          "createdAt": "2026-10-04T02:24:09.487Z"
+          "createdAt": "2026-10-11T19:22:18.461Z"
         }
       ]
     },
     {
-      "id": "cmut8tnwy000dcisoy16d9icq",
-      "name": "냉장고",
-      "spec": "양문형 2도어 700 이하",
-      "defaultCbm": 1.2,
-      "defaultInnerCbm": 0,
-      "createdAt": "2026-10-04T03:10:20.243Z",
-      "locations": [
-        {
-          "id": "cmut76j6c0007ciso5qw1zzkp",
-          "name": "주방",
-          "order": 0,
-          "createdAt": "2026-10-04T02:24:21.396Z"
-        },
-        {
-          "id": "cmut89xrc000bcisojy3izidy",
-          "name": "베란다",
-          "order": 0,
-          "createdAt": "2026-10-04T02:54:59.881Z"
-        }
-      ]
-    },
-    {
-      "id": "cmuuh2urq0001zfpswe4cxb32",
+      "id": "cmv3kqbxo00001ipimzv1yjvr",
       "name": "침대",
-      "spec": "S/SS",
-      "defaultCbm": 1.1,
+      "spec": "2층(벙커)",
+      "defaultCbm": 2.2,
       "defaultInnerCbm": 0,
-      "createdAt": "2026-10-04T23:49:12.134Z",
+      "createdAt": "2026-10-11T19:22:29.596Z",
+      "locations": []
+    },
+    {
+      "id": "cmv3ksfvl00011ipi2lzvwmw3",
+      "name": "침대",
+      "spec": "돌/흙(Q)",
+      "defaultCbm": 2.4,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-11T19:22:29.779Z",
       "locations": [
         {
           "id": "cmut73vls0000cisokpdkkuxn",
           "name": "안방",
           "order": 0,
-          "createdAt": "2026-10-04T02:22:17.536Z"
-        },
-        {
-          "id": "cmut74o7o0002cisoqr0a5f00",
-          "name": "방1",
-          "order": 0,
-          "createdAt": "2026-10-04T02:22:54.613Z"
-        },
-        {
-          "id": "cmut74tq30003ciso8gosyp5o",
-          "name": "방2",
-          "order": 0,
-          "createdAt": "2026-10-04T02:23:01.755Z"
-        },
-        {
-          "id": "cmut75o8m0004ciso46h35253",
-          "name": "방3",
-          "order": 0,
-          "createdAt": "2026-10-04T02:23:41.303Z"
-        },
-        {
-          "id": "cmut75sft0005cisouyfhyvch",
-          "name": "방4",
-          "order": 0,
-          "createdAt": "2026-10-04T02:23:46.745Z"
+          "createdAt": "2026-10-11T19:22:17.443Z"
         }
       ]
     },
@@ -1100,39 +1580,39 @@
       "id": "cmuuh3dbw0003zfpsugaavy5u",
       "name": "침대",
       "spec": "Q/K",
-      "defaultCbm": 1.6,
+      "defaultCbm": 1.8,
       "defaultInnerCbm": 0,
-      "createdAt": "2026-10-04T23:49:36.188Z",
+      "createdAt": "2026-10-11T19:22:20.615Z",
       "locations": [
         {
           "id": "cmut73vls0000cisokpdkkuxn",
           "name": "안방",
           "order": 0,
-          "createdAt": "2026-10-04T02:22:17.536Z"
+          "createdAt": "2026-10-11T19:22:17.443Z"
         },
         {
           "id": "cmut74o7o0002cisoqr0a5f00",
           "name": "방1",
           "order": 0,
-          "createdAt": "2026-10-04T02:22:54.613Z"
+          "createdAt": "2026-10-11T19:22:17.731Z"
         },
         {
           "id": "cmut74tq30003ciso8gosyp5o",
           "name": "방2",
           "order": 0,
-          "createdAt": "2026-10-04T02:23:01.755Z"
+          "createdAt": "2026-10-11T19:22:17.915Z"
         },
         {
           "id": "cmut75o8m0004ciso46h35253",
           "name": "방3",
           "order": 0,
-          "createdAt": "2026-10-04T02:23:41.303Z"
+          "createdAt": "2026-10-11T19:22:18.100Z"
         },
         {
           "id": "cmut75sft0005cisouyfhyvch",
           "name": "방4",
           "order": 0,
-          "createdAt": "2026-10-04T02:23:46.745Z"
+          "createdAt": "2026-10-11T19:22:18.282Z"
         }
       ]
     },
@@ -1142,13 +1622,13 @@
       "spec": "콘솔(80x40x80)",
       "defaultCbm": 0.3,
       "defaultInnerCbm": 0,
-      "createdAt": "2026-10-04T23:54:58.719Z",
+      "createdAt": "2026-10-11T19:22:20.868Z",
       "locations": [
         {
           "id": "cmut73vls0000cisokpdkkuxn",
           "name": "안방",
           "order": 0,
-          "createdAt": "2026-10-04T02:22:17.536Z"
+          "createdAt": "2026-10-11T19:22:17.443Z"
         }
       ]
     },
@@ -1158,13 +1638,13 @@
       "spec": "일반(100x50x140)",
       "defaultCbm": 0.7,
       "defaultInnerCbm": 0,
-      "createdAt": "2026-10-04T23:55:32.612Z",
+      "createdAt": "2026-10-11T19:22:21.121Z",
       "locations": [
         {
           "id": "cmut73vls0000cisokpdkkuxn",
           "name": "안방",
           "order": 0,
-          "createdAt": "2026-10-04T02:22:17.536Z"
+          "createdAt": "2026-10-11T19:22:17.443Z"
         }
       ]
     },
@@ -1174,153 +1654,24 @@
       "spec": "수납(120x50x150)",
       "defaultCbm": 1,
       "defaultInnerCbm": 0,
-      "createdAt": "2026-10-04T23:56:27.014Z",
+      "createdAt": "2026-10-11T19:22:21.381Z",
       "locations": [
         {
           "id": "cmut73vls0000cisokpdkkuxn",
           "name": "안방",
           "order": 0,
-          "createdAt": "2026-10-04T02:22:17.536Z"
+          "createdAt": "2026-10-11T19:22:17.443Z"
         }
       ]
     },
     {
-      "id": "cmuui4b540000gqu8y5yec3u5",
-      "name": "서랍장",
-      "spec": "3단 일반",
-      "defaultCbm": 0.2,
-      "defaultInnerCbm": 0,
-      "createdAt": "2026-10-05T00:18:19.625Z",
-      "locations": [
-        {
-          "id": "cmut73vls0000cisokpdkkuxn",
-          "name": "안방",
-          "order": 0,
-          "createdAt": "2026-10-04T02:22:17.536Z"
-        },
-        {
-          "id": "cmut74o7o0002cisoqr0a5f00",
-          "name": "방1",
-          "order": 0,
-          "createdAt": "2026-10-04T02:22:54.613Z"
-        },
-        {
-          "id": "cmut74tq30003ciso8gosyp5o",
-          "name": "방2",
-          "order": 0,
-          "createdAt": "2026-10-04T02:23:01.755Z"
-        },
-        {
-          "id": "cmut75o8m0004ciso46h35253",
-          "name": "방3",
-          "order": 0,
-          "createdAt": "2026-10-04T02:23:41.303Z"
-        },
-        {
-          "id": "cmut75sft0005cisouyfhyvch",
-          "name": "방4",
-          "order": 0,
-          "createdAt": "2026-10-04T02:23:46.745Z"
-        },
-        {
-          "id": "cmut769zi0006cisok59t22zj",
-          "name": "거실",
-          "order": 0,
-          "createdAt": "2026-10-04T02:24:09.487Z"
-        }
-      ]
-    },
-    {
-      "id": "cmuui73v70001gqu828mbct92",
-      "name": "서랍장",
-      "spec": "5단 표준",
-      "defaultCbm": 0.5,
-      "defaultInnerCbm": 0,
-      "createdAt": "2026-10-05T00:20:30.163Z",
-      "locations": [
-        {
-          "id": "cmut73vls0000cisokpdkkuxn",
-          "name": "안방",
-          "order": 0,
-          "createdAt": "2026-10-04T02:22:17.536Z"
-        },
-        {
-          "id": "cmut74o7o0002cisoqr0a5f00",
-          "name": "방1",
-          "order": 0,
-          "createdAt": "2026-10-04T02:22:54.613Z"
-        },
-        {
-          "id": "cmut74tq30003ciso8gosyp5o",
-          "name": "방2",
-          "order": 0,
-          "createdAt": "2026-10-04T02:23:01.755Z"
-        },
-        {
-          "id": "cmut75o8m0004ciso46h35253",
-          "name": "방3",
-          "order": 0,
-          "createdAt": "2026-10-04T02:23:41.303Z"
-        },
-        {
-          "id": "cmut75sft0005cisouyfhyvch",
-          "name": "방4",
-          "order": 0,
-          "createdAt": "2026-10-04T02:23:46.745Z"
-        },
-        {
-          "id": "cmut769zi0006cisok59t22zj",
-          "name": "거실",
-          "order": 0,
-          "createdAt": "2026-10-04T02:24:09.487Z"
-        }
-      ]
-    },
-    {
-      "id": "cmuui88vl0002gqu8c1g6za57",
-      "name": "서랍장",
-      "spec": "5단 가슴높이",
-      "defaultCbm": 1.5,
-      "defaultInnerCbm": 0,
-      "createdAt": "2026-10-05T00:21:23.313Z",
-      "locations": [
-        {
-          "id": "cmut73vls0000cisokpdkkuxn",
-          "name": "안방",
-          "order": 0,
-          "createdAt": "2026-10-04T02:22:17.536Z"
-        },
-        {
-          "id": "cmut74o7o0002cisoqr0a5f00",
-          "name": "방1",
-          "order": 0,
-          "createdAt": "2026-10-04T02:22:54.613Z"
-        },
-        {
-          "id": "cmut74tq30003ciso8gosyp5o",
-          "name": "방2",
-          "order": 0,
-          "createdAt": "2026-10-04T02:23:01.755Z"
-        },
-        {
-          "id": "cmut75o8m0004ciso46h35253",
-          "name": "방3",
-          "order": 0,
-          "createdAt": "2026-10-04T02:23:41.303Z"
-        },
-        {
-          "id": "cmut75sft0005cisouyfhyvch",
-          "name": "방4",
-          "order": 0,
-          "createdAt": "2026-10-04T02:23:46.745Z"
-        },
-        {
-          "id": "cmut769zi0006cisok59t22zj",
-          "name": "거실",
-          "order": 0,
-          "createdAt": "2026-10-04T02:24:09.487Z"
-        }
-      ]
+      "id": "cmv7txkqa000htz1ut4yzn7vx",
+      "name": "앵글",
+      "spec": "철재 100x40x180",
+      "defaultCbm": 0.75,
+      "defaultInnerCbm": 0.5,
+      "createdAt": "2026-10-14T08:10:00.843Z",
+      "locations": []
     },
     {
       "id": "cmuuihw5n0003gqu87v7hgcxl",
@@ -1328,73 +1679,42 @@
       "spec": "분리형/1M이하",
       "defaultCbm": 1,
       "defaultInnerCbm": 0,
-      "createdAt": "2026-10-05T00:28:53.387Z",
+      "createdAt": "2026-10-11T19:22:22.478Z",
       "locations": [
         {
           "id": "cmut74o7o0002cisoqr0a5f00",
           "name": "방1",
           "order": 0,
-          "createdAt": "2026-10-04T02:22:54.613Z"
+          "createdAt": "2026-10-11T19:22:17.731Z"
         },
         {
           "id": "cmut74tq30003ciso8gosyp5o",
           "name": "방2",
           "order": 0,
-          "createdAt": "2026-10-04T02:23:01.755Z"
+          "createdAt": "2026-10-11T19:22:17.915Z"
         },
         {
           "id": "cmut75o8m0004ciso46h35253",
           "name": "방3",
           "order": 0,
-          "createdAt": "2026-10-04T02:23:41.303Z"
+          "createdAt": "2026-10-11T19:22:18.100Z"
         },
         {
           "id": "cmut75sft0005cisouyfhyvch",
           "name": "방4",
           "order": 0,
-          "createdAt": "2026-10-04T02:23:46.745Z"
+          "createdAt": "2026-10-11T19:22:18.282Z"
         }
       ]
     },
     {
-      "id": "cmuuiit670004gqu85ju2h9kp",
-      "name": "책상",
-      "spec": "대형/라운드",
-      "defaultCbm": 2,
+      "id": "cmv7u8hge000itz1uh78d28m2",
+      "name": "운동기구",
+      "spec": "러닝머신 펼침",
+      "defaultCbm": 1.8,
       "defaultInnerCbm": 0,
-      "createdAt": "2026-10-05T00:29:36.175Z",
-      "locations": [
-        {
-          "id": "cmut74o7o0002cisoqr0a5f00",
-          "name": "방1",
-          "order": 0,
-          "createdAt": "2026-10-04T02:22:54.613Z"
-        },
-        {
-          "id": "cmut74tq30003ciso8gosyp5o",
-          "name": "방2",
-          "order": 0,
-          "createdAt": "2026-10-04T02:23:01.755Z"
-        },
-        {
-          "id": "cmut75o8m0004ciso46h35253",
-          "name": "방3",
-          "order": 0,
-          "createdAt": "2026-10-04T02:23:41.303Z"
-        },
-        {
-          "id": "cmut75sft0005cisouyfhyvch",
-          "name": "방4",
-          "order": 0,
-          "createdAt": "2026-10-04T02:23:46.745Z"
-        },
-        {
-          "id": "cmut769zi0006cisok59t22zj",
-          "name": "거실",
-          "order": 0,
-          "createdAt": "2026-10-04T02:24:09.487Z"
-        }
-      ]
+      "createdAt": "2026-10-14T08:18:29.793Z",
+      "locations": []
     },
     {
       "id": "cmuuinfv00005gqu8lyp3867i",
@@ -1402,13 +1722,13 @@
       "spec": "식탁용",
       "defaultCbm": 0.25,
       "defaultInnerCbm": 0,
-      "createdAt": "2026-10-05T00:33:12.204Z",
+      "createdAt": "2026-10-11T19:22:23.063Z",
       "locations": [
         {
           "id": "cmut76j6c0007ciso5qw1zzkp",
           "name": "주방",
           "order": 0,
-          "createdAt": "2026-10-04T02:24:21.396Z"
+          "createdAt": "2026-10-11T19:22:18.645Z"
         }
       ]
     },
@@ -1418,31 +1738,47 @@
       "spec": "책상용",
       "defaultCbm": 0.5,
       "defaultInnerCbm": 0,
-      "createdAt": "2026-10-05T00:34:14.248Z",
+      "createdAt": "2026-10-11T19:22:23.316Z",
       "locations": [
         {
           "id": "cmut74o7o0002cisoqr0a5f00",
           "name": "방1",
           "order": 0,
-          "createdAt": "2026-10-04T02:22:54.613Z"
+          "createdAt": "2026-10-11T19:22:17.731Z"
         },
         {
           "id": "cmut74tq30003ciso8gosyp5o",
           "name": "방2",
           "order": 0,
-          "createdAt": "2026-10-04T02:23:01.755Z"
+          "createdAt": "2026-10-11T19:22:17.915Z"
         },
         {
           "id": "cmut75o8m0004ciso46h35253",
           "name": "방3",
           "order": 0,
-          "createdAt": "2026-10-04T02:23:41.303Z"
+          "createdAt": "2026-10-11T19:22:18.100Z"
         },
         {
           "id": "cmut75sft0005cisouyfhyvch",
           "name": "방4",
           "order": 0,
-          "createdAt": "2026-10-04T02:23:46.745Z"
+          "createdAt": "2026-10-11T19:22:18.282Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvg6hvr70000gt1xkq5tni8z",
+      "name": "냉장고",
+      "spec": "양문형 슬림 4도어",
+      "defaultCbm": 1.5,
+      "defaultInnerCbm": 1.5,
+      "createdAt": "2026-10-20T04:23:52.903Z",
+      "locations": [
+        {
+          "id": "cmut76j6c0007ciso5qw1zzkp",
+          "name": "주방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.645Z"
         }
       ]
     },
@@ -1450,39 +1786,55 @@
       "id": "cmuuiq8go0007gqu8awer3mcq",
       "name": "책장",
       "spec": "소형",
-      "defaultCbm": 0.5,
-      "defaultInnerCbm": 0,
-      "createdAt": "2026-10-05T00:35:22.585Z",
+      "defaultCbm": 0.25,
+      "defaultInnerCbm": 0.25,
+      "createdAt": "2026-10-11T19:22:23.573Z",
       "locations": [
         {
           "id": "cmut73vls0000cisokpdkkuxn",
           "name": "안방",
           "order": 0,
-          "createdAt": "2026-10-04T02:22:17.536Z"
+          "createdAt": "2026-10-11T19:22:17.443Z"
         },
         {
           "id": "cmut74o7o0002cisoqr0a5f00",
           "name": "방1",
           "order": 0,
-          "createdAt": "2026-10-04T02:22:54.613Z"
+          "createdAt": "2026-10-11T19:22:17.731Z"
         },
         {
           "id": "cmut74tq30003ciso8gosyp5o",
           "name": "방2",
           "order": 0,
-          "createdAt": "2026-10-04T02:23:01.755Z"
+          "createdAt": "2026-10-11T19:22:17.915Z"
         },
         {
           "id": "cmut75o8m0004ciso46h35253",
           "name": "방3",
           "order": 0,
-          "createdAt": "2026-10-04T02:23:41.303Z"
+          "createdAt": "2026-10-11T19:22:18.100Z"
         },
         {
           "id": "cmut75sft0005cisouyfhyvch",
           "name": "방4",
           "order": 0,
-          "createdAt": "2026-10-04T02:23:46.745Z"
+          "createdAt": "2026-10-11T19:22:18.282Z"
+        }
+      ]
+    },
+    {
+      "id": "cmuw9c33y0005caeeddrar329",
+      "name": "냉장고",
+      "spec": "양문형 대형 4도어",
+      "defaultCbm": 2.4,
+      "defaultInnerCbm": 1.6,
+      "createdAt": "2026-10-11T19:22:27.815Z",
+      "locations": [
+        {
+          "id": "cmut76j6c0007ciso5qw1zzkp",
+          "name": "주방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.645Z"
         }
       ]
     },
@@ -1490,200 +1842,113 @@
       "id": "cmuuisak00008gqu8af39a5cd",
       "name": "책장",
       "spec": "2x5단",
-      "defaultCbm": 1,
-      "defaultInnerCbm": 0,
-      "createdAt": "2026-10-05T00:36:58.608Z",
+      "defaultCbm": 0.6,
+      "defaultInnerCbm": 0.45,
+      "createdAt": "2026-10-11T19:22:23.828Z",
       "locations": [
         {
           "id": "cmut73vls0000cisokpdkkuxn",
           "name": "안방",
           "order": 0,
-          "createdAt": "2026-10-04T02:22:17.536Z"
+          "createdAt": "2026-10-11T19:22:17.443Z"
         },
         {
           "id": "cmut74o7o0002cisoqr0a5f00",
           "name": "방1",
           "order": 0,
-          "createdAt": "2026-10-04T02:22:54.613Z"
+          "createdAt": "2026-10-11T19:22:17.731Z"
         },
         {
           "id": "cmut74tq30003ciso8gosyp5o",
           "name": "방2",
           "order": 0,
-          "createdAt": "2026-10-04T02:23:01.755Z"
+          "createdAt": "2026-10-11T19:22:17.915Z"
         },
         {
           "id": "cmut75o8m0004ciso46h35253",
           "name": "방3",
           "order": 0,
-          "createdAt": "2026-10-04T02:23:41.303Z"
+          "createdAt": "2026-10-11T19:22:18.100Z"
         },
         {
           "id": "cmut75sft0005cisouyfhyvch",
           "name": "방4",
           "order": 0,
-          "createdAt": "2026-10-04T02:23:46.745Z"
+          "createdAt": "2026-10-11T19:22:18.282Z"
         },
         {
           "id": "cmut769zi0006cisok59t22zj",
           "name": "거실",
           "order": 0,
-          "createdAt": "2026-10-04T02:24:09.487Z"
+          "createdAt": "2026-10-11T19:22:18.461Z"
         }
       ]
     },
     {
-      "id": "cmuuitcz40009gqu8u383rul0",
-      "name": "책장",
-      "spec": "3x5단",
-      "defaultCbm": 1.2,
-      "defaultInnerCbm": 0,
-      "createdAt": "2026-10-05T00:37:48.401Z",
-      "locations": [
-        {
-          "id": "cmut73vls0000cisokpdkkuxn",
-          "name": "안방",
-          "order": 0,
-          "createdAt": "2026-10-04T02:22:17.536Z"
-        },
-        {
-          "id": "cmut74o7o0002cisoqr0a5f00",
-          "name": "방1",
-          "order": 0,
-          "createdAt": "2026-10-04T02:22:54.613Z"
-        },
-        {
-          "id": "cmut74tq30003ciso8gosyp5o",
-          "name": "방2",
-          "order": 0,
-          "createdAt": "2026-10-04T02:23:01.755Z"
-        },
-        {
-          "id": "cmut75o8m0004ciso46h35253",
-          "name": "방3",
-          "order": 0,
-          "createdAt": "2026-10-04T02:23:41.303Z"
-        },
-        {
-          "id": "cmut75sft0005cisouyfhyvch",
-          "name": "방4",
-          "order": 0,
-          "createdAt": "2026-10-04T02:23:46.745Z"
-        },
-        {
-          "id": "cmut769zi0006cisok59t22zj",
-          "name": "거실",
-          "order": 0,
-          "createdAt": "2026-10-04T02:24:09.487Z"
-        }
-      ]
-    },
-    {
-      "id": "cmuuj7n7z000agqu8de9izig1",
+      "id": "cmuujbflv000egqu8lguumd35",
       "name": "BOX",
-      "spec": "책",
+      "spec": "바구니",
       "defaultCbm": 0.1,
       "defaultInnerCbm": 0,
-      "createdAt": "2026-10-05T00:48:54.864Z",
-      "locations": []
-    },
-    {
-      "id": "cmuuj9e8l000bgqu852lh741c",
-      "name": "BOX",
-      "spec": "중",
-      "defaultCbm": 0.17,
-      "defaultInnerCbm": 0,
-      "createdAt": "2026-10-05T00:50:16.533Z",
-      "locations": []
-    },
-    {
-      "id": "cmuuja1l8000cgqu8jvqqc45k",
-      "name": "BOX",
-      "spec": "옷",
-      "defaultCbm": 0.25,
-      "defaultInnerCbm": 0,
-      "createdAt": "2026-10-05T00:50:46.797Z",
+      "createdAt": "2026-10-11T19:22:25.081Z",
       "locations": []
     },
     {
       "id": "cmuujak1k000dgqu8xozm70al",
       "name": "BOX",
       "spec": "이불",
-      "defaultCbm": 0.33,
+      "defaultCbm": 0.25,
       "defaultInnerCbm": 0,
-      "createdAt": "2026-10-05T00:51:10.712Z",
+      "createdAt": "2026-10-11T19:22:24.899Z",
       "locations": []
     },
     {
-      "id": "cmuujbflv000egqu8lguumd35",
+      "id": "cmuuj7n7z000agqu8de9izig1",
       "name": "BOX",
-      "spec": "바구니",
-      "defaultCbm": 0.17,
+      "spec": "책",
+      "defaultCbm": 0.05,
       "defaultInnerCbm": 0,
-      "createdAt": "2026-10-05T00:51:51.619Z",
+      "createdAt": "2026-10-11T19:22:24.349Z",
       "locations": []
     },
     {
-      "id": "cmuujdo6k000fgqu8n5s2r35e",
-      "name": "TV",
-      "spec": "55미만",
-      "defaultCbm": 0.21,
+      "id": "cmuuj9e8l000bgqu852lh741c",
+      "name": "BOX",
+      "spec": "중",
+      "defaultCbm": 0.1,
       "defaultInnerCbm": 0,
-      "createdAt": "2026-10-05T00:53:36.045Z",
-      "locations": [
-        {
-          "id": "cmut769zi0006cisok59t22zj",
-          "name": "거실",
-          "order": 0,
-          "createdAt": "2026-10-04T02:24:09.487Z"
-        }
-      ]
+      "createdAt": "2026-10-11T19:22:24.533Z",
+      "locations": []
     },
     {
       "id": "cmuum9acc000ggqu82k5ugzoi",
       "name": "TV",
-      "spec": "65이하",
-      "defaultCbm": 0.31,
+      "spec": "65",
+      "defaultCbm": 0.45,
       "defaultInnerCbm": 0,
-      "createdAt": "2026-10-05T02:14:10.333Z",
+      "createdAt": "2026-10-11T19:22:25.522Z",
       "locations": [
         {
           "id": "cmut769zi0006cisok59t22zj",
           "name": "거실",
           "order": 0,
-          "createdAt": "2026-10-04T02:24:09.487Z"
-        }
-      ]
-    },
-    {
-      "id": "cmuumbrlf000hgqu8j9zaighn",
-      "name": "TV",
-      "spec": "85이하",
-      "defaultCbm": 0.66,
-      "defaultInnerCbm": 0,
-      "createdAt": "2026-10-05T02:16:06.004Z",
-      "locations": [
-        {
-          "id": "cmut769zi0006cisok59t22zj",
-          "name": "거실",
-          "order": 0,
-          "createdAt": "2026-10-04T02:24:09.487Z"
+          "createdAt": "2026-10-11T19:22:18.461Z"
         }
       ]
     },
     {
       "id": "cmuumffv2000igqu8ijisnl9r",
       "name": "TV",
-      "spec": "98이하",
-      "defaultCbm": 1.1,
+      "spec": "98이상",
+      "defaultCbm": 1.2,
       "defaultInnerCbm": 0,
-      "createdAt": "2026-10-05T02:18:57.423Z",
+      "createdAt": "2026-10-11T19:22:26.034Z",
       "locations": [
         {
           "id": "cmut769zi0006cisok59t22zj",
           "name": "거실",
           "order": 0,
-          "createdAt": "2026-10-04T02:24:09.487Z"
+          "createdAt": "2026-10-11T19:22:18.461Z"
         }
       ]
     },
@@ -1693,13 +1958,13 @@
       "spec": "TV장",
       "defaultCbm": 1,
       "defaultInnerCbm": 0,
-      "createdAt": "2026-10-05T02:22:16.338Z",
+      "createdAt": "2026-10-11T19:22:26.287Z",
       "locations": [
         {
           "id": "cmut769zi0006cisok59t22zj",
           "name": "거실",
           "order": 0,
-          "createdAt": "2026-10-04T02:24:09.487Z"
+          "createdAt": "2026-10-11T19:22:18.461Z"
         }
       ]
     },
@@ -1709,13 +1974,13 @@
       "spec": "아쿠아텍스 코너형",
       "defaultCbm": 5,
       "defaultInnerCbm": 0,
-      "createdAt": "2026-10-06T05:14:38.893Z",
+      "createdAt": "2026-10-11T19:22:26.542Z",
       "locations": [
         {
           "id": "cmut769zi0006cisok59t22zj",
           "name": "거실",
           "order": 0,
-          "createdAt": "2026-10-04T02:24:09.487Z"
+          "createdAt": "2026-10-11T19:22:18.461Z"
         }
       ]
     },
@@ -1725,45 +1990,44 @@
       "spec": "스툴",
       "defaultCbm": 0.5,
       "defaultInnerCbm": 0,
-      "createdAt": "2026-10-06T05:16:48.312Z",
+      "createdAt": "2026-10-11T19:22:26.796Z",
       "locations": [
         {
           "id": "cmut769zi0006cisok59t22zj",
           "name": "거실",
           "order": 0,
-          "createdAt": "2026-10-04T02:24:09.487Z"
+          "createdAt": "2026-10-11T19:22:18.461Z"
         }
       ]
     },
     {
-      "id": "cmuw93osc0002caeek4rhrg64",
-      "name": "냉장고",
-      "spec": "소형150 이하",
-      "defaultCbm": 0.3,
+      "id": "cmv7u96h2000jtz1u4xyauhcw",
+      "name": "운동기구",
+      "spec": "러닝머신 접힘",
+      "defaultCbm": 1.1,
       "defaultInnerCbm": 0,
-      "createdAt": "2026-10-06T05:41:26.461Z",
+      "createdAt": "2026-10-14T08:19:02.490Z",
+      "locations": []
+    },
+    {
+      "id": "cmut8tnwy000dcisoy16d9icq",
+      "name": "냉장고",
+      "spec": "양문형 2도어",
+      "defaultCbm": 1.6,
+      "defaultInnerCbm": 1.5,
+      "createdAt": "2026-10-11T19:22:20.029Z",
       "locations": [
         {
           "id": "cmut76j6c0007ciso5qw1zzkp",
           "name": "주방",
           "order": 0,
-          "createdAt": "2026-10-04T02:24:21.396Z"
-        }
-      ]
-    },
-    {
-      "id": "cmuw95mj60003caeeyh9fh0vg",
-      "name": "냉장고",
-      "spec": "일반 300 이하",
-      "defaultCbm": 0.7,
-      "defaultInnerCbm": 0,
-      "createdAt": "2026-10-06T05:42:56.850Z",
-      "locations": [
+          "createdAt": "2026-10-11T19:22:18.645Z"
+        },
         {
-          "id": "cmut76j6c0007ciso5qw1zzkp",
-          "name": "주방",
+          "id": "cmut89xrc000bcisojy3izidy",
+          "name": "베란다",
           "order": 0,
-          "createdAt": "2026-10-04T02:24:21.396Z"
+          "createdAt": "2026-10-11T19:22:18.825Z"
         }
       ]
     },
@@ -1773,95 +2037,35 @@
       "spec": "일반 중형 500 이하",
       "defaultCbm": 1,
       "defaultInnerCbm": 0,
-      "createdAt": "2026-10-06T05:43:36.559Z",
+      "createdAt": "2026-10-11T19:22:27.561Z",
       "locations": [
         {
           "id": "cmut76j6c0007ciso5qw1zzkp",
           "name": "주방",
           "order": 0,
-          "createdAt": "2026-10-04T02:24:21.396Z"
+          "createdAt": "2026-10-11T19:22:18.645Z"
         }
       ]
     },
     {
-      "id": "cmuw9c33y0005caeeddrar329",
-      "name": "냉장고",
-      "spec": "양문형 대형 4도어",
-      "defaultCbm": 1.8,
-      "defaultInnerCbm": 0,
-      "createdAt": "2026-10-06T05:47:58.270Z",
-      "locations": [
-        {
-          "id": "cmut76j6c0007ciso5qw1zzkp",
-          "name": "주방",
-          "order": 0,
-          "createdAt": "2026-10-04T02:24:21.396Z"
-        }
-      ]
-    },
-    {
-      "id": "cmuw9l68g0006caeeush7qhyg",
+      "id": "cmvg8dq7k0001gt1xuwet6myo",
       "name": "김치냉장고",
-      "spec": "뚜껑형 200",
-      "defaultCbm": 0.9,
-      "defaultInnerCbm": 0,
-      "createdAt": "2026-10-06T05:55:02.224Z",
+      "spec": "뚜껑형 1도어",
+      "defaultCbm": 0.4,
+      "defaultInnerCbm": 0.2,
+      "createdAt": "2026-10-20T05:16:38.338Z",
       "locations": [
         {
           "id": "cmut76j6c0007ciso5qw1zzkp",
           "name": "주방",
           "order": 0,
-          "createdAt": "2026-10-04T02:24:21.396Z"
+          "createdAt": "2026-10-11T19:22:18.645Z"
         },
         {
           "id": "cmut89xrc000bcisojy3izidy",
           "name": "베란다",
           "order": 0,
-          "createdAt": "2026-10-04T02:54:59.881Z"
-        }
-      ]
-    },
-    {
-      "id": "cmuw9nub20007caee8ueb6h1f",
-      "name": "김치냉장고",
-      "spec": "스탠드 300",
-      "defaultCbm": 1.3,
-      "defaultInnerCbm": 0,
-      "createdAt": "2026-10-06T05:57:06.735Z",
-      "locations": [
-        {
-          "id": "cmut76j6c0007ciso5qw1zzkp",
-          "name": "주방",
-          "order": 0,
-          "createdAt": "2026-10-04T02:24:21.396Z"
-        },
-        {
-          "id": "cmut89xrc000bcisojy3izidy",
-          "name": "베란다",
-          "order": 0,
-          "createdAt": "2026-10-04T02:54:59.881Z"
-        }
-      ]
-    },
-    {
-      "id": "cmuw9qc7g0008caee7wnj3odc",
-      "name": "김치냉장고",
-      "spec": "스탠드 500",
-      "defaultCbm": 1.8,
-      "defaultInnerCbm": 0,
-      "createdAt": "2026-10-06T05:59:03.245Z",
-      "locations": [
-        {
-          "id": "cmut76j6c0007ciso5qw1zzkp",
-          "name": "주방",
-          "order": 0,
-          "createdAt": "2026-10-04T02:24:21.396Z"
-        },
-        {
-          "id": "cmut89xrc000bcisojy3izidy",
-          "name": "베란다",
-          "order": 0,
-          "createdAt": "2026-10-04T02:54:59.881Z"
+          "createdAt": "2026-10-11T19:22:18.825Z"
         }
       ]
     },
@@ -1871,13 +2075,13 @@
       "spec": "일반/드럼",
       "defaultCbm": 1,
       "defaultInnerCbm": 0,
-      "createdAt": "2026-10-06T06:00:44.807Z",
+      "createdAt": "2026-10-11T19:22:28.829Z",
       "locations": [
         {
           "id": "cmut89xrc000bcisojy3izidy",
           "name": "베란다",
           "order": 0,
-          "createdAt": "2026-10-04T02:54:59.881Z"
+          "createdAt": "2026-10-11T19:22:18.825Z"
         }
       ]
     },
@@ -1887,148 +2091,58 @@
       "spec": "콤보/신형",
       "defaultCbm": 1.5,
       "defaultInnerCbm": 0,
-      "createdAt": "2026-10-06T06:01:22.265Z",
+      "createdAt": "2026-10-11T19:22:29.081Z",
       "locations": [
         {
           "id": "cmut89xrc000bcisojy3izidy",
           "name": "베란다",
           "order": 0,
-          "createdAt": "2026-10-04T02:54:59.881Z"
+          "createdAt": "2026-10-11T19:22:18.825Z"
         }
       ]
     },
     {
-      "id": "cmuw9ud55000bcaeez3rp0680",
-      "name": "세탁기",
-      "spec": "건조기",
-      "defaultCbm": 1,
+      "id": "cmv7uae4v000ktz1u44up96pa",
+      "name": "운동기구",
+      "spec": "실내자전거",
+      "defaultCbm": 0.7,
       "defaultInnerCbm": 0,
-      "createdAt": "2026-10-06T06:02:11.082Z",
-      "locations": [
-        {
-          "id": "cmut89xrc000bcisojy3izidy",
-          "name": "베란다",
-          "order": 0,
-          "createdAt": "2026-10-04T02:54:59.881Z"
-        }
-      ]
-    },
-    {
-      "id": "cmv3kqbxo00001ipimzv1yjvr",
-      "name": "침대",
-      "spec": "2층(벙커)",
-      "defaultCbm": 2,
-      "defaultInnerCbm": 0,
-      "createdAt": "2026-10-11T08:41:21.900Z",
+      "createdAt": "2026-10-14T08:19:59.081Z",
       "locations": []
     },
     {
-      "id": "cmv3ksfvl00011ipi2lzvwmw3",
+      "id": "cmvg98ylx0003gt1xajazoz1o",
       "name": "침대",
-      "spec": "돌/흙(Q)",
-      "defaultCbm": 2,
+      "spec": "매트리스",
+      "defaultCbm": 1,
       "defaultInnerCbm": 0,
-      "createdAt": "2026-10-11T08:43:00.321Z",
+      "createdAt": "2026-10-20T05:40:55.919Z",
       "locations": [
         {
           "id": "cmut73vls0000cisokpdkkuxn",
           "name": "안방",
           "order": 0,
-          "createdAt": "2026-10-04T02:22:17.536Z"
+          "createdAt": "2026-10-11T19:22:17.443Z"
         }
       ]
     },
     {
-      "id": "cmv3ltbdb00021ipiy5of2yvl",
-      "name": "서랍장",
-      "spec": "3단 와이드",
-      "defaultCbm": 0.4,
-      "defaultInnerCbm": 0,
-      "createdAt": "2026-10-11T09:11:40.752Z",
-      "locations": [
-        {
-          "id": "cmut73vls0000cisokpdkkuxn",
-          "name": "안방",
-          "order": 0,
-          "createdAt": "2026-10-04T02:22:17.536Z"
-        },
-        {
-          "id": "cmut74o7o0002cisoqr0a5f00",
-          "name": "방1",
-          "order": 0,
-          "createdAt": "2026-10-04T02:22:54.613Z"
-        },
-        {
-          "id": "cmut74tq30003ciso8gosyp5o",
-          "name": "방2",
-          "order": 0,
-          "createdAt": "2026-10-04T02:23:01.755Z"
-        },
-        {
-          "id": "cmut75o8m0004ciso46h35253",
-          "name": "방3",
-          "order": 0,
-          "createdAt": "2026-10-04T02:23:41.303Z"
-        },
-        {
-          "id": "cmut75sft0005cisouyfhyvch",
-          "name": "방4",
-          "order": 0,
-          "createdAt": "2026-10-04T02:23:46.745Z"
-        },
-        {
-          "id": "cmut769zi0006cisok59t22zj",
-          "name": "거실",
-          "order": 0,
-          "createdAt": "2026-10-04T02:24:09.487Z"
-        }
-      ]
-    },
-    {
-      "id": "cmv3luz5n00031ipiil3ef52c",
-      "name": "서랍장",
-      "spec": "4단",
+      "id": "cmv7ubcgr000ltz1ud72ye8dp",
+      "name": "운동기구",
+      "spec": "엑스바이크",
       "defaultCbm": 0.3,
       "defaultInnerCbm": 0,
-      "createdAt": "2026-10-11T09:12:58.235Z",
-      "locations": [
-        {
-          "id": "cmut73vls0000cisokpdkkuxn",
-          "name": "안방",
-          "order": 0,
-          "createdAt": "2026-10-04T02:22:17.536Z"
-        },
-        {
-          "id": "cmut74o7o0002cisoqr0a5f00",
-          "name": "방1",
-          "order": 0,
-          "createdAt": "2026-10-04T02:22:54.613Z"
-        },
-        {
-          "id": "cmut74tq30003ciso8gosyp5o",
-          "name": "방2",
-          "order": 0,
-          "createdAt": "2026-10-04T02:23:01.755Z"
-        },
-        {
-          "id": "cmut75o8m0004ciso46h35253",
-          "name": "방3",
-          "order": 0,
-          "createdAt": "2026-10-04T02:23:41.303Z"
-        },
-        {
-          "id": "cmut75sft0005cisouyfhyvch",
-          "name": "방4",
-          "order": 0,
-          "createdAt": "2026-10-04T02:23:46.745Z"
-        },
-        {
-          "id": "cmut769zi0006cisok59t22zj",
-          "name": "거실",
-          "order": 0,
-          "createdAt": "2026-10-04T02:24:09.487Z"
-        }
-      ]
+      "createdAt": "2026-10-14T08:20:43.572Z",
+      "locations": []
+    },
+    {
+      "id": "cmv7udmjg000mtz1u8vkfpujh",
+      "name": "운동기구",
+      "spec": "자전거",
+      "defaultCbm": 1,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-14T08:22:29.942Z",
+      "locations": []
     },
     {
       "id": "cmv3m2ba400041ipihi2vjd57",
@@ -2036,13 +2150,13 @@
       "spec": "협탁",
       "defaultCbm": 0.1,
       "defaultInnerCbm": 0,
-      "createdAt": "2026-10-11T09:18:40.540Z",
+      "createdAt": "2026-10-11T19:22:30.554Z",
       "locations": [
         {
           "id": "cmut73vls0000cisokpdkkuxn",
           "name": "안방",
           "order": 0,
-          "createdAt": "2026-10-04T02:22:17.536Z"
+          "createdAt": "2026-10-11T19:22:17.443Z"
         }
       ]
     },
@@ -2052,8 +2166,1325 @@
       "spec": "플라스틱(5단)",
       "defaultCbm": 0.2,
       "defaultInnerCbm": 0,
-      "createdAt": "2026-10-11T09:19:19.404Z",
+      "createdAt": "2026-10-11T19:22:30.806Z",
       "locations": []
+    },
+    {
+      "id": "cmv7o2h670002tz1ucdevzfj8",
+      "name": "책상",
+      "spec": "소형",
+      "defaultCbm": 0.5,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-14T05:25:52.074Z",
+      "locations": [
+        {
+          "id": "cmut74o7o0002cisoqr0a5f00",
+          "name": "방1",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.731Z"
+        },
+        {
+          "id": "cmut74tq30003ciso8gosyp5o",
+          "name": "방2",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.915Z"
+        },
+        {
+          "id": "cmut75o8m0004ciso46h35253",
+          "name": "방3",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.100Z"
+        },
+        {
+          "id": "cmut75sft0005cisouyfhyvch",
+          "name": "방4",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.282Z"
+        }
+      ]
+    },
+    {
+      "id": "cmuuiit670004gqu85ju2h9kp",
+      "name": "책상",
+      "spec": "대형/라운드",
+      "defaultCbm": 2,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-11T19:22:22.810Z",
+      "locations": [
+        {
+          "id": "cmut74o7o0002cisoqr0a5f00",
+          "name": "방1",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.731Z"
+        },
+        {
+          "id": "cmut74tq30003ciso8gosyp5o",
+          "name": "방2",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.915Z"
+        },
+        {
+          "id": "cmut75o8m0004ciso46h35253",
+          "name": "방3",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.100Z"
+        },
+        {
+          "id": "cmut75sft0005cisouyfhyvch",
+          "name": "방4",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.282Z"
+        }
+      ]
+    },
+    {
+      "id": "cmv7p46ks0003tz1uvhq93bcz",
+      "name": "식탁",
+      "spec": "2인",
+      "defaultCbm": 0.5,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-14T05:55:11.027Z",
+      "locations": [
+        {
+          "id": "cmut76j6c0007ciso5qw1zzkp",
+          "name": "주방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.645Z"
+        }
+      ]
+    },
+    {
+      "id": "cmv7p5qlu0004tz1ucl1j9zda",
+      "name": "식탁",
+      "spec": "4인",
+      "defaultCbm": 0.8,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-14T05:56:23.887Z",
+      "locations": [
+        {
+          "id": "cmut76j6c0007ciso5qw1zzkp",
+          "name": "주방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.645Z"
+        }
+      ]
+    },
+    {
+      "id": "cmv7p71560005tz1uy5cfm5ts",
+      "name": "식탁",
+      "spec": "6인",
+      "defaultCbm": 1.2,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-14T05:57:24.199Z",
+      "locations": [
+        {
+          "id": "cmut76j6c0007ciso5qw1zzkp",
+          "name": "주방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.645Z"
+        }
+      ]
+    },
+    {
+      "id": "cmv7p8bem0006tz1u5ot2gh6h",
+      "name": "식탁",
+      "spec": "8인",
+      "defaultCbm": 1.5,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-14T05:58:24.154Z",
+      "locations": [
+        {
+          "id": "cmut76j6c0007ciso5qw1zzkp",
+          "name": "주방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.645Z"
+        }
+      ]
+    },
+    {
+      "id": "cmv7p9l3d0007tz1uz3qnkcxl",
+      "name": "식탁",
+      "spec": "아일랜드",
+      "defaultCbm": 0.6,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-14T05:59:23.366Z",
+      "locations": [
+        {
+          "id": "cmut76j6c0007ciso5qw1zzkp",
+          "name": "주방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.645Z"
+        }
+      ]
+    },
+    {
+      "id": "cmv7pfgyj0008tz1ufyeimktm",
+      "name": "장식장",
+      "spec": "기본+내품추가",
+      "defaultCbm": 1,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-14T06:03:57.678Z",
+      "locations": [
+        {
+          "id": "cmut769zi0006cisok59t22zj",
+          "name": "거실",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.461Z"
+        }
+      ]
+    },
+    {
+      "id": "cmv7phl5s0009tz1upenq5h5o",
+      "name": "안마",
+      "spec": "의자",
+      "defaultCbm": 2.5,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-14T06:05:36.701Z",
+      "locations": [
+        {
+          "id": "cmut769zi0006cisok59t22zj",
+          "name": "거실",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.461Z"
+        }
+      ]
+    },
+    {
+      "id": "cmv7pi0vi000atz1u4ghmxxgz",
+      "name": "안마",
+      "spec": "세라젬",
+      "defaultCbm": 1,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-14T06:05:57.067Z",
+      "locations": [
+        {
+          "id": "cmut769zi0006cisok59t22zj",
+          "name": "거실",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.461Z"
+        }
+      ]
+    },
+    {
+      "id": "cmuw9ud55000bcaeez3rp0680",
+      "name": "세탁기",
+      "spec": "건조기",
+      "defaultCbm": 1,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-11T19:22:29.338Z",
+      "locations": [
+        {
+          "id": "cmut89xrc000bcisojy3izidy",
+          "name": "베란다",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.825Z"
+        }
+      ]
+    },
+    {
+      "id": "cmv7pnpw2000btz1upq5oa1ou",
+      "name": "세탁기",
+      "spec": "스타일러",
+      "defaultCbm": 0.7,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-14T06:10:22.512Z",
+      "locations": [
+        {
+          "id": "cmut769zi0006cisok59t22zj",
+          "name": "거실",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.461Z"
+        }
+      ]
+    },
+    {
+      "id": "cmv7puakj000ctz1usfm78l9k",
+      "name": "에어컨",
+      "spec": "스탠드",
+      "defaultCbm": 1.1,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-14T06:15:29.234Z",
+      "locations": [
+        {
+          "id": "cmut769zi0006cisok59t22zj",
+          "name": "거실",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.461Z"
+        }
+      ]
+    },
+    {
+      "id": "cmv7puu9b000dtz1ubomij3oa",
+      "name": "에어컨",
+      "spec": "벽걸이",
+      "defaultCbm": 0.5,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-14T06:15:55.018Z",
+      "locations": []
+    },
+    {
+      "id": "cmv7pvjeh000etz1u6e4ee1pu",
+      "name": "에어컨",
+      "spec": "2 IN 1",
+      "defaultCbm": 1.5,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-14T06:16:27.603Z",
+      "locations": []
+    },
+    {
+      "id": "cmuw93osc0002caeek4rhrg64",
+      "name": "냉장고",
+      "spec": "소형150 이하",
+      "defaultCbm": 0.3,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-11T19:22:27.054Z",
+      "locations": [
+        {
+          "id": "cmut89xrc000bcisojy3izidy",
+          "name": "베란다",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.825Z"
+        }
+      ]
+    },
+    {
+      "id": "cmv7to8ra000gtz1ucqfa2xmg",
+      "name": "앵글",
+      "spec": "철재 120x45x180",
+      "defaultCbm": 1,
+      "defaultInnerCbm": 0.5,
+      "createdAt": "2026-10-14T08:02:45.420Z",
+      "locations": []
+    },
+    {
+      "id": "cmtv5th7d00018nhuq6ds33sy",
+      "name": "장농",
+      "spec": "1통",
+      "defaultCbm": 1.1,
+      "defaultInnerCbm": 0.9,
+      "createdAt": "2026-10-11T19:22:19.011Z",
+      "locations": [
+        {
+          "id": "cmut73vls0000cisokpdkkuxn",
+          "name": "안방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.443Z"
+        },
+        {
+          "id": "cmut74o7o0002cisoqr0a5f00",
+          "name": "방1",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.731Z"
+        },
+        {
+          "id": "cmut74tq30003ciso8gosyp5o",
+          "name": "방2",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.915Z"
+        },
+        {
+          "id": "cmut75o8m0004ciso46h35253",
+          "name": "방3",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.100Z"
+        },
+        {
+          "id": "cmut75sft0005cisouyfhyvch",
+          "name": "방4",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.282Z"
+        }
+      ]
+    },
+    {
+      "id": "cmva9gtzh0000mwu9hr8tz4m8",
+      "name": "장농",
+      "spec": "중/주니어",
+      "defaultCbm": 1,
+      "defaultInnerCbm": 0.8,
+      "createdAt": "2026-10-16T01:00:26.151Z",
+      "locations": [
+        {
+          "id": "cmut74o7o0002cisoqr0a5f00",
+          "name": "방1",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.731Z"
+        },
+        {
+          "id": "cmut74tq30003ciso8gosyp5o",
+          "name": "방2",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.915Z"
+        },
+        {
+          "id": "cmut75o8m0004ciso46h35253",
+          "name": "방3",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.100Z"
+        },
+        {
+          "id": "cmut75sft0005cisouyfhyvch",
+          "name": "방4",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.282Z"
+        }
+      ]
+    },
+    {
+      "id": "cmuui4b540000gqu8y5yec3u5",
+      "name": "서랍장",
+      "spec": "3단 800",
+      "defaultCbm": 0.25,
+      "defaultInnerCbm": 0.25,
+      "createdAt": "2026-10-11T19:22:21.639Z",
+      "locations": [
+        {
+          "id": "cmut73vls0000cisokpdkkuxn",
+          "name": "안방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.443Z"
+        },
+        {
+          "id": "cmut74o7o0002cisoqr0a5f00",
+          "name": "방1",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.731Z"
+        },
+        {
+          "id": "cmut74tq30003ciso8gosyp5o",
+          "name": "방2",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.915Z"
+        },
+        {
+          "id": "cmut75o8m0004ciso46h35253",
+          "name": "방3",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.100Z"
+        },
+        {
+          "id": "cmut75sft0005cisouyfhyvch",
+          "name": "방4",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.282Z"
+        },
+        {
+          "id": "cmut769zi0006cisok59t22zj",
+          "name": "거실",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.461Z"
+        }
+      ]
+    },
+    {
+      "id": "cmuui88vl0002gqu8c1g6za57",
+      "name": "서랍장",
+      "spec": "5단 600",
+      "defaultCbm": 0.35,
+      "defaultInnerCbm": 0.35,
+      "createdAt": "2026-10-11T19:22:22.225Z",
+      "locations": [
+        {
+          "id": "cmut73vls0000cisokpdkkuxn",
+          "name": "안방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.443Z"
+        },
+        {
+          "id": "cmut74o7o0002cisoqr0a5f00",
+          "name": "방1",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.731Z"
+        },
+        {
+          "id": "cmut74tq30003ciso8gosyp5o",
+          "name": "방2",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.915Z"
+        },
+        {
+          "id": "cmut75o8m0004ciso46h35253",
+          "name": "방3",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.100Z"
+        },
+        {
+          "id": "cmut75sft0005cisouyfhyvch",
+          "name": "방4",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.282Z"
+        },
+        {
+          "id": "cmut769zi0006cisok59t22zj",
+          "name": "거실",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.461Z"
+        }
+      ]
+    },
+    {
+      "id": "cmuuitcz40009gqu8u383rul0",
+      "name": "책장",
+      "spec": "3x5단",
+      "defaultCbm": 0.85,
+      "defaultInnerCbm": 0.7,
+      "createdAt": "2026-10-11T19:22:24.087Z",
+      "locations": [
+        {
+          "id": "cmut73vls0000cisokpdkkuxn",
+          "name": "안방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.443Z"
+        },
+        {
+          "id": "cmut74o7o0002cisoqr0a5f00",
+          "name": "방1",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.731Z"
+        },
+        {
+          "id": "cmut74tq30003ciso8gosyp5o",
+          "name": "방2",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.915Z"
+        },
+        {
+          "id": "cmut75o8m0004ciso46h35253",
+          "name": "방3",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.100Z"
+        },
+        {
+          "id": "cmut75sft0005cisouyfhyvch",
+          "name": "방4",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.282Z"
+        },
+        {
+          "id": "cmut769zi0006cisok59t22zj",
+          "name": "거실",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.461Z"
+        }
+      ]
+    },
+    {
+      "id": "cmv3luz5n00031ipiil3ef52c",
+      "name": "서랍장",
+      "spec": "4단 600",
+      "defaultCbm": 0.29,
+      "defaultInnerCbm": 0.3,
+      "createdAt": "2026-10-11T19:22:30.298Z",
+      "locations": [
+        {
+          "id": "cmut73vls0000cisokpdkkuxn",
+          "name": "안방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.443Z"
+        },
+        {
+          "id": "cmut74o7o0002cisoqr0a5f00",
+          "name": "방1",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.731Z"
+        },
+        {
+          "id": "cmut74tq30003ciso8gosyp5o",
+          "name": "방2",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.915Z"
+        },
+        {
+          "id": "cmut75o8m0004ciso46h35253",
+          "name": "방3",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.100Z"
+        },
+        {
+          "id": "cmut75sft0005cisouyfhyvch",
+          "name": "방4",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.282Z"
+        },
+        {
+          "id": "cmut769zi0006cisok59t22zj",
+          "name": "거실",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.461Z"
+        }
+      ]
+    },
+    {
+      "id": "cmuui73v70001gqu828mbct92",
+      "name": "서랍장",
+      "spec": "5단 800",
+      "defaultCbm": 0.5,
+      "defaultInnerCbm": 0.5,
+      "createdAt": "2026-10-11T19:22:21.965Z",
+      "locations": [
+        {
+          "id": "cmut73vls0000cisokpdkkuxn",
+          "name": "안방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.443Z"
+        },
+        {
+          "id": "cmut74o7o0002cisoqr0a5f00",
+          "name": "방1",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.731Z"
+        },
+        {
+          "id": "cmut74tq30003ciso8gosyp5o",
+          "name": "방2",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.915Z"
+        },
+        {
+          "id": "cmut75o8m0004ciso46h35253",
+          "name": "방3",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.100Z"
+        },
+        {
+          "id": "cmut75sft0005cisouyfhyvch",
+          "name": "방4",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.282Z"
+        },
+        {
+          "id": "cmut769zi0006cisok59t22zj",
+          "name": "거실",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.461Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvaao9zd0001mwu9vdnfqozv",
+      "name": "서랍장",
+      "spec": "4단 800",
+      "defaultCbm": 0.38,
+      "defaultInnerCbm": 0.38,
+      "createdAt": "2026-10-16T01:34:12.814Z",
+      "locations": []
+    },
+    {
+      "id": "cmuw9qc7g0008caee7wnj3odc",
+      "name": "김치냉장고",
+      "spec": "스탠드 대형 4도어",
+      "defaultCbm": 1.3,
+      "defaultInnerCbm": 0.8,
+      "createdAt": "2026-10-11T19:22:28.580Z",
+      "locations": [
+        {
+          "id": "cmut76j6c0007ciso5qw1zzkp",
+          "name": "주방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.645Z"
+        },
+        {
+          "id": "cmut89xrc000bcisojy3izidy",
+          "name": "베란다",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.825Z"
+        }
+      ]
+    },
+    {
+      "id": "cmuw9nub20007caee8ueb6h1f",
+      "name": "김치냉장고",
+      "spec": "스탠드 중형 3도어",
+      "defaultCbm": 0.9,
+      "defaultInnerCbm": 0.6,
+      "createdAt": "2026-10-11T19:22:28.324Z",
+      "locations": [
+        {
+          "id": "cmut76j6c0007ciso5qw1zzkp",
+          "name": "주방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.645Z"
+        },
+        {
+          "id": "cmut89xrc000bcisojy3izidy",
+          "name": "베란다",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.825Z"
+        }
+      ]
+    },
+    {
+      "id": "cmuw95mj60003caeeyh9fh0vg",
+      "name": "냉장고",
+      "spec": "일반 300 이하",
+      "defaultCbm": 0.5,
+      "defaultInnerCbm": 0.2,
+      "createdAt": "2026-10-11T19:22:27.307Z",
+      "locations": [
+        {
+          "id": "cmut76j6c0007ciso5qw1zzkp",
+          "name": "주방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.645Z"
+        }
+      ]
+    },
+    {
+      "id": "cmuw9l68g0006caeeush7qhyg",
+      "name": "김치냉장고",
+      "spec": "뚜껑형 2도어",
+      "defaultCbm": 0.8,
+      "defaultInnerCbm": 0.4,
+      "createdAt": "2026-10-11T19:22:28.067Z",
+      "locations": [
+        {
+          "id": "cmut76j6c0007ciso5qw1zzkp",
+          "name": "주방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.645Z"
+        },
+        {
+          "id": "cmut89xrc000bcisojy3izidy",
+          "name": "베란다",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.825Z"
+        }
+      ]
+    },
+    {
+      "id": "cmuuh2urq0001zfpswe4cxb32",
+      "name": "침대",
+      "spec": "S/SS",
+      "defaultCbm": 1.2,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-11T19:22:20.359Z",
+      "locations": [
+        {
+          "id": "cmut73vls0000cisokpdkkuxn",
+          "name": "안방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.443Z"
+        },
+        {
+          "id": "cmut74o7o0002cisoqr0a5f00",
+          "name": "방1",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.731Z"
+        },
+        {
+          "id": "cmut74tq30003ciso8gosyp5o",
+          "name": "방2",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.915Z"
+        },
+        {
+          "id": "cmut75o8m0004ciso46h35253",
+          "name": "방3",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.100Z"
+        },
+        {
+          "id": "cmut75sft0005cisouyfhyvch",
+          "name": "방4",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.282Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvg9583z0002gt1xn91e0pi4",
+      "name": "침대",
+      "spec": "라지킹",
+      "defaultCbm": 2.3,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-20T05:38:01.243Z",
+      "locations": [
+        {
+          "id": "cmut73vls0000cisokpdkkuxn",
+          "name": "안방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.443Z"
+        }
+      ]
+    },
+    {
+      "id": "cmuujdo6k000fgqu8n5s2r35e",
+      "name": "TV",
+      "spec": "55미만",
+      "defaultCbm": 0.3,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-11T19:22:25.262Z",
+      "locations": [
+        {
+          "id": "cmut769zi0006cisok59t22zj",
+          "name": "거실",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.461Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvhief3500009948n0oo1dr5",
+      "name": "TV",
+      "spec": "75",
+      "defaultCbm": 0.6,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-21T02:44:53.305Z",
+      "locations": [
+        {
+          "id": "cmut769zi0006cisok59t22zj",
+          "name": "거실",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.461Z"
+        }
+      ]
+    },
+    {
+      "id": "cmuumbrlf000hgqu8j9zaighn",
+      "name": "TV",
+      "spec": "85",
+      "defaultCbm": 0.8,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-11T19:22:25.781Z",
+      "locations": [
+        {
+          "id": "cmut769zi0006cisok59t22zj",
+          "name": "거실",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.461Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvhje6re000399487mewumru",
+      "name": "주방소형가전",
+      "spec": "많음",
+      "defaultCbm": 0.4,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-21T03:12:42.132Z",
+      "locations": [
+        {
+          "id": "cmut76j6c0007ciso5qw1zzkp",
+          "name": "주방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.645Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvhjdbv300029948vogu9h92",
+      "name": "주방소형가전",
+      "spec": "보통",
+      "defaultCbm": 0.2,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-21T03:12:02.087Z",
+      "locations": [
+        {
+          "id": "cmut76j6c0007ciso5qw1zzkp",
+          "name": "주방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.645Z"
+        }
+      ]
+    },
+    {
+      "id": "cmuuja1l8000cgqu8jvqqc45k",
+      "name": "BOX",
+      "spec": "옷",
+      "defaultCbm": 0.17,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-11T19:22:24.719Z",
+      "locations": []
+    },
+    {
+      "id": "cmvhjcsjz00019948uxd924a2",
+      "name": "주방소형가전",
+      "spec": "적음",
+      "defaultCbm": 0.1,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-21T03:11:36.795Z",
+      "locations": [
+        {
+          "id": "cmut76j6c0007ciso5qw1zzkp",
+          "name": "주방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.645Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvhjkkje00059948hxhiippk",
+      "name": "주방가전",
+      "spec": "광파오븐",
+      "defaultCbm": 0.15,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-21T03:17:39.925Z",
+      "locations": [
+        {
+          "id": "cmut76j6c0007ciso5qw1zzkp",
+          "name": "주방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.645Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvhk9sjt000899483a5cb0lv",
+      "name": "주방가전",
+      "spec": "에어프라이어",
+      "defaultCbm": 0.1,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-21T03:37:16.709Z",
+      "locations": [
+        {
+          "id": "cmut76j6c0007ciso5qw1zzkp",
+          "name": "주방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.645Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvhkbjf800099948g66jo6cq",
+      "name": "주방가전",
+      "spec": "커피머신 자동",
+      "defaultCbm": 0.1,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-21T03:38:38.188Z",
+      "locations": [
+        {
+          "id": "cmut76j6c0007ciso5qw1zzkp",
+          "name": "주방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.645Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvhkcfb9000a99480grbqg2e",
+      "name": "주방가전",
+      "spec": "커피머신 캡슐",
+      "defaultCbm": 0.05,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-21T03:39:19.522Z",
+      "locations": [
+        {
+          "id": "cmut76j6c0007ciso5qw1zzkp",
+          "name": "주방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.645Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvhjjta900049948ei5jjoht",
+      "name": "주방가전",
+      "spec": "전자레인지",
+      "defaultCbm": 0.1,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-21T03:17:04.356Z",
+      "locations": [
+        {
+          "id": "cmut76j6c0007ciso5qw1zzkp",
+          "name": "주방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.645Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvhk7v2r000699487mhm33ai",
+      "name": "주방가전",
+      "spec": "전기밥솥",
+      "defaultCbm": 0.08,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-21T03:35:46.669Z",
+      "locations": [
+        {
+          "id": "cmut76j6c0007ciso5qw1zzkp",
+          "name": "주방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.645Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvhlb2gp0000uleopwyxvy8l",
+      "name": "공기청정기",
+      "spec": "일반",
+      "defaultCbm": 0.2,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-21T04:06:15.865Z",
+      "locations": [
+        {
+          "id": "cmut73vls0000cisokpdkkuxn",
+          "name": "안방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.443Z"
+        },
+        {
+          "id": "cmut769zi0006cisok59t22zj",
+          "name": "거실",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.461Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvhlb2sw0001uleoqeza3v56",
+      "name": "공기청정기",
+      "spec": "타워/대형",
+      "defaultCbm": 0.3,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-21T04:06:16.305Z",
+      "locations": [
+        {
+          "id": "cmut769zi0006cisok59t22zj",
+          "name": "거실",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.461Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvhlb32s0002uleos9xg9d4x",
+      "name": "피아노",
+      "spec": "디지털",
+      "defaultCbm": 0.6,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-21T04:06:16.660Z",
+      "locations": [
+        {
+          "id": "cmut74o7o0002cisoqr0a5f00",
+          "name": "방1",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.731Z"
+        },
+        {
+          "id": "cmut769zi0006cisok59t22zj",
+          "name": "거실",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.461Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvhlb3a80003uleob6c457xi",
+      "name": "피아노",
+      "spec": "업라이트",
+      "defaultCbm": 1.5,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-21T04:06:16.928Z",
+      "locations": [
+        {
+          "id": "cmut769zi0006cisok59t22zj",
+          "name": "거실",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.461Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvhlb3hu0004uleo2pjfg1xh",
+      "name": "피아노",
+      "spec": "그랜드",
+      "defaultCbm": 3,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-21T04:06:17.203Z",
+      "locations": [
+        {
+          "id": "cmut769zi0006cisok59t22zj",
+          "name": "거실",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.461Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvhlb3pi0005uleoqvvg1i9l",
+      "name": "건조기",
+      "spec": "일반/드럼",
+      "defaultCbm": 1,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-21T04:06:17.478Z",
+      "locations": [
+        {
+          "id": "cmut89xrc000bcisojy3izidy",
+          "name": "베란다",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.825Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvhlb3x00006uleoudymjkgt",
+      "name": "건조기",
+      "spec": "대형",
+      "defaultCbm": 1.1,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-21T04:06:17.748Z",
+      "locations": [
+        {
+          "id": "cmut89xrc000bcisojy3izidy",
+          "name": "베란다",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.825Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvhlb44m0007uleortnwfgop",
+      "name": "스타일러",
+      "spec": "일반/3벌",
+      "defaultCbm": 0.7,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-21T04:06:18.022Z",
+      "locations": [
+        {
+          "id": "cmut73vls0000cisokpdkkuxn",
+          "name": "안방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.443Z"
+        },
+        {
+          "id": "cmut769zi0006cisok59t22zj",
+          "name": "거실",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.461Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvhlb4c50008uleokdaqpmn1",
+      "name": "스타일러",
+      "spec": "대형/5벌",
+      "defaultCbm": 0.9,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-21T04:06:18.294Z",
+      "locations": [
+        {
+          "id": "cmut73vls0000cisokpdkkuxn",
+          "name": "안방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.443Z"
+        },
+        {
+          "id": "cmut769zi0006cisok59t22zj",
+          "name": "거실",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.461Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvhlb4jo0009uleogy3j53a7",
+      "name": "소파",
+      "spec": "3인",
+      "defaultCbm": 1.6,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-21T04:06:18.564Z",
+      "locations": [
+        {
+          "id": "cmut769zi0006cisok59t22zj",
+          "name": "거실",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.461Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvhlb4r7000auleoqfft14c0",
+      "name": "소파",
+      "spec": "4인",
+      "defaultCbm": 2.3,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-21T04:06:18.835Z",
+      "locations": [
+        {
+          "id": "cmut769zi0006cisok59t22zj",
+          "name": "거실",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.461Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvhlb4yk000buleo5088iz2d",
+      "name": "소파",
+      "spec": "스툴",
+      "defaultCbm": 0.5,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-21T04:06:19.100Z",
+      "locations": [
+        {
+          "id": "cmut769zi0006cisok59t22zj",
+          "name": "거실",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.461Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvhlb567000culeojon9xo38",
+      "name": "소파",
+      "spec": "아쿠아텍스 코너형",
+      "defaultCbm": 5,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-21T04:06:19.376Z",
+      "locations": [
+        {
+          "id": "cmut769zi0006cisok59t22zj",
+          "name": "거실",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.461Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvhlb5dm000duleoql0d2599",
+      "name": "안마의자",
+      "spec": "일반",
+      "defaultCbm": 1.5,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-21T04:06:19.643Z",
+      "locations": [
+        {
+          "id": "cmut73vls0000cisokpdkkuxn",
+          "name": "안방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.443Z"
+        },
+        {
+          "id": "cmut769zi0006cisok59t22zj",
+          "name": "거실",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.461Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvhlb5l4000euleoat579rej",
+      "name": "안마의자",
+      "spec": "프리미엄/대형",
+      "defaultCbm": 2.5,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-21T04:06:19.912Z",
+      "locations": [
+        {
+          "id": "cmut73vls0000cisokpdkkuxn",
+          "name": "안방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:17.443Z"
+        },
+        {
+          "id": "cmut769zi0006cisok59t22zj",
+          "name": "거실",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.461Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvj163n5000b9948zjk1ifi8",
+      "name": "앵글",
+      "spec": "접이식 5단",
+      "defaultCbm": 0.1,
+      "defaultInnerCbm": 0.4,
+      "createdAt": "2026-10-22T04:18:03.695Z",
+      "locations": []
+    },
+    {
+      "id": "cmvj3ys3j000c99483dqn74ih",
+      "name": "BOX",
+      "spec": "대",
+      "defaultCbm": 0.15,
+      "defaultInnerCbm": 0,
+      "createdAt": "2026-10-22T05:36:21.402Z",
+      "locations": []
+    },
+    {
+      "id": "cmvlvp7tv0000attrxibvz7zo",
+      "name": "팬트리선반",
+      "spec": "5단 1자형",
+      "defaultCbm": 0.3,
+      "defaultInnerCbm": 0.8,
+      "createdAt": "2026-10-24T04:08:16.867Z",
+      "locations": [
+        {
+          "id": "cmut76j6c0007ciso5qw1zzkp",
+          "name": "주방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.645Z"
+        },
+        {
+          "id": "cmut89xrc000bcisojy3izidy",
+          "name": "베란다",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.825Z"
+        },
+        {
+          "id": "cmvfydssz0000uarlt5m02no4",
+          "name": "팬트리",
+          "order": 0,
+          "createdAt": "2026-10-20T00:36:45.902Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvlvp8ce0001attr36p5m8ob",
+      "name": "팬트리선반",
+      "spec": "5단 ㄴ자형",
+      "defaultCbm": 0.6,
+      "defaultInnerCbm": 1.5,
+      "createdAt": "2026-10-24T04:08:17.535Z",
+      "locations": [
+        {
+          "id": "cmut76j6c0007ciso5qw1zzkp",
+          "name": "주방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.645Z"
+        },
+        {
+          "id": "cmut89xrc000bcisojy3izidy",
+          "name": "베란다",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.825Z"
+        },
+        {
+          "id": "cmvfydssz0000uarlt5m02no4",
+          "name": "팬트리",
+          "order": 0,
+          "createdAt": "2026-10-20T00:36:45.902Z"
+        }
+      ]
+    },
+    {
+      "id": "cmvlvp8ma0002attrfz0yzwl6",
+      "name": "팬트리선반",
+      "spec": "5단 ㄷ자형",
+      "defaultCbm": 1,
+      "defaultInnerCbm": 2.5,
+      "createdAt": "2026-10-24T04:08:17.890Z",
+      "locations": [
+        {
+          "id": "cmut76j6c0007ciso5qw1zzkp",
+          "name": "주방",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.645Z"
+        },
+        {
+          "id": "cmut89xrc000bcisojy3izidy",
+          "name": "베란다",
+          "order": 0,
+          "createdAt": "2026-10-11T19:22:18.825Z"
+        },
+        {
+          "id": "cmvfydssz0000uarlt5m02no4",
+          "name": "팬트리",
+          "order": 0,
+          "createdAt": "2026-10-20T00:36:45.902Z"
+        }
+      ]
     }
   ],
   "vehicles": [
@@ -2062,42 +3493,42 @@
       "name": "5톤 탑차",
       "defaultCost": 130000,
       "maxCbm": 31,
-      "createdAt": "2026-09-06T20:29:10.112Z"
+      "createdAt": "2026-10-11T19:22:30.986Z"
     },
     {
       "id": "cmtq9n1bs0003mxqqufdvw0ay",
       "name": "2.5톤 탑차",
       "defaultCost": 110000,
       "maxCbm": 16,
-      "createdAt": "2026-09-06T20:30:09.784Z"
+      "createdAt": "2026-10-11T19:22:31.062Z"
     },
     {
       "id": "cmuynggvw000011y84sr45zrx",
       "name": "1톤 일반탑",
       "defaultCost": 70000,
       "maxCbm": 6.7,
-      "createdAt": "2026-10-07T21:58:49.724Z"
+      "createdAt": "2026-10-11T19:22:31.101Z"
     },
     {
       "id": "cmuynh8f6000111y8luxoxq1l",
       "name": "1톤 하이탑",
       "defaultCost": 70000,
       "maxCbm": 8.9,
-      "createdAt": "2026-10-07T21:59:25.410Z"
+      "createdAt": "2026-10-11T19:22:31.140Z"
     },
     {
       "id": "cmuynje89000311y8j6g21ft2",
       "name": "3.5톤 탑차",
       "defaultCost": 120000,
       "maxCbm": 18.4,
-      "createdAt": "2026-10-07T22:01:06.250Z"
+      "createdAt": "2026-10-11T19:22:31.217Z"
     },
     {
       "id": "cmuynm4bu000411y8oeymqa5v",
       "name": "4.5톤 탑차",
       "defaultCost": 125000,
       "maxCbm": 30,
-      "createdAt": "2026-10-07T22:03:13.386Z"
+      "createdAt": "2026-10-11T19:22:31.260Z"
     }
   ],
   "labors": [
@@ -2105,13 +3536,13 @@
       "id": "cmtq96nkk0000mxqqpj79brs5",
       "name": "남성",
       "defaultCost": 190000,
-      "createdAt": "2026-09-06T20:17:25.461Z"
+      "createdAt": "2026-10-11T19:22:31.303Z"
     },
     {
       "id": "cmtq96z7q0001mxqqe5c9lxw7",
       "name": "여성",
       "defaultCost": 170000,
-      "createdAt": "2026-09-06T20:17:40.550Z"
+      "createdAt": "2026-10-11T19:22:31.378Z"
     }
   ],
   "estimates": [
@@ -2121,26 +3552,80 @@
       "customerName": "지학근",
       "contact": "010-9382-8937",
       "fromAddress": "인천 서해구 검암동 649-12",
-      "toAddress": "경기 용인시 처인구 중부대로 1199",
+      "toAddress": "경기 용인시 기흥구 영덕동 991-4",
       "estimateDate": "2026-09-10T00:00:00.000Z",
-      "movingDate": "2026-09-19T00:00:00.000Z",
+      "movingDate": "2026-10-31T00:00:00.000Z",
       "organizeDate": null,
-      "visitDate": "2026-09-11T07:00:00.000Z",
+      "visitDate": "2026-10-17T07:00:00.000Z",
       "cbmItems": "[{\"name\":\"소파(2인)\",\"cbm\":1.5,\"innerBoxCbm\":0},{\"name\":\"장롱(12자)\",\"cbm\":10,\"innerBoxCbm\":1},{\"name\":\"소파(3인)\",\"cbm\":2.2,\"innerBoxCbm\":0},{\"locationId\":\"cmut73vls0000cisokpdkkuxn\",\"locationName\":\"안방\",\"name\":\"냉장고\",\"spec\":\"양문형\",\"cbm\":1.5,\"innerBoxCbm\":0.2},{\"locationId\":\"cmut73vls0000cisokpdkkuxn\",\"locationName\":\"안방\",\"name\":\"소파\",\"spec\":\"3인\",\"cbm\":1.6,\"innerBoxCbm\":0},{\"locationId\":\"cmut73vls0000cisokpdkkuxn\",\"locationName\":\"안방\",\"name\":\"냉장고\",\"spec\":\"양문형\",\"cbm\":1.5,\"innerBoxCbm\":0},{\"locationId\":\"cmut73vls0000cisokpdkkuxn\",\"locationName\":\"안방\",\"name\":\"장농\",\"spec\":\"1통\",\"quantity\":1,\"cbm\":1.1,\"innerBoxCbm\":0},{\"locationId\":\"cmut76j6c0007ciso5qw1zzkp\",\"locationName\":\"주방\",\"name\":\"냉장고\",\"spec\":\"양문형 대형 4도어\",\"quantity\":2,\"cbm\":1.8,\"innerBoxCbm\":0},{\"locationId\":\"cmut89xrc000bcisojy3izidy\",\"locationName\":\"베란다\",\"name\":\"김치냉장고\",\"spec\":\"뚜껑형 200\",\"quantity\":1,\"cbm\":0.9,\"innerBoxCbm\":0},{\"locationId\":\"cmut74o7o0002cisoqr0a5f00\",\"locationName\":\"방1\",\"name\":\"BOX\",\"spec\":\"중\",\"quantity\":20,\"cbm\":0.17,\"innerBoxCbm\":0}]",
-      "materials": null,
-      "assemblyItems": null,
-      "environment": "{\"labors\":[{\"id\":\"cmtq96nkk0000mxqqpj79brs5\",\"name\":\"남성\",\"cost\":190000,\"count\":3},{\"id\":\"cmtq96z7q0001mxqqe5c9lxw7\",\"name\":\"여성\",\"cost\":170000,\"count\":1}],\"vehicles\":[{\"id\":\"cmtq9lra70002mxqqmepd4352\",\"name\":\"5톤 탑차\",\"cost\":200000,\"count\":1}],\"organizeStatus\":\"\",\"fromFloor\":\"20\",\"fromWorkTypes\":[\"엘리베이터\"],\"toFloor\":\"23\",\"toWorkTypes\":[\"엘리베이터\"]}",
-      "paymentPlan": "{\"targetType\":\"supply\",\"targetAmount\":1420000,\"downPayment\":150000,\"downPaymentDate\":\"2026-09-10\",\"downPaymentPaid\":true,\"intermediatePayment\":600000,\"intermediateDate\":\"2026-09-19\",\"intermediatePaymentPaid\":true,\"balance\":670000,\"balanceDate\":\"\",\"balancePaid\":false,\"remainingAmount\":0}",
-      "adminHistory": "[{\"action\":\"CREATE\",\"by\":\"최고관리자\",\"at\":\"2026-09-09T19:43:23.100Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-09-09T19:59:35.400Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-09-09T20:06:11.588Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-09-09T20:11:55.299Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-09-09T20:16:34.295Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-09-09T20:18:40.398Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-09-09T20:37:53.051Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-09-09T20:38:08.186Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-09-09T22:02:33.191Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-09-10T04:24:24.777Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-09-10T04:30:56.670Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-09-10T04:46:54.342Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-04T03:12:16.873Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-04T03:29:21.856Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-04T04:18:17.131Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-05T02:37:39.698Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-05T02:43:33.693Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-06T04:09:59.498Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-11T02:29:46.867Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-11T07:26:48.525Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-11T07:32:22.889Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-11T07:38:46.883Z\"}]",
+      "materials": "{}",
+      "assemblyItems": "{}",
+      "environment": "{\"labors\":[{\"id\":\"cmtq96nkk0000mxqqpj79brs5\",\"name\":\"남성\",\"cost\":190000,\"count\":3},{\"id\":\"cmtq96z7q0001mxqqe5c9lxw7\",\"name\":\"여성\",\"cost\":170000,\"count\":1}],\"vehicles\":[{\"id\":\"cmtq9lra70002mxqqmepd4352\",\"name\":\"5톤 탑차\",\"cost\":200000,\"count\":1}],\"organizeStatus\":\"\",\"fromFloor\":\"20\",\"fromWorkTypes\":[\"사다리차\"],\"toFloor\":\"24\",\"toWorkTypes\":[\"사다리차\"],\"distance\":58.9,\"distanceDuration\":\"약 57분\",\"distanceDetail\":\"실제 주행거리 58.9km (약 57분 소요)\",\"baseDistanceKm\":10,\"ratePerKm\":2000,\"extraDistanceKm\":48.9,\"distanceExtraCost\":97800,\"ladderTonnage\":\"5\",\"ladderFromCost\":280000,\"ladderToCost\":400000,\"ladderTotalCost\":680000}",
+      "paymentPlan": "{\"targetType\":\"supply\",\"targetAmount\":2000000,\"downPayment\":200000,\"downPaymentDate\":\"2026-09-10\",\"downPaymentPaid\":true,\"intermediatePayment\":900000,\"intermediateDate\":\"2026-09-19\",\"intermediatePaymentPaid\":true,\"balance\":900000,\"balanceDate\":\"\",\"balancePaid\":false,\"remainingAmount\":0}",
+      "adminHistory": "[{\"action\":\"CREATE\",\"by\":\"최고관리자\",\"at\":\"2026-09-09T19:43:23.100Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-09-09T19:59:35.400Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-09-09T20:06:11.588Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-09-09T20:11:55.299Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-09-09T20:16:34.295Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-09-09T20:18:40.398Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-09-09T20:37:53.051Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-09-09T20:38:08.186Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-09-09T22:02:33.191Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-09-10T04:24:24.777Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-09-10T04:30:56.670Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-09-10T04:46:54.342Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-04T03:12:16.873Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-04T03:29:21.856Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-04T04:18:17.131Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-05T02:37:39.698Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-05T02:43:33.693Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-06T04:09:59.498Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-11T02:29:46.867Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-11T07:26:48.525Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-11T07:32:22.889Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-11T07:38:46.883Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-12T20:12:53.212Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-12T20:25:44.073Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-12T20:43:18.474Z\"}]",
       "signature": "data:image/png;base64,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",
       "movingCost": 1300000,
       "storageCost": 0,
       "storageDays": 0,
-      "additionalCost": 120000,
-      "vat": 142000,
-      "totalAmount": 1562000,
-      "createdAt": "2026-09-09T19:43:23.102Z",
-      "updatedAt": "2026-10-11T07:38:46.886Z"
+      "additionalCost": 700000,
+      "vat": 200000,
+      "totalAmount": 2200000,
+      "createdAt": "2026-10-11T19:22:31.422Z",
+      "updatedAt": "2026-10-16T06:15:19.272Z"
+    },
+    {
+      "id": "P2610130001",
+      "movingType": "P",
+      "customerName": "지종근",
+      "contact": "010-6623-1157",
+      "fromAddress": "경기 용인시 기흥구 영덕동 991-4",
+      "toAddress": "경기 용인시 처인구 중부대로 1199",
+      "estimateDate": "2026-10-13T00:00:00.000Z",
+      "movingDate": "2026-10-30T00:00:00.000Z",
+      "organizeDate": null,
+      "visitDate": "2026-10-22T00:00:00.000Z",
+      "cbmItems": "[{\"locationId\":\"cmut76j6c0007ciso5qw1zzkp\",\"locationName\":\"주방\",\"name\":\"김치냉장고\",\"spec\":\"뚜껑형 200\",\"quantity\":1,\"cbm\":0.9,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792478598510_51_9xs5t\"},{\"locationId\":\"cmut76j6c0007ciso5qw1zzkp\",\"locationName\":\"주방\",\"name\":\"김치냉장고\",\"spec\":\"스탠드 500\",\"quantity\":1,\"cbm\":1.8,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792478598510_52_0gf1d\"},{\"locationId\":\"cmut76j6c0007ciso5qw1zzkp\",\"locationName\":\"주방\",\"name\":\"냉장고\",\"spec\":\"소형150 이하\",\"quantity\":1,\"cbm\":0.3,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792478598510_53_jiim7\"},{\"locationId\":\"cmut76j6c0007ciso5qw1zzkp\",\"locationName\":\"주방\",\"name\":\"냉장고\",\"spec\":\"양문형 2도어 700 이하\",\"quantity\":1,\"cbm\":1.2,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792478598510_54_ojc1m\"},{\"locationId\":\"cmut74tq30003ciso8gosyp5o\",\"locationName\":\"방2\",\"name\":\"서랍장\",\"spec\":\"3단 일반\",\"quantity\":2,\"cbm\":0.2,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792478598510_55_m11w5\"},{\"locationId\":\"cmut73vls0000cisokpdkkuxn\",\"locationName\":\"안방\",\"name\":\"서랍장\",\"spec\":\"5단 800\",\"quantity\":1,\"cbm\":0.5,\"innerBoxCbm\":0.5,\"treatment\":\"이동\",\"_uid\":\"cbm_1792478598510_56_8uh66\"},{\"locationId\":\"cmut74tq30003ciso8gosyp5o\",\"locationName\":\"방2\",\"name\":\"서랍장\",\"spec\":\"플라스틱(5단)\",\"quantity\":3,\"cbm\":0.2,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792478598510_57_gu20l\"},{\"locationId\":\"cmut76j6c0007ciso5qw1zzkp\",\"locationName\":\"주방\",\"name\":\"서랍장\",\"spec\":\"플라스틱(5단)\",\"quantity\":2,\"cbm\":0.2,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792478598510_58_kmjse\"},{\"locationId\":\"cmut89xrc000bcisojy3izidy\",\"locationName\":\"베란다\",\"name\":\"세탁기\",\"spec\":\"일반/드럼\",\"quantity\":3,\"cbm\":1,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792478598510_59_ltmkz\"},{\"locationId\":\"cmut74o7o0002cisoqr0a5f00\",\"locationName\":\"방1\",\"name\":\"의자\",\"spec\":\"책상용\",\"quantity\":1,\"cbm\":0.5,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792478598510_60_y4h4g\"},{\"locationId\":\"cmut73vls0000cisokpdkkuxn\",\"locationName\":\"안방\",\"name\":\"책장\",\"spec\":\"2x5단\",\"quantity\":1,\"cbm\":0.5,\"innerBoxCbm\":0.5,\"treatment\":\"이동\",\"_uid\":\"cbm_1792478598510_61_e74ja\"},{\"locationId\":\"cmut74tq30003ciso8gosyp5o\",\"locationName\":\"방2\",\"name\":\"책장\",\"spec\":\"2x5단\",\"quantity\":2,\"cbm\":1,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792478598510_62_3vefu\"},{\"locationId\":\"cmut74o7o0002cisoqr0a5f00\",\"locationName\":\"방1\",\"name\":\"책장\",\"spec\":\"3x5단\",\"quantity\":1,\"cbm\":1.2,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792478598510_63_wq6mj\"},{\"locationId\":\"cmut73vls0000cisokpdkkuxn\",\"locationName\":\"안방\",\"name\":\"침대\",\"spec\":\"S/SS\",\"quantity\":2,\"cbm\":1.1,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792478598510_64_h3l2b\"},{\"locationId\":\"cmut74o7o0002cisoqr0a5f00\",\"locationName\":\"방1\",\"name\":\"침대\",\"spec\":\"S/SS\",\"quantity\":1,\"cbm\":1.1,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792478598510_65_qka6r\"},{\"locationId\":\"cmut73vls0000cisokpdkkuxn\",\"locationName\":\"안방\",\"name\":\"화장대\",\"spec\":\"일반(100x50x140)\",\"quantity\":1,\"cbm\":0.7,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792478598510_66_bchin\"},{\"locationId\":\"cmut73vls0000cisokpdkkuxn\",\"locationName\":\"안방\",\"name\":\"BOX\",\"spec\":\"바구니\",\"quantity\":5,\"cbm\":0.1,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792478598510_67_a4zub\"},{\"locationId\":\"cmut74o7o0002cisoqr0a5f00\",\"locationName\":\"방1\",\"name\":\"BOX\",\"spec\":\"바구니\",\"quantity\":7,\"cbm\":0.1,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792478598510_68_l44wi\"},{\"locationId\":\"cmut76j6c0007ciso5qw1zzkp\",\"locationName\":\"주방\",\"name\":\"BOX\",\"spec\":\"바구니\",\"quantity\":15,\"cbm\":0.1,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792478598510_69_572yl\"},{\"locationId\":\"cmut74tq30003ciso8gosyp5o\",\"locationName\":\"방2\",\"name\":\"BOX\",\"spec\":\"옷\",\"quantity\":8,\"cbm\":0.17,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792478598510_70_k7vj1\"},{\"locationId\":\"cmut74tq30003ciso8gosyp5o\",\"locationName\":\"방2\",\"name\":\"BOX\",\"spec\":\"이불\",\"quantity\":3,\"cbm\":0.25,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792478598510_71_40m87\"},{\"locationId\":\"cmut73vls0000cisokpdkkuxn\",\"locationName\":\"안방\",\"name\":\"BOX\",\"spec\":\"중\",\"quantity\":13,\"cbm\":0.1,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792478598510_72_v3h3m\"},{\"locationId\":\"cmut74o7o0002cisoqr0a5f00\",\"locationName\":\"방1\",\"name\":\"BOX\",\"spec\":\"중\",\"quantity\":4,\"cbm\":0.1,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792478598510_73_nr7ov\"},{\"locationId\":\"cmut74tq30003ciso8gosyp5o\",\"locationName\":\"방2\",\"name\":\"BOX\",\"spec\":\"중\",\"quantity\":23,\"cbm\":0.1,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792478598510_74_2vywv\"},{\"locationId\":\"cmut76j6c0007ciso5qw1zzkp\",\"locationName\":\"주방\",\"name\":\"BOX\",\"spec\":\"중\",\"quantity\":13,\"cbm\":0.1,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792478598510_75_algln\"}]",
+      "materials": null,
+      "assemblyItems": "{}",
+      "environment": "{\"labors\":[{\"id\":\"cmtq96nkk0000mxqqpj79brs5\",\"name\":\"남성\",\"cost\":190000,\"count\":3},{\"id\":\"cmtq96z7q0001mxqqe5c9lxw7\",\"name\":\"여성\",\"cost\":170000,\"count\":1}],\"vehicles\":[{\"id\":\"cmuynm4bu000411y8oeymqa5v\",\"name\":\"4.5톤 탑차\",\"cost\":125000,\"count\":1,\"maxCbm\":30},{\"id\":\"cmuynggvw000011y84sr45zrx\",\"name\":\"1톤 일반탑\",\"cost\":70000,\"count\":1,\"maxCbm\":6.7}],\"organizeStatus\":\"\",\"fromFloor\":\"3\",\"fromWorkTypes\":[\"사다리차\"],\"toFloor\":\"5\",\"toWorkTypes\":[\"사다리차\"],\"distance\":13.6,\"distanceDuration\":\"약 15분\",\"distanceDetail\":\"실제 주행거리 13.6km (약 15분 소요)\",\"baseDistanceKm\":30,\"ratePerKm\":2000,\"extraDistanceKm\":0,\"distanceExtraCost\":0,\"ladderTonnage\":\"5\",\"ladderFromCost\":150000,\"ladderToCost\":150000,\"ladderTotalCost\":300000,\"specialNotes\":\"피아노 운반시 조심해 주세요\"}",
+      "paymentPlan": "{\"targetType\":\"supply\",\"targetAmount\":2300000,\"downPayment\":200000,\"downPaymentDate\":\"2026-10-16\",\"downPaymentPaid\":true,\"intermediatePayment\":1000000,\"intermediateDate\":\"2026-10-24\",\"intermediatePaymentPaid\":false,\"balance\":1100000,\"balanceDate\":\"2026-10-29\",\"balancePaid\":false,\"remainingAmount\":0}",
+      "adminHistory": "[{\"action\":\"CREATE\",\"by\":\"지종근\",\"at\":\"2026-10-13T03:14:41.800Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-13T06:18:40.685Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-13T06:18:44.818Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-16T01:50:18.946Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-16T02:31:01.701Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-16T02:37:34.092Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-16T05:24:14.070Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-16T06:22:10.935Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-16T06:22:38.040Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-16T07:42:30.877Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-16T08:44:20.655Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-16T08:48:05.572Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-16T09:04:44.260Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-16T09:07:36.955Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-16T09:12:18.021Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-16T09:21:33.766Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-16T09:40:39.260Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-16T09:40:42.966Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-16T11:41:53.560Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-19T01:03:58.596Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-19T01:05:43.792Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-19T02:01:37.376Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-19T02:20:48.104Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-19T04:47:36.112Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-19T04:48:27.577Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-22T08:30:12.106Z\"}]",
+      "signature": null,
+      "movingCost": 2000000,
+      "storageCost": 0,
+      "storageDays": 0,
+      "additionalCost": 300000,
+      "vat": 230000,
+      "totalAmount": 2530000,
+      "createdAt": "2026-10-13T03:14:41.802Z",
+      "updatedAt": "2026-10-22T08:30:12.110Z"
+    },
+    {
+      "id": "P2610160001",
+      "movingType": "P",
+      "customerName": "홍길동",
+      "contact": "010-4434-5879",
+      "fromAddress": "인천 서해구 검암동 649-12",
+      "toAddress": "경기 용인시 기흥구 영덕동 991-4",
+      "estimateDate": "2026-10-16T00:00:00.000Z",
+      "movingDate": "2026-10-31T00:00:00.000Z",
+      "organizeDate": null,
+      "visitDate": "2026-10-27T13:00:00.000Z",
+      "cbmItems": "[{\"locationId\":\"cmut769zi0006cisok59t22zj\",\"locationName\":\"거실\",\"name\":\"거실장\",\"spec\":\"대형\",\"quantity\":1,\"cbm\":1,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792474989397_29_z27ve\"},{\"locationId\":\"cmut89xrc000bcisojy3izidy\",\"locationName\":\"베란다\",\"name\":\"건조기\",\"spec\":\"대형\",\"quantity\":1,\"cbm\":1.1,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792474989397_44_3qq66\"},{\"locationId\":\"cmut769zi0006cisok59t22zj\",\"locationName\":\"거실\",\"name\":\"공기청정기\",\"spec\":\"타워형\",\"quantity\":1,\"cbm\":0.3,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792474989397_31_gtplq\"},{\"locationId\":\"cmut76j6c0007ciso5qw1zzkp\",\"locationName\":\"주방\",\"name\":\"김치냉장고\",\"spec\":\"스탠드 대형\",\"quantity\":1,\"cbm\":1.4,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792474989397_34_xed0c\"},{\"locationId\":\"cmut76j6c0007ciso5qw1zzkp\",\"locationName\":\"주방\",\"name\":\"냉장고\",\"spec\":\"양문형 4도어(900L)\",\"quantity\":1,\"cbm\":2,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792474989397_33_1d35s\"},{\"locationId\":\"cmut74o7o0002cisoqr0a5f00\",\"locationName\":\"방1\",\"name\":\"서랍장\",\"spec\":\"3단 600\",\"quantity\":1,\"cbm\":0.22,\"innerBoxCbm\":0.22,\"treatment\":\"이동\",\"_uid\":\"cbm_1792474989397_39_kwrn9\"},{\"locationId\":\"cmut73vls0000cisokpdkkuxn\",\"locationName\":\"안방\",\"name\":\"서랍장\",\"spec\":\"5단 800\",\"quantity\":1,\"cbm\":0.5,\"innerBoxCbm\":0.5,\"treatment\":\"이동\",\"_uid\":\"cbm_1792474989397_26_nv3az\"},{\"locationId\":\"cmut75o8m0004ciso46h35253\",\"locationName\":\"방3\",\"name\":\"서재/드레스룸\",\"spec\":\"행거 및 선반\",\"quantity\":1,\"cbm\":1.2,\"innerBoxCbm\":0.4,\"treatment\":\"이동\",\"_uid\":\"cbm_1792474989397_42_93bq4\"},{\"locationId\":\"cmut89xrc000bcisojy3izidy\",\"locationName\":\"베란다\",\"name\":\"세탁기\",\"spec\":\"드럼(21kg)\",\"quantity\":1,\"cbm\":1.1,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792474989397_43_qmduc\"},{\"locationId\":\"cmut769zi0006cisok59t22zj\",\"locationName\":\"거실\",\"name\":\"소파\",\"spec\":\"4인용 카우치/리클라이너\",\"quantity\":1,\"cbm\":1.8,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792474989397_27_c8o81\"},{\"locationId\":\"cmut76j6c0007ciso5qw1zzkp\",\"locationName\":\"주방\",\"name\":\"식탁\",\"spec\":\"6인용(의자포함)\",\"quantity\":1,\"cbm\":1.5,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792474989397_35_oabw4\"},{\"locationId\":\"cmut73vls0000cisokpdkkuxn\",\"locationName\":\"안방\",\"name\":\"안마\",\"spec\":\"세라젬\",\"quantity\":1,\"cbm\":1,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792476280900_1_z2qym\"},{\"locationId\":\"cmut769zi0006cisok59t22zj\",\"locationName\":\"거실\",\"name\":\"안마의자\",\"spec\":\"일반\",\"quantity\":1,\"cbm\":1.2,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792474989397_32_5hhen\"},{\"locationId\":\"cmut769zi0006cisok59t22zj\",\"locationName\":\"거실\",\"name\":\"에어컨\",\"spec\":\"스탠드(2in1)\",\"quantity\":1,\"cbm\":0.8,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792474989397_30_e9hfs\"},{\"locationId\":\"cmut73vls0000cisokpdkkuxn\",\"locationName\":\"안방\",\"name\":\"장농\",\"spec\":\"1통\",\"quantity\":3,\"cbm\":1.1,\"innerBoxCbm\":0.9,\"treatment\":\"이동\",\"_uid\":\"cbm_1792474989397_24_h65zy\"},{\"locationId\":\"cmut76j6c0007ciso5qw1zzkp\",\"locationName\":\"주방\",\"name\":\"주방수납장\",\"spec\":\"키큰장/아일랜드\",\"quantity\":1,\"cbm\":0.8,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792474989397_36_t5gch\"},{\"locationId\":\"cmut74o7o0002cisoqr0a5f00\",\"locationName\":\"방1\",\"name\":\"책상/책장\",\"spec\":\"세트\",\"quantity\":1,\"cbm\":1,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792474989397_38_ip33w\"},{\"locationId\":\"cmut74tq30003ciso8gosyp5o\",\"locationName\":\"방2\",\"name\":\"책상/책장\",\"spec\":\"세트\",\"quantity\":1,\"cbm\":1,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792474989397_41_yi6fm\"},{\"locationId\":\"cmut73vls0000cisokpdkkuxn\",\"locationName\":\"안방\",\"name\":\"침대\",\"spec\":\"Q/K\",\"quantity\":1,\"cbm\":1.8,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792474989397_23_doawz\"},{\"locationId\":\"cmut74o7o0002cisoqr0a5f00\",\"locationName\":\"방1\",\"name\":\"침대\",\"spec\":\"SS (자녀1)\",\"quantity\":1,\"cbm\":1.1,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792474989397_37_7t8ex\"},{\"locationId\":\"cmut74tq30003ciso8gosyp5o\",\"locationName\":\"방2\",\"name\":\"침대\",\"spec\":\"SS (자녀2)\",\"quantity\":1,\"cbm\":1.1,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792474989397_40_3xcjy\"},{\"locationId\":\"cmut73vls0000cisokpdkkuxn\",\"locationName\":\"안방\",\"name\":\"화장대\",\"spec\":\"수납형 대형\",\"quantity\":1,\"cbm\":1,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792474989397_25_znb34\"},{\"locationId\":\"cmut73vls0000cisokpdkkuxn\",\"locationName\":\"안방\",\"name\":\"BOX\",\"spec\":\"옷\",\"quantity\":2,\"cbm\":0.25,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792475084007_46_rdcof\"},{\"locationId\":\"\",\"locationName\":\"기타/미지정\",\"name\":\"BOX\",\"spec\":\"의류/침구/주방/도서\",\"quantity\":70,\"cbm\":0.12,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792474989397_45_6sume\"},{\"locationId\":\"cmut73vls0000cisokpdkkuxn\",\"locationName\":\"안방\",\"name\":\"BOX\",\"spec\":\"이불\",\"quantity\":2,\"cbm\":0.33,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792475174826_47_3pjoj\"},{\"locationId\":\"cmut769zi0006cisok59t22zj\",\"locationName\":\"거실\",\"name\":\"TV\",\"spec\":\"75~85인치\",\"quantity\":1,\"cbm\":0.7,\"innerBoxCbm\":0,\"treatment\":\"이동\",\"_uid\":\"cbm_1792474989397_28_r3xe4\"}]",
+      "materials": null,
+      "assemblyItems": null,
+      "environment": "{\"labors\":[],\"vehicles\":[],\"organizeStatus\":\"\",\"fromFloor\":\"5\",\"fromWorkTypes\":[\"사다리차\"],\"toFloor\":\"2\",\"toWorkTypes\":[\"사다리차\"],\"distance\":58.9,\"distanceDuration\":\"약 57분\",\"distanceDetail\":\"실제 주행거리 58.9km (약 57분 소요)\",\"baseDistanceKm\":30,\"ratePerKm\":2000,\"extraDistanceKm\":28.9,\"distanceExtraCost\":57800,\"ladderTonnage\":\"5\",\"ladderFromCost\":150000,\"ladderToCost\":150000,\"ladderTotalCost\":300000,\"specialNotes\":\"\"}",
+      "paymentPlan": "{\"targetType\":\"supply\",\"targetAmount\":0,\"downPayment\":0,\"downPaymentDate\":\"\",\"downPaymentPaid\":false,\"intermediatePayment\":0,\"intermediateDate\":\"\",\"intermediatePaymentPaid\":false,\"balance\":0,\"balanceDate\":\"\",\"balancePaid\":false,\"remainingAmount\":0}",
+      "adminHistory": "[{\"action\":\"CREATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-20T01:54:41.146Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-20T01:56:34.648Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-20T02:06:09.924Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-20T02:18:30.269Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-20T02:59:12.082Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-20T03:00:30.600Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-20T04:11:23.896Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-20T05:47:12.753Z\"},{\"action\":\"UPDATE\",\"by\":\"최고관리자\",\"at\":\"2026-10-20T06:06:39.114Z\"}]",
+      "signature": null,
+      "movingCost": 0,
+      "storageCost": 0,
+      "storageDays": 0,
+      "additionalCost": 0,
+      "vat": 0,
+      "totalAmount": 0,
+      "createdAt": "2026-10-20T01:54:41.148Z",
+      "updatedAt": "2026-10-20T06:06:39.117Z"
     }
   ]
 }

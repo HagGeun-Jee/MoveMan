@@ -185,10 +185,10 @@ export function UnassignedBoxTooltip({ variant = 'badge', className = '' }: Unas
 
               <div className="flex items-start gap-2 p-2 rounded-lg bg-gray-50 border border-gray-100">
                 <span className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">
-                  베란다 / 다용도
+                  베란다 / 다용도 / 팬트리
                 </span>
                 <span className="text-gray-700 text-[11px] leading-tight">
-                  빨래바구니, 건조대 소품, 청소도구 부속품, 화분 주변 잡화
+                  빨래바구니, 건조대 소품, 청소도구 부속품, 화분 주변 잡화, 선반 외 노출 잔짐
                 </span>
               </div>
             </div>
@@ -200,7 +200,7 @@ export function UnassignedBoxTooltip({ variant = 'badge', className = '' }: Unas
                 <span>가구 내품 자동 포함 안내 (중복 제외됨)</span>
               </div>
               <p className="text-gray-600">
-                • <strong>장농/서랍장</strong> 옷·이불, <strong>냉장고</strong> 음식물, <strong>책장</strong> 도서는 각 가구의 <strong>[내품 CBM]</strong>에 이미 포함되어 있어 본 박스와 중복되지 않습니다.
+                • <strong>장농/서랍장</strong> 옷·이불, <strong>냉장고</strong> 음식물, <strong>책장</strong> 도서, <strong>팬트리선반</strong> 수납짐은 각 품목의 <strong>[내품 CBM]</strong>에 이미 포함되어 있어 본 박스와 중복되지 않습니다.
               </p>
             </div>
           </div>
