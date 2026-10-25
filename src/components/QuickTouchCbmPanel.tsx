@@ -1,30 +1,49 @@
 'use client'
 
-import React, { useState } from 'react'
-import { Plus, Minus, Trash2, Box, Layers, CheckCircle2, ChevronRight, Sparkles } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Plus, Minus, Trash2, Box, Layers, CheckCircle2, ChevronRight, Sparkles, FolderPlus } from 'lucide-react'
 import { isBoxItem, getItemEffectiveCbm, ensureItemUid } from './EstimateForm'
 import { UnassignedBoxTooltip } from './UnassignedBoxTooltip'
 
 interface QuickTouchCbmPanelProps {
   categories: any[]
+  availableCategoriesToAdd?: any[]
+  onAddCategory?: (catId: string) => void
+  onRemoveCategory?: (catId: string) => void
   items: any[]
   setItems: React.Dispatch<React.SetStateAction<any[]>>
   standardItems: any[]
+  activeCategoryId?: string
+  setActiveCategoryId?: (id: string) => void
 }
 
 export function QuickTouchCbmPanel({
   categories,
+  availableCategoriesToAdd = [],
+  onAddCategory,
+  onRemoveCategory,
   items,
   setItems,
   standardItems,
+  activeCategoryId: externalActiveId,
+  setActiveCategoryId: externalSetActiveId,
 }: QuickTouchCbmPanelProps) {
-  // 공간 탭 (categories + 기타/미지정)
-  const allCategories = [...categories, { id: '', name: '기타/미지정' }]
-  const [activeCategoryId, setActiveCategoryId] = useState<string>(categories[0]?.id || '')
+  // 공간 탭 (표시 대상 공간 목록)
+  const [internalActiveId, setInternalActiveId] = useState<string>(categories[0]?.id || '')
+  const activeCategoryId = externalActiveId !== undefined ? externalActiveId : internalActiveId
+  const setActiveCategoryId = externalSetActiveId || setInternalActiveId
+
   const [showAddDropdown, setShowAddDropdown] = useState(false)
   const [selectedAddName, setSelectedAddName] = useState('')
 
-  const activeCategory = allCategories.find(c => c.id === activeCategoryId) || allCategories[0]
+  // 활성 탭이 현재 카테고리 목록에 없으면 첫 번째 탭으로 자동 전환
+  useEffect(() => {
+    if (categories.length > 0 && !categories.some(c => c.id === activeCategoryId)) {
+      setActiveCategoryId(categories[0].id)
+    }
+  }, [categories, activeCategoryId, setActiveCategoryId])
+
+  const activeCategory = categories.find(c => c.id === activeCategoryId) || categories[0] || { id: '', name: '기타/미지정' }
 
   // 현재 공간의 품목들
   const currentCategoryItems = items.filter(i => (i.locationId || '') === activeCategoryId)
@@ -164,36 +183,77 @@ export function QuickTouchCbmPanel({
       {/* 1. 상단 공간 선택 칩 바 (가로 스크롤) */}
       <div className="flex items-center justify-between gap-2 border-b border-gray-100 pb-2.5">
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
-          {allCategories.map(cat => {
+          {categories.map(cat => {
             const catItems = items.filter(i => (i.locationId || '') === cat.id)
             const catCbm = catItems.reduce((acc, it) => acc + getItemEffectiveCbm(it), 0)
             const hasQty = catItems.some(it => (Number(it.quantity) || 0) > 0)
             const isSelected = activeCategoryId === cat.id
 
             return (
-              <button
+              <div
                 key={cat.id}
-                type="button"
-                onClick={() => setActiveCategoryId(cat.id)}
-                className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
-                  isSelected
-                    ? 'bg-blue-600 text-white shadow-sm ring-2 ring-blue-300'
-                    : hasQty
-                    ? 'bg-blue-50 text-blue-900 border border-blue-200 hover:bg-blue-100/80'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-transparent'
-                }`}
+                className="shrink-0 flex items-center"
               >
-                <span>{cat.name}</span>
-                {catCbm > 0 && (
-                  <span className={`text-[10px] sm:text-[11px] font-extrabold px-1.5 py-0.2 rounded-full ${
-                    isSelected ? 'bg-white/25 text-white' : 'bg-blue-200/80 text-blue-800'
-                  }`}>
-                    {catCbm.toFixed(1)}
-                  </span>
-                )}
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveCategoryId(cat.id)}
+                  className={`flex items-center gap-1.5 pl-3 pr-2 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                    isSelected
+                      ? 'bg-blue-600 text-white shadow-sm ring-2 ring-blue-300'
+                      : hasQty
+                      ? 'bg-blue-50 text-blue-900 border border-blue-200 hover:bg-blue-100/80'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-transparent'
+                  }`}
+                >
+                  <span>{cat.name}</span>
+                  {catCbm > 0 && (
+                    <span className={`text-[10px] sm:text-[11px] font-extrabold px-1.5 py-0.2 rounded-full ${
+                      isSelected ? 'bg-white/25 text-white' : 'bg-blue-200/80 text-blue-800'
+                    }`}>
+                      {catCbm.toFixed(1)}
+                    </span>
+                  )}
+                  {onRemoveCategory && categories.length > 1 && (
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onRemoveCategory(cat.id)
+                      }}
+                      title="이 공간 삭제 (비우기)"
+                      className={`p-0.5 rounded-full hover:bg-black/10 transition-colors ml-0.5 ${
+                        isSelected ? 'text-white/80 hover:text-white' : 'text-gray-400 hover:text-red-500'
+                      }`}
+                    >
+                      <Trash2 size={12} />
+                    </span>
+                  )}
+                </button>
+              </div>
             )
           })}
+
+          {/* + 공간 추가 버튼 / 드롭다운 */}
+          {onAddCategory && availableCategoriesToAdd.length > 0 && (
+            <div className="shrink-0 relative">
+              <select
+                value=""
+                onChange={(e) => {
+                  if (e.target.value) {
+                    onAddCategory(e.target.value)
+                    setActiveCategoryId(e.target.value)
+                  }
+                }}
+                className="px-2.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold bg-white hover:bg-blue-50 text-blue-600 border-2 border-dashed border-blue-300 hover:border-blue-500 cursor-pointer outline-none transition-all shadow-2xs"
+              >
+                <option value="" disabled>+ 공간 추가 ▾</option>
+                {availableCategoriesToAdd.map(c => (
+                  <option key={c.id} value={c.id}>
+                    + {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         {/* 현재 공간 요약 배지 */}
