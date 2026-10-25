@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createStandardItem, deleteStandardItem, getStandardItems, updateStandardItem, getLocationCategories, createLocationCategory, deleteLocationCategory } from '@/app/actions/item'
-import { Trash2, Edit2, Check, X, Calculator, Copy } from 'lucide-react'
+import { Trash2, Edit2, Check, X, Calculator, Copy, RotateCcw } from 'lucide-react'
 
 export default function ItemsPage() {
   const [items, setItems] = useState<any[]>([])
@@ -11,6 +11,15 @@ export default function ItemsPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [filterLocationId, setFilterLocationId] = useState<string>('all')
   const [filterName, setFilterName] = useState<string>('')
+
+  // 복사 등록 및 입력 폼 상태/참조
+  const formCardRef = useRef<HTMLDivElement>(null)
+  const nameInputRef = useRef<HTMLInputElement>(null)
+  const specInputRef = useRef<HTMLInputElement>(null)
+  const [selectedLocationIds, setSelectedLocationIds] = useState<string[]>([])
+  const [defaultInnerCbmVal, setDefaultInnerCbmVal] = useState<string>('0')
+  const [copySourceInfo, setCopySourceInfo] = useState<string | null>(null)
+  const [selectedCopySourceId, setSelectedCopySourceId] = useState<string>('')
 
   // CBM 계산기 상태
   const [isCbmCalculatorOpen, setIsCbmCalculatorOpen] = useState(false)
@@ -59,6 +68,42 @@ export default function ItemsPage() {
     setLoading(false)
   }
 
+  // 기존 물품 복사 핸들러 (품목명·위치정보 유지, CBM 초기화)
+  const handleCopyItem = (item: any) => {
+    if (nameInputRef.current) nameInputRef.current.value = item.name || ''
+    if (specInputRef.current) {
+      specInputRef.current.value = ''
+      specInputRef.current.focus()
+    }
+    const locIds = item.locations ? item.locations.map((l: any) => l.id) : []
+    setSelectedLocationIds(locIds)
+    setDefaultCbmVal('') // CBM 초기화
+    setDefaultInnerCbmVal('0') // 내품 CBM 초기화
+
+    setCopySourceInfo(`${item.name}${item.spec ? ` (${item.spec})` : ''}`)
+    setSelectedCopySourceId(item.id)
+
+    formCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  // 폼 초기화 핸들러
+  const handleResetForm = () => {
+    if (nameInputRef.current) nameInputRef.current.value = ''
+    if (specInputRef.current) specInputRef.current.value = ''
+    setSelectedLocationIds([])
+    setDefaultCbmVal('')
+    setDefaultInnerCbmVal('0')
+    setCopySourceInfo(null)
+    setSelectedCopySourceId('')
+  }
+
+  // 위치 카테고리 체크박스 토글
+  const handleToggleLocation = (catId: string) => {
+    setSelectedLocationIds(prev =>
+      prev.includes(catId) ? prev.filter(id => id !== catId) : [...prev, catId]
+    )
+  }
+
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const form = e.currentTarget
@@ -68,8 +113,7 @@ export default function ItemsPage() {
     if (res?.error) {
       alert(res.error)
     } else {
-      form.reset()
-      setDefaultCbmVal('')
+      handleResetForm()
       fetchData()
     }
   }
@@ -181,38 +225,143 @@ export default function ItemsPage() {
         </div>
 
         {/* 새 물품 등록 폼 */}
-        <div className="md:col-span-1 bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-fit">
-          <h2 className="text-lg font-bold text-blue-600 border-b pb-2 mb-4">새 물품 등록</h2>
+        <div ref={formCardRef} className="md:col-span-1 bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-fit">
+          <div className="flex items-center justify-between border-b pb-2 mb-4">
+            <h2 className="text-lg font-bold text-blue-600 flex items-center gap-1.5">
+              <span>{copySourceInfo ? '물품 복사 등록' : '새 물품 등록'}</span>
+            </h2>
+            {copySourceInfo && (
+              <button
+                type="button"
+                onClick={handleResetForm}
+                className="text-xs text-gray-500 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded font-medium flex items-center gap-1 transition-colors"
+                title="입력 내용 초기화"
+              >
+                <RotateCcw size={12} />
+                <span>초기화</span>
+              </button>
+            )}
+          </div>
+
+          {/* 기존 물품 기초로 복사 불러오기 드롭다운 */}
+          <div className="mb-4 bg-indigo-50/70 p-3 rounded-xl border border-indigo-100">
+            <label className="block text-xs font-bold text-indigo-950 mb-1 flex items-center gap-1">
+              <Copy size={13} className="text-indigo-600" />
+              <span>기존 물품 기초로 복사 불러오기</span>
+            </label>
+            <select
+              value={selectedCopySourceId}
+              onChange={e => {
+                const target = items.find(it => it.id === e.target.value)
+                if (target) handleCopyItem(target)
+              }}
+              className="w-full rounded-lg border border-indigo-200 bg-white px-2.5 py-1.5 text-xs text-gray-800 outline-none focus:border-indigo-500 cursor-pointer shadow-2xs font-medium"
+            >
+              <option value="">물품을 선택하여 정보 복사...</option>
+              {items.map(it => (
+                <option key={it.id} value={it.id}>
+                  {it.name}{it.spec ? ` (${it.spec})` : ''} - [위치: {it.locations?.map((l: any) => l.name).join(', ') || '미지정'}]
+                </option>
+              ))}
+            </select>
+            <div className="text-[11px] text-indigo-700/80 mt-1 font-medium">
+              💡 품목명과 위치정보는 그대로 복사되며, CBM은 0으로 초기화됩니다.
+            </div>
+          </div>
+
+          {/* 복사 중 상태 알림 배너 */}
+          {copySourceInfo && (
+            <div className="mb-3.5 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-900 flex items-center justify-between shadow-2xs">
+              <div>
+                <div className="font-bold flex items-center gap-1 text-blue-700">
+                  <Check size={14} className="stroke-[3]" />
+                  <span>복사 대상: {copySourceInfo}</span>
+                </div>
+                <div className="text-[11px] text-blue-600 mt-0.5">
+                  위치는 유지되었습니다. 새로운 규격과 CBM을 입력해주세요.
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleResetForm}
+                className="text-xs text-blue-600 hover:text-blue-800 font-bold ml-2 underline shrink-0"
+              >
+                취소
+              </button>
+            </div>
+          )}
+
           <form onSubmit={handleCreate} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">위치 (다중 선택 가능)</label>
-              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto border border-gray-300 rounded-lg p-2 bg-white">
-                {categories.map(cat => (
-                  <label key={cat.id} className="inline-flex items-center gap-1 bg-gray-50 border border-gray-200 px-2 py-1 rounded text-sm cursor-pointer hover:bg-gray-100">
-                    <input type="checkbox" name="locationCategoryIds" value={cat.id} className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4" />
-                    <span>{cat.name}</span>
-                  </label>
-                ))}
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  위치 (다중 선택 가능)
+                </label>
+                {selectedLocationIds.length > 0 && (
+                  <span className="text-xs font-bold text-blue-600 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200">
+                    {selectedLocationIds.length}개 선택됨
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto border border-gray-300 rounded-lg p-2 bg-white">
+                {categories.map(cat => {
+                  const isChecked = selectedLocationIds.includes(cat.id)
+                  return (
+                    <label 
+                      key={cat.id} 
+                      className={`inline-flex items-center gap-1 border px-2 py-1 rounded text-sm cursor-pointer transition-colors ${
+                        isChecked 
+                          ? 'bg-blue-50 border-blue-300 text-blue-900 font-bold shadow-2xs' 
+                          : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      <input 
+                        type="checkbox" 
+                        name="locationCategoryIds" 
+                        value={cat.id} 
+                        checked={isChecked}
+                        onChange={() => handleToggleLocation(cat.id)}
+                        className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4" 
+                      />
+                      <span>{cat.name}</span>
+                    </label>
+                  )
+                })}
                 {categories.length === 0 && <span className="text-sm text-gray-500">등록된 위치 카테고리가 없습니다.</span>}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">품목</label>
-                <input type="text" name="name" required placeholder="예: 장롱" className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 outline-none focus:border-blue-500" />
+                <label className="block text-sm font-medium text-gray-700">품목명</label>
+                <input 
+                  ref={nameInputRef} 
+                  type="text" 
+                  name="name" 
+                  required 
+                  placeholder="예: 장롱" 
+                  className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 outline-none focus:border-blue-500 text-sm font-bold text-gray-900" 
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">규격 (선택)</label>
-                <input type="text" name="spec" placeholder="예: 12자" className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 outline-none focus:border-blue-500" />
+                <input 
+                  ref={specInputRef} 
+                  type="text" 
+                  name="spec" 
+                  placeholder="예: 12자, 6인용" 
+                  className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 outline-none focus:border-blue-500 text-sm text-gray-800" 
+                />
               </div>
             </div>
             <div>
               <div className="flex justify-between items-center mb-1">
-                <label className="block text-sm font-medium text-gray-700">기본 CBM</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  기본 CBM <span className="text-red-500">*</span>
+                </label>
                 <button 
                   type="button" 
                   onClick={() => setIsCbmCalculatorOpen(true)}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-600 text-xs font-medium rounded hover:bg-blue-100 transition-colors border border-blue-200"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-600 text-xs font-semibold rounded hover:bg-blue-100 transition-colors border border-blue-200"
                 >
                   <Calculator size={13} />
                   CBM 계산기
@@ -225,16 +374,27 @@ export default function ItemsPage() {
                 value={defaultCbmVal}
                 onChange={e => setDefaultCbmVal(e.target.value)}
                 required 
-                placeholder="예: 1.5" 
-                className="block w-full rounded-lg border border-gray-300 px-4 py-2 outline-none focus:border-blue-500" 
+                placeholder="예: 1.5 (복사 시 초기화됨)" 
+                className="block w-full rounded-lg border border-gray-300 px-4 py-2 outline-none focus:border-blue-500 text-sm font-bold text-blue-900" 
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">내품 CBM (선택 - 장농, 서랍장 등 내부 짐 포장 박스용)</label>
-              <input type="number" step="0.01" name="defaultInnerCbm" defaultValue={0} className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 outline-none focus:border-blue-500" />
+              <label className="block text-sm font-medium text-gray-700">내품 CBM (선택 - 장롱 등 내부 짐용)</label>
+              <input 
+                type="number" 
+                step="0.01" 
+                name="defaultInnerCbm" 
+                value={defaultInnerCbmVal}
+                onChange={e => setDefaultInnerCbmVal(e.target.value)}
+                placeholder="0" 
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 outline-none focus:border-blue-500 text-sm text-gray-800" 
+              />
             </div>
-            <button type="submit" className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors">
-              등록하기
+            <button 
+              type="submit" 
+              className="w-full bg-blue-600 text-white px-4 py-2.5 rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-xs active:scale-95"
+            >
+              {copySourceInfo ? '복사 정보로 새 물품 등록' : '등록하기'}
             </button>
           </form>
         </div>
@@ -333,12 +493,31 @@ export default function ItemsPage() {
                         <td className="p-4 text-gray-800 font-medium">{item.spec || '-'}</td>
                         <td className="p-4 text-blue-700 font-bold">{item.defaultCbm}</td>
                         <td className="p-4 text-amber-700 font-bold">{item.defaultInnerCbm > 0 ? `+${item.defaultInnerCbm}` : '-'}</td>
-                        <td className="p-4 text-right flex justify-end gap-1">
-                          <button onClick={() => setEditingId(item.id)} className="text-gray-500 hover:text-blue-600 p-2 rounded-md hover:bg-blue-50 transition-colors">
-                            <Edit2 size={18} />
+                        <td className="p-4 text-right flex justify-end items-center gap-1">
+                          <button 
+                            type="button"
+                            onClick={() => handleCopyItem(item)} 
+                            title="이 물품 정보 복사 (위치 유지, CBM 초기화)" 
+                            className="text-gray-500 hover:text-indigo-600 p-1.5 sm:p-2 rounded-md hover:bg-indigo-50 transition-colors flex items-center gap-1 text-xs font-bold"
+                          >
+                            <Copy size={16} className="text-indigo-600" />
+                            <span className="hidden sm:inline">복사</span>
                           </button>
-                          <button onClick={() => handleDelete(item.id)} className="text-red-500 hover:text-red-700 p-2 rounded-md hover:bg-red-50 transition-colors">
-                            <Trash2 size={18} />
+                          <button 
+                            type="button"
+                            onClick={() => setEditingId(item.id)} 
+                            title="수정"
+                            className="text-gray-500 hover:text-blue-600 p-1.5 sm:p-2 rounded-md hover:bg-blue-50 transition-colors"
+                          >
+                            <Edit2 size={17} />
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={() => handleDelete(item.id)} 
+                            title="삭제"
+                            className="text-red-500 hover:text-red-700 p-1.5 sm:p-2 rounded-md hover:bg-red-50 transition-colors"
+                          >
+                            <Trash2 size={17} />
                           </button>
                         </td>
                       </tr>
