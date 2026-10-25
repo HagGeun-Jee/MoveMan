@@ -133,9 +133,31 @@ export function QuickTouchCbmPanel({
     setShowAddDropdown(false)
   }
 
-  // 고유 품목명 목록 (추가용)
-  const uniqueStandardNames = Array.from(new Set(standardItems.map(i => i.name)))
-    .sort((a, b) => a.localeCompare(b, 'ko'))
+  // 1. 현재 공간에 지정된 품목명 목록 (BOX 최상단 우선, 그 외 가나다순)
+  const matchedNames = Array.from(new Set(
+    standardItems
+      .filter(i => activeCategoryId ? i.locations?.some((l: any) => l.id === activeCategoryId) : (!i.locations || i.locations.length === 0))
+      .map(i => i.name)
+  )).sort((a, b) => {
+    const aBox = isBoxItem(a)
+    const bBox = isBoxItem(b)
+    if (aBox && !bBox) return -1
+    if (!aBox && bBox) return 1
+    return a.localeCompare(b, 'ko')
+  })
+
+  // 2. 그 외 품목 (미지정 / 타 위치 품목) (BOX 최상단 우선, 그 외 가나다순)
+  const otherNames = Array.from(new Set(
+    standardItems
+      .filter(i => !matchedNames.includes(i.name))
+      .map(i => i.name)
+  )).sort((a, b) => {
+    const aBox = isBoxItem(a)
+    const bBox = isBoxItem(b)
+    if (aBox && !bBox) return -1
+    if (!aBox && bBox) return 1
+    return a.localeCompare(b, 'ko')
+  })
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-xs space-y-3 p-3 sm:p-4">
@@ -359,9 +381,20 @@ export function QuickTouchCbmPanel({
                 className="w-full rounded-lg border border-gray-300 bg-white p-1.5 text-xs font-medium text-gray-800 outline-none focus:border-blue-500 cursor-pointer shadow-xs"
               >
                 <option value="">품목 선택...</option>
-                {uniqueStandardNames.map(name => (
-                  <option key={name} value={name}>{name}</option>
-                ))}
+                {matchedNames.length > 0 && (
+                  <optgroup label={`── ${activeCategory?.name || '현재 위치'} 지정 품목 ──`}>
+                    {matchedNames.map(name => (
+                      <option key={name} value={name}>{name}</option>
+                    ))}
+                  </optgroup>
+                )}
+                {otherNames.length > 0 && (
+                  <optgroup label="── 미지정 / 기타 품목 ──">
+                    {otherNames.map(name => (
+                      <option key={name} value={name}>{name}</option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
               <button
                 type="button"

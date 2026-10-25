@@ -2465,7 +2465,7 @@ export function EstimateForm({
                                     // 1. 현재 위치(카테고리)와 일치하는 품목명 목록 (BOX 최상단 우선, 그 외 가나다순 정렬)
                                     const matchedNames = Array.from(new Set(
                                       standardItems
-                                        .filter(i => cat.id && i.locations?.some((l: any) => l.id === cat.id))
+                                        .filter(i => cat.id ? i.locations?.some((l: any) => l.id === cat.id) : (!i.locations || i.locations.length === 0))
                                         .map(i => i.name)
                                     )).sort((a, b) => {
                                       const aBox = isBoxItem(a)
