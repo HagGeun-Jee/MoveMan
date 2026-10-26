@@ -25,7 +25,7 @@ export const ESTIMATE_PRESETS: EstimatePreset[] = [
     name: '원룸 / 1인 가구',
     badge: '소형 (원룸·오피스텔)',
     estimatedCbm: '약 8 ~ 12 CBM',
-    estimatedTonnage: '1톤 ~ 1.5톤',
+    estimatedTonnage: '1톤 1대',
     targetDescription: '원룸, 오피스텔 거주 1인 단독 가구 추천 (비수납 순수 잔짐 반영)',
     color: 'emerald',
     items: [
@@ -46,7 +46,7 @@ export const ESTIMATE_PRESETS: EstimatePreset[] = [
     name: '투룸 / 신혼 (15~20평)',
     badge: '중소형 (15~20평)',
     estimatedCbm: '약 18 ~ 22 CBM',
-    estimatedTonnage: '2.5톤',
+    estimatedTonnage: '2.5톤 1대',
     targetDescription: '신혼부부, 2인 가구, 빌라/투룸 추천 (비수납 순수 잔짐 반영)',
     color: 'blue',
     items: [
@@ -73,7 +73,7 @@ export const ESTIMATE_PRESETS: EstimatePreset[] = [
     name: '아파트 24~26평 (3인 가구)',
     badge: '국민평형 (24평 3인)',
     estimatedCbm: '약 28 ~ 35 CBM',
-    estimatedTonnage: '5톤 1대 (기본)',
+    estimatedTonnage: '5톤 1대',
     targetDescription: '아파트 24~26평, 방3개, 3인 가구 표준 (장농 내품 박스 반영, 순수 잔짐 중복 제거)',
     color: 'indigo',
     items: [
@@ -105,7 +105,7 @@ export const ESTIMATE_PRESETS: EstimatePreset[] = [
     name: '아파트 32~34평 (4인 가구)',
     badge: '대중적 평형 (34평 4인)',
     estimatedCbm: '약 38 ~ 46 CBM',
-    estimatedTonnage: '5톤 1대 + 1톤',
+    estimatedTonnage: '5톤 1대 + 1톤 1대',
     targetDescription: '아파트 32~34평, 방3~4개, 4인 가구 표준 (가구 내품 합산, 비수납 순수 잔짐 반영)',
     color: 'purple',
     items: [
@@ -142,7 +142,7 @@ export const ESTIMATE_PRESETS: EstimatePreset[] = [
     name: '아파트 40평형 이상 대형',
     badge: '대형 평형 (40평 이상)',
     estimatedCbm: '약 52 ~ 65 CBM',
-    estimatedTonnage: '5톤 2대 or 5톤+2.5톤',
+    estimatedTonnage: '5톤 1대 + 2.5톤 1대 (또는 5톤 2대)',
     targetDescription: '아파트 40평형 이상, 방4~5개, 다량 가구 및 짐 (장농 5통 내품 CBM 풀세트, 순수 잔짐 반영)',
     color: 'rose',
     items: [

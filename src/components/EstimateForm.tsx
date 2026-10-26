@@ -702,9 +702,15 @@ export function EstimateForm({
   }
 
   const handleRecommendVehicles = () => {
-    const valid = standardVehicles.filter(v => (v.maxCbm || 0) > 0)
+    // 5톤, 2.5톤, 1톤 3종 차량을 우선 조합 대상으로 필터링
+    let valid = standardVehicles.filter(v => 
+      (v.name.includes('5톤') || v.name.includes('2.5톤') || v.name.includes('1톤')) && (v.maxCbm || 0) > 0
+    )
     if (valid.length === 0) {
-      alert("차량 기초정보에 최대 CBM이 설정된 차량이 없습니다. 차량정보 관리에서 먼저 설정해주세요.")
+      valid = standardVehicles.filter(v => (v.maxCbm || 0) > 0)
+    }
+    if (valid.length === 0) {
+      alert("차량 기초정보에 5톤, 2.5톤, 1톤 차량이 없습니다. 차량정보 관리에서 먼저 설정해주세요.")
       return
     }
     

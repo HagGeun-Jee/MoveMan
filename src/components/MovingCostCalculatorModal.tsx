@@ -36,7 +36,7 @@ export const CBM_TIER_GUIDES: CbmTierGuide[] = [
   {
     id: '1ton',
     name: '소형 / 원룸 이사',
-    tonnage: '1톤 이하',
+    tonnage: '1톤 1대',
     minCbm: 0,
     maxCbm: 6.99,
     recommendedWorkers: '남 1~2명',
@@ -47,7 +47,7 @@ export const CBM_TIER_GUIDES: CbmTierGuide[] = [
   {
     id: '2.5ton',
     name: '투룸 / 소형가구',
-    tonnage: '1.5 ~ 2.5톤',
+    tonnage: '2.5톤 1대',
     minCbm: 7.0,
     maxCbm: 15.99,
     recommendedWorkers: '남 2명 + 여 1명',
@@ -58,7 +58,7 @@ export const CBM_TIER_GUIDES: CbmTierGuide[] = [
   {
     id: '5ton',
     name: '표준 가정 이사',
-    tonnage: '5톤 (메인)',
+    tonnage: '5톤 1대',
     minCbm: 16.0,
     maxCbm: 25.99,
     recommendedWorkers: '남 3명 + 여 1명',
@@ -69,7 +69,7 @@ export const CBM_TIER_GUIDES: CbmTierGuide[] = [
   {
     id: '6ton',
     name: '중대형 이사 (짐 많음)',
-    tonnage: '5톤탑 + 1톤',
+    tonnage: '5톤 1대 + 1톤 1대',
     minCbm: 26.0,
     maxCbm: 30.99,
     recommendedWorkers: '남 4명 + 여 1명',
@@ -80,7 +80,7 @@ export const CBM_TIER_GUIDES: CbmTierGuide[] = [
   {
     id: '7.5ton',
     name: '대형 평형 이사',
-    tonnage: '7.5톤',
+    tonnage: '5톤 1대 + 2.5톤 1대',
     minCbm: 31.0,
     maxCbm: 38.99,
     recommendedWorkers: '남 4~5명 + 여 1명',
@@ -91,7 +91,7 @@ export const CBM_TIER_GUIDES: CbmTierGuide[] = [
   {
     id: '10ton',
     name: '초대형 / 복층 이사',
-    tonnage: '10톤 이상',
+    tonnage: '5톤 2대',
     minCbm: 39.0,
     maxCbm: 999.0,
     recommendedWorkers: '남 5~6명 + 여 2명',
