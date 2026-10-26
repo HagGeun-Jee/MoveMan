@@ -62,6 +62,11 @@ export function CustomDatePicker({
         customInput={<CustomInput required={required} className={className} />}
         placeholderText={placeholderText}
         wrapperClassName="w-full"
+        popperProps={{
+          strategy: 'fixed',
+        }}
+        popperPlacement="bottom-start"
+        popperClassName="z-[99999]"
       />
       <style dangerouslySetInnerHTML={{__html: `
         .custom-datepicker-container .react-datepicker-wrapper {
@@ -69,6 +74,16 @@ export function CustomDatePicker({
         }
         .custom-datepicker-container .react-datepicker__input-container {
           width: 100%;
+        }
+        body .react-datepicker-popper {
+          z-index: 99999 !important;
+        }
+        .react-datepicker {
+          font-family: inherit !important;
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+          border: 1px solid #cbd5e1 !important;
+          border-radius: 0.75rem !important;
+          overflow: hidden !important;
         }
         .son-eob-neun-nal {
           background-color: #fef08a !important;

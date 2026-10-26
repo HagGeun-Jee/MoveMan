@@ -1444,73 +1444,80 @@ export function EstimateForm({
           <div className="flex items-center justify-between border-b pb-2">
             <h2 className="text-base sm:text-lg font-bold text-blue-600">기본 정보</h2>
           </div>
-          <div className="overflow-x-auto -mx-1 sm:mx-0 pb-1">
-            <table className="w-full border-collapse border border-gray-200 text-xs sm:text-sm min-w-0">
-              <tbody>
-                <tr>
-                  <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-2 sm:px-3 py-2 text-left font-medium text-gray-700 w-20 sm:w-24 md:w-28">
-                    고객명 <span className="text-red-500">*</span>
-                  </th>
-                  <td className="border border-gray-200 p-1.5 sm:p-2">
-                    <input 
-                      type="text" 
-                      name="customerName" 
-                      value={customerName} 
-                      onChange={e => setCustomerName(e.target.value)} 
-                      required 
-                      className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 sm:py-2 outline-none focus:border-blue-500 text-xs sm:text-sm" 
-                      placeholder="홍길동" 
-                    />
-                  </td>
-                  <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-2 sm:px-3 py-2 text-left font-medium text-gray-700 w-20 sm:w-24 md:w-28">
-                    연락처 <span className="text-red-500">*</span>
-                  </th>
-                  <td className="border border-gray-200 p-1.5 sm:p-2">
-                    <input 
-                      type="tel" 
-                      name="contact" 
-                      value={contact} 
-                      onChange={e => handlePhoneInputChange(e, setContact)} 
-                      onFocus={handleSelectAllOnFocus}
-                      maxLength={13}
-                      autoComplete="tel"
-                      required 
-                      className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 sm:py-2 outline-none focus:border-blue-500 text-xs sm:text-sm font-medium" 
-                      placeholder="010-0000-0000" 
-                    />
-                  </td>
-                </tr>
-                <tr>
-                  <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-2 sm:px-3 py-2 text-left font-medium text-gray-700 w-20 sm:w-24 md:w-28">
-                    이사 종류 <span className="text-red-500">*</span>
-                  </th>
-                  <td className="border border-gray-200 p-1.5 sm:p-2">
-                    <select 
-                      name="movingType" 
-                      value={movingType} 
-                      onChange={e => setMovingType(e.target.value)} 
-                      className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 sm:py-2 outline-none focus:border-blue-500 bg-white text-xs sm:text-sm"
-                    >
-                      <option value="P">포장이사 (P)</option>
-                      <option value="G">일반이사 (G)</option>
-                      <option value="K">보관이사 (K)</option>
-                    </select>
-                  </td>
-                  <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-2 sm:px-3 py-2 text-left font-medium text-gray-700 w-20 sm:w-24 md:w-28">
-                    접수일자 <span className="text-red-500">*</span>
-                  </th>
-                  <td className="border border-gray-200 p-1.5 sm:p-2">
-                    <CustomDatePicker 
-                      selected={estimateDate} 
-                      onChange={setEstimateDate} 
-                      name="estimateDate" 
-                      required 
-                      className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 sm:py-2 outline-none focus:border-blue-500 text-xs sm:text-sm" 
-                    />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3">
+            {/* 고객명 */}
+            <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden bg-white shadow-2xs focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500">
+              <label className="whitespace-nowrap bg-gray-50 border-r border-gray-200 px-2.5 sm:px-3 py-2 text-left font-medium text-gray-700 w-24 sm:w-28 shrink-0 text-xs sm:text-sm">
+                고객명 <span className="text-red-500">*</span>
+              </label>
+              <div className="flex-1 p-1 sm:p-1.5 min-w-0">
+                <input 
+                  type="text" 
+                  name="customerName" 
+                  value={customerName} 
+                  onChange={e => setCustomerName(e.target.value)} 
+                  required 
+                  className="w-full rounded border border-gray-200 px-2.5 py-1.5 outline-none focus:border-blue-500 text-xs sm:text-sm" 
+                  placeholder="홍길동" 
+                />
+              </div>
+            </div>
+
+            {/* 연락처 */}
+            <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden bg-white shadow-2xs focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500">
+              <label className="whitespace-nowrap bg-gray-50 border-r border-gray-200 px-2.5 sm:px-3 py-2 text-left font-medium text-gray-700 w-24 sm:w-28 shrink-0 text-xs sm:text-sm">
+                연락처 <span className="text-red-500">*</span>
+              </label>
+              <div className="flex-1 p-1 sm:p-1.5 min-w-0">
+                <input 
+                  type="tel" 
+                  name="contact" 
+                  value={contact} 
+                  onChange={e => handlePhoneInputChange(e, setContact)} 
+                  onFocus={handleSelectAllOnFocus}
+                  maxLength={13}
+                  autoComplete="tel"
+                  required 
+                  className="w-full rounded border border-gray-200 px-2.5 py-1.5 outline-none focus:border-blue-500 text-xs sm:text-sm font-medium" 
+                  placeholder="010-0000-0000" 
+                />
+              </div>
+            </div>
+
+            {/* 이사 종류 */}
+            <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden bg-white shadow-2xs focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500">
+              <label className="whitespace-nowrap bg-gray-50 border-r border-gray-200 px-2.5 sm:px-3 py-2 text-left font-medium text-gray-700 w-24 sm:w-28 shrink-0 text-xs sm:text-sm">
+                이사 종류 <span className="text-red-500">*</span>
+              </label>
+              <div className="flex-1 p-1 sm:p-1.5 min-w-0">
+                <select 
+                  name="movingType" 
+                  value={movingType} 
+                  onChange={e => setMovingType(e.target.value)} 
+                  className="w-full rounded border border-gray-200 px-2.5 py-1.5 outline-none focus:border-blue-500 bg-white text-xs sm:text-sm"
+                >
+                  <option value="P">포장이사 (P)</option>
+                  <option value="G">일반이사 (G)</option>
+                  <option value="K">보관이사 (K)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* 접수일자 */}
+            <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden bg-white shadow-2xs focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500">
+              <label className="whitespace-nowrap bg-gray-50 border-r border-gray-200 px-2.5 sm:px-3 py-2 text-left font-medium text-gray-700 w-24 sm:w-28 shrink-0 text-xs sm:text-sm">
+                접수일자 <span className="text-red-500">*</span>
+              </label>
+              <div className="flex-1 p-1 sm:p-1.5 min-w-0">
+                <CustomDatePicker 
+                  selected={estimateDate} 
+                  onChange={setEstimateDate} 
+                  name="estimateDate" 
+                  required 
+                  className="w-full rounded border border-gray-200 px-2.5 py-1.5 outline-none focus:border-blue-500 text-xs sm:text-sm" 
+                />
+              </div>
+            </div>
           </div>
         </div>
 
