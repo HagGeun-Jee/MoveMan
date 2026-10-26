@@ -13,7 +13,7 @@ import DaumPostcodeEmbed from 'react-daum-postcode'
 import { MapPin, Search, ChevronDown, ChevronUp, Navigation, RefreshCw, Car, AlertCircle, CheckCircle2, Calculator, Truck, Plus, FileText, Sparkles, Zap, Smartphone, Table, Trash2 } from 'lucide-react'
 import { CustomDatePicker } from '@/components/CustomDatePicker'
 import { format } from 'date-fns'
-import { formatPhoneNumber, handleSelectAllOnFocus } from '@/lib/format'
+import { formatPhoneNumber, handlePhoneInputChange, handleSelectAllOnFocus } from '@/lib/format'
 import { MovingCostCalculatorModal } from '@/components/MovingCostCalculatorModal'
 import { AiCbmEstimateModal, type AiIdentifiedItem } from '@/components/AiCbmEstimateModal'
 import { EstimatePresetModal } from '@/components/EstimatePresetModal'
@@ -1470,10 +1470,12 @@ export function EstimateForm({
                       type="tel" 
                       name="contact" 
                       value={contact} 
-                      onChange={e => setContact(formatPhoneNumber(e.target.value))} 
+                      onChange={e => handlePhoneInputChange(e, setContact)} 
                       onFocus={handleSelectAllOnFocus}
+                      maxLength={13}
+                      autoComplete="tel"
                       required 
-                      className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 sm:py-2 outline-none focus:border-blue-500 text-xs sm:text-sm" 
+                      className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 sm:py-2 outline-none focus:border-blue-500 text-xs sm:text-sm font-medium" 
                       placeholder="010-0000-0000" 
                     />
                   </td>

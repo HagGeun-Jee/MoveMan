@@ -31,11 +31,68 @@ export function formatPhoneNumber(value: string | null | undefined): string {
     return `${clean.slice(0, 4)}-${clean.slice(4, 7)}-${clean.slice(7, 11)}`
   }
 
-  // 일반 휴대폰 (010, 011...) 및 일반 지역번호 (031, 032, 051... 070...)
+  // 휴대폰 번호 (010, 011, 016, 017, 018, 019 등)
+  // 특히 010은 100% 11자리 번호이므로, 8자리 이상 입력 시 항상 가운데 4자리를 고정(010-XXXX-X...)하여
+  // 10자리(3-3-4) -> 11자리(3-4-4) 전환 시 하이픈이 춤추며 숫자 순서가 뒤바뀌는 버그를 원천 차단합니다.
+  if (/^01[016789]/.test(clean)) {
+    if (clean.length <= 3) return clean
+    if (clean.length <= 7) return `${clean.slice(0, 3)}-${clean.slice(3)}`
+    return `${clean.slice(0, 3)}-${clean.slice(3, 7)}-${clean.slice(7, 11)}`
+  }
+
+  // 일반 지역번호 (031, 032, 051... 070...)
   if (clean.length <= 3) return clean
   if (clean.length <= 6) return `${clean.slice(0, 3)}-${clean.slice(3)}`
   if (clean.length <= 10) return `${clean.slice(0, 3)}-${clean.slice(3, 6)}-${clean.slice(6)}`
   return `${clean.slice(0, 3)}-${clean.slice(3, 7)}-${clean.slice(7, 11)}`
+}
+
+/**
+ * 전화번호 입력 시 하이픈(-) 자동 삽입과 함께 커서(Caret) 위치가 튀거나
+ * 숫자가 뒤바뀌는 현상을 방지하는 정밀 입력 핸들러
+ */
+export function handlePhoneInputChange(
+  e: React.ChangeEvent<HTMLInputElement>,
+  setter: (val: string) => void
+) {
+  const input = e.target
+  const rawValue = input.value
+  const selectionStart = input.selectionStart || 0
+
+  // 1. 커서 직전까지의 순수 숫자 개수 카운트
+  const digitsBeforeCursor = rawValue.slice(0, selectionStart).replace(/[^0-9]/g, '').length
+
+  // 2. 포맷팅 적용 (최대 11자리)
+  const formatted = formatPhoneNumber(rawValue)
+  setter(formatted)
+
+  // 3. 브라우저/모바일 IME 렌더링 직후 커서 위치를 정확한 숫자 뒤로 복원
+  requestAnimationFrame(() => {
+    if (!input) return
+    let digitCount = 0
+    let targetPos = 0
+
+    if (digitsBeforeCursor === 0) {
+      targetPos = 0
+    } else {
+      for (let i = 0; i < formatted.length; i++) {
+        if (/[0-9]/.test(formatted[i])) {
+          digitCount++
+        }
+        if (digitCount === digitsBeforeCursor) {
+          targetPos = i + 1
+          break
+        }
+      }
+      if (digitCount < digitsBeforeCursor) {
+        targetPos = formatted.length
+      }
+    }
+
+    try {
+      input.setSelectionRange(targetPos, targetPos)
+    } catch (_) {}
+  })
 }
 
 /**
