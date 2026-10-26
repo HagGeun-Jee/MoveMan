@@ -797,45 +797,46 @@ export function EstimateForm({
       return
     }
 
-    const cbm = requiredCbm
+    // 인원 산출 기준: 적재 대상 순수 물품 CBM (totalCbm)
+    const cbm = totalCbm
     if (cbm <= 0) {
       setLabors([])
-      setLaborRecommendationReason('물품 CBM이 0이므로 작업 인원이 초기화되었습니다.')
+      setLaborRecommendationReason('적재 물품 CBM이 0이므로 작업 인원이 초기화되었습니다.')
       return
     }
 
-    // 1. 기본 인원 산출 (CBM 및 이사종류 기준)
+    // 1. 기본 인원 산출 (적재 CBM 및 이사종류 기준 표준 매칭)
     const isPacking = movingType === 'P' || (movingType === 'K' && organizeStatus === '정리')
     let baseMale = 0
     let baseFemale = 0
 
-    if (cbm < 6) {
-      // 1톤 이하 원룸/소형
+    if (cbm < 6.0) {
+      // 1톤 1대 (원룸 / 소형)
       baseMale = 1
       baseFemale = 0
-    } else if (cbm < 14) {
-      // 1톤~1.5톤
+    } else if (cbm < 14.0) {
+      // 2.5톤 1대 (투룸 / 신혼)
       baseMale = 2
       baseFemale = isPacking ? 1 : 0
-    } else if (cbm < 24) {
-      // 2.5톤 내외
-      baseMale = 2
-      baseFemale = isPacking ? 1 : 0
-    } else if (cbm < 35) {
-      // 5톤 표준 (20~30평대 아파트)
+    } else if (cbm < 26.0) {
+      // 5톤 1대 (20~28평형 표준 가정)
       baseMale = 3
       baseFemale = isPacking ? 1 : 0
-    } else if (cbm < 48) {
-      // 6톤~7.5톤
+    } else if (cbm < 32.0) {
+      // 5톤 1대 + 1톤 1대 (32~34평형)
       baseMale = 4
       baseFemale = isPacking ? 1 : 0
-    } else if (cbm < 65) {
-      // 8톤~10톤 대형
+    } else if (cbm < 40.0) {
+      // 5톤 1대 + 2.5톤 1대 (34평 짐 많음 / 40평형)
+      baseMale = 4
+      baseFemale = isPacking ? 1 : 0
+    } else if (cbm < 52.0) {
+      // 5톤 2대 (40평형 이상 대형)
       baseMale = 5
       baseFemale = isPacking ? 2 : 1
     } else {
-      // 10톤 초과
-      baseMale = 5 + Math.ceil((cbm - 65) / 15)
+      // 5톤 2대 초과 초대형
+      baseMale = 5 + Math.ceil((cbm - 52.0) / 15)
       baseFemale = isPacking ? 2 : 1
     }
 
@@ -916,9 +917,9 @@ export function EstimateForm({
     setLabors(recommended)
 
     const moveTypeName = movingType === 'P' ? '포장이사' : movingType === 'G' ? '일반이사' : '보관이사'
-    let reasonText = `${moveTypeName} ${cbm.toFixed(1)} CBM 기준 남성 ${baseMale}명${baseFemale > 0 ? `, 여성 ${baseFemale}명` : ''}`
+    let reasonText = `${moveTypeName} 적재 물량 ${cbm.toFixed(1)} CBM 기준 기본 남성 ${baseMale}명${baseFemale > 0 ? `, 여성 ${baseFemale}명` : ''}`
     if (reasons.length > 0) {
-      reasonText += ` (환경: ${reasons.join(', ')})`
+      reasonText += ` (환경 가산: ${reasons.join(', ')})`
     }
     reasonText += ` → 총 ${totalMale + totalFemale}명(남 ${totalMale}, 여 ${totalFemale}) 추천 완료`
     setLaborRecommendationReason(reasonText)

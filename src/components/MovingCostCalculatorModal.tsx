@@ -38,8 +38,8 @@ export const CBM_TIER_GUIDES: CbmTierGuide[] = [
     name: '소형 / 원룸 이사',
     tonnage: '1톤 1대',
     minCbm: 0,
-    maxCbm: 6.99,
-    recommendedWorkers: '남 1~2명',
+    maxCbm: 5.99,
+    recommendedWorkers: '남 1명',
     guidePriceRange: '400,000 ~ 550,000원',
     defaultPrice: 450000,
     description: '원룸, 오피스텔 및 소형 짐'
@@ -48,8 +48,8 @@ export const CBM_TIER_GUIDES: CbmTierGuide[] = [
     id: '2.5ton',
     name: '투룸 / 소형가구',
     tonnage: '2.5톤 1대',
-    minCbm: 7.0,
-    maxCbm: 15.99,
+    minCbm: 6.0,
+    maxCbm: 13.99,
     recommendedWorkers: '남 2명 + 여 1명',
     guidePriceRange: '700,000 ~ 900,000원',
     defaultPrice: 800000,
@@ -59,45 +59,45 @@ export const CBM_TIER_GUIDES: CbmTierGuide[] = [
     id: '5ton',
     name: '표준 가정 이사',
     tonnage: '5톤 1대',
-    minCbm: 16.0,
+    minCbm: 14.0,
     maxCbm: 25.99,
     recommendedWorkers: '남 3명 + 여 1명',
     guidePriceRange: '1,100,000 ~ 1,300,000원',
     defaultPrice: 1200000,
-    description: '25 ~ 32평형 일반 가정집'
+    description: '20 ~ 28평형 표준 가정집'
   },
   {
     id: '6ton',
     name: '중대형 이사 (짐 많음)',
     tonnage: '5톤 1대 + 1톤 1대',
     minCbm: 26.0,
-    maxCbm: 30.99,
+    maxCbm: 31.99,
     recommendedWorkers: '남 4명 + 여 1명',
     guidePriceRange: '1,400,000 ~ 1,600,000원',
     defaultPrice: 1500000,
-    description: '32 ~ 38평형 짐이 많은 세대'
+    description: '32 ~ 34평형 표준 세대'
   },
   {
     id: '7.5ton',
     name: '대형 평형 이사',
     tonnage: '5톤 1대 + 2.5톤 1대',
-    minCbm: 31.0,
-    maxCbm: 38.99,
+    minCbm: 32.0,
+    maxCbm: 39.99,
     recommendedWorkers: '남 4~5명 + 여 1명',
     guidePriceRange: '1,700,000 ~ 2,000,000원',
     defaultPrice: 1850000,
-    description: '40평형대 이상 가구/짐 다수'
+    description: '34평 짐 많음 / 40평형대 세대'
   },
   {
     id: '10ton',
     name: '초대형 / 복층 이사',
     tonnage: '5톤 2대',
-    minCbm: 39.0,
+    minCbm: 40.0,
     maxCbm: 999.0,
     recommendedWorkers: '남 5~6명 + 여 2명',
     guidePriceRange: '2,200,000 ~ 2,600,000원~',
     defaultPrice: 2400000,
-    description: '50평형 이상 대형 주택 및 복층'
+    description: '45평형 이상 대형 주택 및 복층'
   }
 ]
 
