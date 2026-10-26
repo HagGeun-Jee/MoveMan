@@ -3199,7 +3199,7 @@ export function EstimateForm({
         <MovingCostCalculatorModal
           isOpen={isCostModalOpen}
           onClose={() => setIsCostModalOpen(false)}
-          currentCbm={requiredCbm > 0 ? requiredCbm : totalCbm}
+          currentCbm={totalCbm}
           movingDate={movingDate}
           currentMovingCost={movingCost}
           onApply={(calculatedCost) => {
