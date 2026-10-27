@@ -112,6 +112,26 @@ model LadderTruckMaster {
   updatedAt   DateTime @updatedAt
 }
 
+// 4. 원가 기준정보 마스터 (운전자수당, 장거리인건비, 식대, 유류비, 테이프단가, 목표마진율)
+model CostStandardMaster {
+  id                          String   @id @default("default_cost_standard")
+  driverAllowance             Int      @default(20000) // 운전자 추가 수당 (차량당 20,000원)
+  baseDistanceKm              Int      @default(40)    // 장거리 기준거리 (40km)
+  distanceStepKm              Int      @default(40)    // 장거리 초과 단위거리 (40km)
+  distanceAllowancePerPerson  Int      @default(10000) // 초과 단위당 1인당 추가 수당 (10,000원)
+  mealCostPerPerson           Int      @default(12000) // 작업원 1인당 식대 (12,000원)
+  fuelCostPerKm5Ton           Int      @default(500)   // 5톤 탑차 km당 유류비 (500원)
+  fuelCostPerKm2_5Ton         Int      @default(350)   // 2.5톤 탑차 km당 유류비 (350원)
+  fuelCostPerKm1Ton           Int      @default(250)   // 1톤 탑차 km당 유류비 (250원)
+  tapeUnitPrice               Int      @default(2000)  // OPP 테이프 롤당 단가 (2,000원)
+  tapeRolls1Ton               Int      @default(3)     // 1톤 권장 롤수 (3롤)
+  tapeRolls2_5Ton             Int      @default(5)     // 2.5톤 권장 롤수 (5롤)
+  tapeRolls5Ton               Int      @default(8)     // 5톤 권장 롤수 (8롤)
+  defaultMarginRate           Float    @default(20.0)  // 기본 목표 마진율 (20.0%)
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+}
+
 // ==================== 자재 재고관리 모델 ====================
 
 // 1. 자재 품목 마스터

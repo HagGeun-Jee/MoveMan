@@ -17,7 +17,8 @@ import {
   PlusCircle,
   KeyRound,
   Boxes,
-  Smartphone
+  Smartphone,
+  Coins
 } from 'lucide-react'
 import { ChangePasswordModal } from './ChangePasswordModal'
 import { APP_RELEASE_INFO } from '@/lib/appRelease'
@@ -319,6 +320,12 @@ export function Sidebar({
                     <span>자재재고관리</span>
                   </Link>
                 )}
+                {canAccess('/cost-standards') && (
+                  <Link href="/cost-standards" onClick={() => setMobileOpen(false)} className={mobileLinkClass(isActive('/cost-standards'))}>
+                    <Coins size={18} className="shrink-0 text-amber-600" />
+                    <span>원가기준정보</span>
+                  </Link>
+                )}
               </div>
 
             </nav>
@@ -510,6 +517,14 @@ export function Sidebar({
                 <Link href="/inventory" className={subLinkClass(isActive('/inventory'))} title="자재재고관리">
                   <Boxes size={18} className="shrink-0 text-blue-600" />
                   {!collapsed && <span>자재재고관리</span>}
+                </Link>
+              </li>
+            )}
+            {canAccess('/cost-standards') && (
+              <li>
+                <Link href="/cost-standards" className={subLinkClass(isActive('/cost-standards'))} title="원가기준정보">
+                  <Coins size={18} className="shrink-0 text-amber-600" />
+                  {!collapsed && <span>원가기준정보</span>}
                 </Link>
               </li>
             )}

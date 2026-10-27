@@ -89,17 +89,18 @@ export async function createEstimate(formData: FormData) {
     distance: formData.get('distance') ? parseFloat(formData.get('distance') as string) : (Number(parsedEnv.distance) || 0),
     distanceDuration: (formData.get('distanceDuration') as string) || parsedEnv.distanceDuration || '',
     distanceDetail: (formData.get('distanceDetail') as string) || parsedEnv.distanceDetail || '',
-    baseDistanceKm: formData.get('baseDistanceKm') ? parseFloat(formData.get('baseDistanceKm') as string) : (Number(parsedEnv.baseDistanceKm) || 30),
+    baseDistanceKm: formData.get('baseDistanceKm') ? parseFloat(formData.get('baseDistanceKm') as string) : (Number(parsedEnv.baseDistanceKm) || 40),
     ratePerKm: formData.get('ratePerKm') ? parseInt(formData.get('ratePerKm') as string, 10) : (Number(parsedEnv.ratePerKm) || 2000),
+    tollFare: formData.get('tollFare') ? parseInt(formData.get('tollFare') as string, 10) : (Number(parsedEnv.tollFare) || 0),
     extraDistanceKm: (() => {
       const dist = formData.get('distance') ? parseFloat(formData.get('distance') as string) : (Number(parsedEnv.distance) || 0)
-      const base = formData.get('baseDistanceKm') ? parseFloat(formData.get('baseDistanceKm') as string) : (Number(parsedEnv.baseDistanceKm) || 30)
+      const base = formData.get('baseDistanceKm') ? parseFloat(formData.get('baseDistanceKm') as string) : (Number(parsedEnv.baseDistanceKm) || 40)
       const raw = formData.get('extraDistanceKm') ? parseFloat(formData.get('extraDistanceKm') as string) : (Number(parsedEnv.extraDistanceKm) || 0)
       return raw > 0 ? raw : Math.max(0, Math.round((dist - base) * 10) / 10)
     })(),
     distanceExtraCost: (() => {
       const dist = formData.get('distance') ? parseFloat(formData.get('distance') as string) : (Number(parsedEnv.distance) || 0)
-      const base = formData.get('baseDistanceKm') ? parseFloat(formData.get('baseDistanceKm') as string) : (Number(parsedEnv.baseDistanceKm) || 30)
+      const base = formData.get('baseDistanceKm') ? parseFloat(formData.get('baseDistanceKm') as string) : (Number(parsedEnv.baseDistanceKm) || 40)
       const rate = formData.get('ratePerKm') ? parseInt(formData.get('ratePerKm') as string, 10) : (Number(parsedEnv.ratePerKm) || 2000)
       const rawCost = formData.get('distanceExtraCost') ? parseInt(formData.get('distanceExtraCost') as string, 10) : (Number(parsedEnv.distanceExtraCost) || 0)
       if (rawCost > 0) return rawCost
@@ -204,17 +205,18 @@ export async function updateEstimate(formData: FormData) {
     distance: formData.get('distance') ? parseFloat(formData.get('distance') as string) : (Number(parsedEnv.distance) || 0),
     distanceDuration: (formData.get('distanceDuration') as string) || parsedEnv.distanceDuration || '',
     distanceDetail: (formData.get('distanceDetail') as string) || parsedEnv.distanceDetail || '',
-    baseDistanceKm: formData.get('baseDistanceKm') ? parseFloat(formData.get('baseDistanceKm') as string) : (Number(parsedEnv.baseDistanceKm) || 30),
+    baseDistanceKm: formData.get('baseDistanceKm') ? parseFloat(formData.get('baseDistanceKm') as string) : (Number(parsedEnv.baseDistanceKm) || 40),
     ratePerKm: formData.get('ratePerKm') ? parseInt(formData.get('ratePerKm') as string, 10) : (Number(parsedEnv.ratePerKm) || 2000),
+    tollFare: formData.get('tollFare') ? parseInt(formData.get('tollFare') as string, 10) : (Number(parsedEnv.tollFare) || 0),
     extraDistanceKm: (() => {
       const dist = formData.get('distance') ? parseFloat(formData.get('distance') as string) : (Number(parsedEnv.distance) || 0)
-      const base = formData.get('baseDistanceKm') ? parseFloat(formData.get('baseDistanceKm') as string) : (Number(parsedEnv.baseDistanceKm) || 30)
+      const base = formData.get('baseDistanceKm') ? parseFloat(formData.get('baseDistanceKm') as string) : (Number(parsedEnv.baseDistanceKm) || 40)
       const raw = formData.get('extraDistanceKm') ? parseFloat(formData.get('extraDistanceKm') as string) : (Number(parsedEnv.extraDistanceKm) || 0)
       return raw > 0 ? raw : Math.max(0, Math.round((dist - base) * 10) / 10)
     })(),
     distanceExtraCost: (() => {
       const dist = formData.get('distance') ? parseFloat(formData.get('distance') as string) : (Number(parsedEnv.distance) || 0)
-      const base = formData.get('baseDistanceKm') ? parseFloat(formData.get('baseDistanceKm') as string) : (Number(parsedEnv.baseDistanceKm) || 30)
+      const base = formData.get('baseDistanceKm') ? parseFloat(formData.get('baseDistanceKm') as string) : (Number(parsedEnv.baseDistanceKm) || 40)
       const rate = formData.get('ratePerKm') ? parseInt(formData.get('ratePerKm') as string, 10) : (Number(parsedEnv.ratePerKm) || 2000)
       const rawCost = formData.get('distanceExtraCost') ? parseInt(formData.get('distanceExtraCost') as string, 10) : (Number(parsedEnv.distanceExtraCost) || 0)
       if (rawCost > 0) return rawCost

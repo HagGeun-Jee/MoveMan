@@ -10,11 +10,13 @@ import { getDistance } from '@/app/actions/distance'
 import { getLadderFares } from '@/app/actions/ladder'
 import type { LadderFareItem } from '@/types/ladder'
 import DaumPostcodeEmbed from 'react-daum-postcode'
-import { MapPin, Search, ChevronDown, ChevronUp, Navigation, RefreshCw, Car, AlertCircle, CheckCircle2, Calculator, Truck, Plus, FileText, Sparkles, Zap, Smartphone, Table, Trash2 } from 'lucide-react'
+import { MapPin, Search, ChevronDown, ChevronUp, Navigation, RefreshCw, Car, AlertCircle, CheckCircle2, Calculator, Truck, Plus, FileText, Sparkles, Zap, Smartphone, Table, Trash2, Coins, CreditCard } from 'lucide-react'
 import { CustomDatePicker } from '@/components/CustomDatePicker'
 import { format } from 'date-fns'
 import { formatPhoneNumber, handlePhoneInputChange, handleSelectAllOnFocus } from '@/lib/format'
 import { MovingCostCalculatorModal } from '@/components/MovingCostCalculatorModal'
+import { CostCalculatorModal } from '@/components/CostCalculatorModal'
+import { getCostStandards, CostStandardData } from '@/app/actions/costStandards'
 import { AiCbmEstimateModal, type AiIdentifiedItem } from '@/components/AiCbmEstimateModal'
 import { EstimatePresetModal } from '@/components/EstimatePresetModal'
 import { QuickTouchCbmPanel } from '@/components/QuickTouchCbmPanel'
@@ -121,11 +123,13 @@ const safeJsonParse = (str: any, fallback: any = {}): any => {
 export function EstimateForm({ 
   initialData, 
   action, 
-  title = "새 견적 작성" 
+  title = "새 견적 작성",
+  costStandards: initialCostStandards
 }: { 
   initialData?: any, 
   action: (formData: FormData) => Promise<void>,
-  title?: string
+  title?: string,
+  costStandards?: CostStandardData
 }) {
   const envObj = safeJsonParse(initialData?.environment, {})
   const payPlanObj = safeJsonParse(initialData?.paymentPlan, {})
@@ -140,6 +144,15 @@ export function EstimateForm({
 
   const [movingCost, setMovingCost] = useState(initialData?.movingCost || 0)
   const [isCostModalOpen, setIsCostModalOpen] = useState(false)
+  const [isCostCalculatorModalOpen, setIsCostCalculatorModalOpen] = useState(false)
+  const [costStandardsData, setCostStandardsData] = useState<CostStandardData | undefined>(initialCostStandards)
+
+  useEffect(() => {
+    if (!initialCostStandards) {
+      getCostStandards().then(data => setCostStandardsData(data)).catch(() => {})
+    }
+  }, [initialCostStandards])
+
   const [additionalCost, setAdditionalCost] = useState(initialData?.additionalCost || 0)
   const [storageCost, setStorageCost] = useState(initialData?.storageCost || 0)
   const [vat, setVat] = useState(initialData?.vat || 0)
@@ -301,9 +314,10 @@ export function EstimateForm({
     }
   }
 
-  // 거리 초과 운임 계산 설정 (기본거리 30km, km당 2,000원)
-  const [baseDistanceKm, setBaseDistanceKm] = useState<number>(Number(envObj.baseDistanceKm) || 30)
+  // 거리 초과 운임 계산 설정 (기본거리 40km, km당 2,000원)
+  const [baseDistanceKm, setBaseDistanceKm] = useState<number>(Number(envObj.baseDistanceKm) || 40)
   const [ratePerKm, setRatePerKm] = useState<number>(Number(envObj.ratePerKm) || 2000)
+  const [tollFare, setTollFare] = useState<number>(Number(envObj.tollFare) || 0)
 
   // 특기사항 (내용이 없으면 조회/출력 시 숨김)
   const [specialNotes, setSpecialNotes] = useState<string>(envObj.specialNotes || '')
@@ -324,8 +338,11 @@ export function EstimateForm({
         setDistance(res.distanceKm)
         setDistanceDuration(res.durationText)
         setDistanceDetail(res.summary)
-        setDistanceNotice(`거리 계산 완료: ${res.distanceKm}km (${res.durationText})`)
-        setTimeout(() => setDistanceNotice(null), 4000)
+        const fare = res.tollFare !== undefined ? res.tollFare : 0
+        setTollFare(fare)
+        const tollText = fare > 0 ? `, 편도 통행료: ${fare.toLocaleString()}원 (왕복: ${(fare * 2).toLocaleString()}원)` : ''
+        setDistanceNotice(`거리 계산 완료: ${res.distanceKm}km (${res.durationText})${tollText}`)
+        setTimeout(() => setDistanceNotice(null), 5000)
       } else {
         setDistanceCalcError(res.error || '거리 계산에 실패했습니다. 거리를 직접 입력해주세요.')
       }
@@ -996,6 +1013,8 @@ export function EstimateForm({
 
           if (draft.baseDistanceKm !== undefined) setBaseDistanceKm(draft.baseDistanceKm)
           if (draft.ratePerKm !== undefined) setRatePerKm(draft.ratePerKm)
+          if (draft.tollFare !== undefined) setTollFare(draft.tollFare)
+          else if (envObj.tollFare !== undefined) setTollFare(Number(envObj.tollFare))
           if (typeof draft.specialNotes === 'string') setSpecialNotes(draft.specialNotes)
           
           if (draft.ladderTonnage) setLadderTonnage(draft.ladderTonnage)
@@ -1208,6 +1227,7 @@ export function EstimateForm({
           distanceDetail,
           baseDistanceKm,
           ratePerKm,
+          tollFare,
           specialNotes,
           ladderTonnage,
           appliedLadderCost,
@@ -1261,6 +1281,7 @@ export function EstimateForm({
     distanceDetail,
     baseDistanceKm,
     ratePerKm,
+    tollFare,
     specialNotes,
     ladderTonnage,
     appliedLadderCost,
@@ -1301,6 +1322,7 @@ export function EstimateForm({
     distanceDetail,
     baseDistanceKm,
     ratePerKm,
+    tollFare,
     extraDistanceKm,
     distanceExtraCost: calculatedExtraCost,
     ladderTonnage,
@@ -2022,6 +2044,17 @@ export function EstimateForm({
                         </div>
                       )}
 
+                      {/* 고속도로 통행료 배지 */}
+                      {tollFare > 0 && (
+                        <div className="flex items-center gap-1.5 text-xs text-indigo-800 bg-indigo-50/90 px-2.5 py-1 rounded-md border border-indigo-200/80">
+                          <CreditCard size={12} className="text-indigo-600 shrink-0" />
+                          <span className="font-medium text-gray-700">고속도로 통행료:</span>
+                          <span className="font-bold text-indigo-900">편도 {tollFare.toLocaleString()}원</span>
+                          <span className="text-gray-300">|</span>
+                          <span className="text-gray-700">대당 왕복: <strong className="font-bold text-indigo-900">{(tollFare * 2).toLocaleString()}원</strong></span>
+                        </div>
+                      )}
+
                       {/* 2. 견적금액 연동: 거리 가산 요금 산출 보조 섹션 */}
                       <div className="mt-1.5 pt-2 border-t border-dashed border-gray-200 bg-gray-50/70 p-2 sm:p-2.5 rounded-lg space-y-1.5">
                         <div className="flex flex-wrap items-center justify-between gap-1.5">
@@ -2135,6 +2168,7 @@ export function EstimateForm({
           <input type="hidden" name="ladderFromCost" value={fromLadderCalc.cost} />
           <input type="hidden" name="ladderToCost" value={toLadderCalc.cost} />
           <input type="hidden" name="ladderTotalCost" value={totalLadderCost} />
+          <input type="hidden" name="tollFare" value={tollFare} />
           <input type="hidden" name="environment" value={currentEnvironmentStr} />
         </div>
 
@@ -2946,19 +2980,40 @@ export function EstimateForm({
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap">기본 이사 비용</label>
-                <button
-                  type="button"
-                  onClick={handleOpenCostModal}
-                  className={`text-[11px] font-bold flex items-center gap-0.5 ${
-                    isPastMovingDate 
-                      ? 'text-gray-400 cursor-not-allowed' 
-                      : 'text-blue-600 hover:text-blue-800 hover:underline'
-                  }`}
-                  title={isPastMovingDate ? "이사날짜가 경과하여 산출이 불가합니다." : "산출 팝업"}
-                >
-                  <Calculator size={11} />
-                  <span>산출</span>
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isPastMovingDate) {
+                        alert('이사날짜가 오늘 이전으로 이미 경과한 견적서는 이사비용을 재산출할 수 없습니다.')
+                        return
+                      }
+                      setIsCostCalculatorModalOpen(true)
+                    }}
+                    className={`text-[11px] font-bold flex items-center gap-0.5 px-1.5 py-0.5 rounded shadow-2xs border transition-colors ${
+                      isPastMovingDate 
+                        ? 'text-gray-400 bg-gray-50 border-gray-200 cursor-not-allowed' 
+                        : 'text-amber-800 bg-amber-50 hover:bg-amber-100 border-amber-300 active:scale-95'
+                    }`}
+                    title={isPastMovingDate ? "이사날짜가 경과하여 산출이 불가합니다." : "원가 기반 비용 산출 시뮬레이터"}
+                  >
+                    <Coins size={11} className={isPastMovingDate ? 'text-gray-400' : 'text-amber-600'} />
+                    <span>원가산출</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleOpenCostModal}
+                    className={`text-[11px] font-bold flex items-center gap-0.5 ${
+                      isPastMovingDate 
+                        ? 'text-gray-400 cursor-not-allowed' 
+                        : 'text-blue-600 hover:text-blue-800 hover:underline'
+                    }`}
+                    title={isPastMovingDate ? "이사날짜가 경과하여 산출이 불가합니다." : "CBM 기준 운임 가이드 산출"}
+                  >
+                    <Calculator size={11} />
+                    <span>산출</span>
+                  </button>
+                </div>
               </div>
               <NumberInput name="movingCost" value={movingCost} onChange={v => { setMovingCost(v); setIsCostEdited(true); }} className="block w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs sm:text-sm text-right outline-none focus:border-blue-500 font-semibold" />
             </div>
@@ -3213,6 +3268,33 @@ export function EstimateForm({
             const newBalance = Math.max(0, newTarget - downPayment - intermediatePayment)
             setBalance(newBalance)
             alert(`산출된 이사비용 (${calculatedCost.toLocaleString()}원)이 기본 이사 비용에 반영되었습니다!\n(총 공급대가: ${newTotal.toLocaleString()}원 / 잔금: ${newBalance.toLocaleString()}원)`)
+          }}
+        />
+      )}
+
+      {/* 원가 기반 이사비용 산출 시뮬레이터 모달 */}
+      {isCostCalculatorModalOpen && (
+        <CostCalculatorModal
+          isOpen={isCostCalculatorModalOpen}
+          onClose={() => setIsCostCalculatorModalOpen(false)}
+          distanceKm={distance}
+          tollFare={tollFare}
+          movingType={movingType}
+          menCount={labors.find(l => l.name.includes('남') || l.name.includes('팀장'))?.count || 3}
+          womenCount={labors.find(l => l.name.includes('여') || l.name.includes('도우미'))?.count || 1}
+          vehicles={vehicles}
+          ladderTotalCost={totalLadderCost}
+          costStandards={costStandardsData}
+          onApply={(calculatedCost) => {
+            setMovingCost(calculatedCost)
+            setIsCostEdited(true)
+            const newSupply = calculatedCost + additionalCost + storageCost
+            const newVat = Math.floor(newSupply * 0.1)
+            const newTotal = newSupply + newVat
+            const newTarget = paymentTarget === 'supply' ? newSupply : newTotal
+            const newBalance = Math.max(0, newTarget - downPayment - intermediatePayment)
+            setBalance(newBalance)
+            alert(`원가 기반 산출 이사비용 (${calculatedCost.toLocaleString()}원)이 기본 이사 비용에 반영되었습니다!\n(총 공급대가: ${newTotal.toLocaleString()}원 / 잔금: ${newBalance.toLocaleString()}원)`)
           }}
         />
       )}
