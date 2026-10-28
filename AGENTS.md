@@ -678,9 +678,12 @@
      - 사이드바(모바일/데스크톱)에서 `/labors` 링크를 제거하고 `/cost-standards`로 단일화.
      - `/labors` 직접 접속 시 `/cost-standards`로 자동 리다이렉트 처리.
      - 사용자 권한 설정 메뉴 목록에서 `인건비정보`를 `원가기준정보`로 전환.
+   - **Prisma 싱글톤 갱신 및 널 세이프티 방어 ([prisma.ts](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/lib/prisma.ts), [costStandards.ts](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/app/actions/costStandards.ts))**:
+     - 로컬 dev 서버 장시간 실행 시 메모리에 캐시된 구버전 PrismaClient 인스턴스를 감지하여 최신 모델(`costStandardMaster`)이 없으면 자동으로 재인스턴스화하여 갱신.
+     - `getCostStandards` / `updateCostStandards`에서 모델 프로퍼티 존재 여부 및 `upsert` 함수 유효성을 사전에 검증하여 `undefined (reading 'upsert')` 에러를 원천 차단.
 3. **검증 및 배포**:
    - `npx next build` 로컬 프로덕션 컴파일 및 최적화 정상 통과 (Exit Code 0).
-   - 사용자 배포 승인 완료 후 GitHub `main` 푸시 및 Render 자동 무중단 배포 진행.
+   - 사용자 배포 승인 완료 후 GitHub `main` 푸시(`ad515b6`) 및 Render 자동 무중단 배포 진행.
 
 
 
