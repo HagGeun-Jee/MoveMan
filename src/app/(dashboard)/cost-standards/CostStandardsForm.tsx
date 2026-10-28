@@ -322,7 +322,7 @@ export default function CostStandardsForm({ initialData }: Props) {
             </div>
             <div>
               <h2 className="text-base font-bold text-gray-900">3. 차종별 유류비 단가 기준 (km당)</h2>
-              <p className="text-xs text-gray-500">실제 주행거리(편도)에 곱해질 km당 유류비 단가</p>
+              <p className="text-xs text-gray-500">차량 회송을 고려한 실제 왕복 주행거리(편도 × 2)에 곱해질 km당 유류비 단가</p>
             </div>
           </div>
         </div>

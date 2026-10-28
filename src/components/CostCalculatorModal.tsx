@@ -213,10 +213,11 @@ export function CostCalculatorModal({
     setDistanceRatePerPerson(standards.distanceAllowancePerPerson)
     setMealRate(standards.mealCostPerPerson)
 
-    // 유류비 (편도 거리 x km단가 x 대수)
-    const f5 = Math.round(distanceKm * standards.fuelCostPerKm5Ton * vehicleStats.count5Ton)
-    const f25 = Math.round(distanceKm * standards.fuelCostPerKm2_5Ton * vehicleStats.count2_5Ton)
-    const f1 = Math.round(distanceKm * standards.fuelCostPerKm1Ton * vehicleStats.count1Ton)
+    // 유류비 (차량 회송 고려: 왕복 거리(편도 x 2) x km단가 x 대수)
+    const roundKm = distanceKm * 2
+    const f5 = Math.round(roundKm * standards.fuelCostPerKm5Ton * vehicleStats.count5Ton)
+    const f25 = Math.round(roundKm * standards.fuelCostPerKm2_5Ton * vehicleStats.count2_5Ton)
+    const f1 = Math.round(roundKm * standards.fuelCostPerKm1Ton * vehicleStats.count1Ton)
     setFuel5TonCost(f5)
     setFuel2_5TonCost(f25)
     setFuel1TonCost(f1)
@@ -503,7 +504,10 @@ export function CostCalculatorModal({
             <div className="px-4 py-2.5 bg-emerald-50/70 border-b border-emerald-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Truck className="w-4 h-4 text-emerald-600" />
-                <span className="font-bold text-emerald-900">2. 차량비 (편도 유류비 + 왕복 고속도로 톨비)</span>
+                <span className="font-bold text-emerald-900">2. 차량비 (왕복 유류비 + 왕복 고속도로 톨비)</span>
+                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded-full">
+                  왕복 {distanceKm * 2}km 기준 (편도 {distanceKm}km)
+                </span>
               </div>
               <span className="font-extrabold text-emerald-700 text-sm">
                 소계: {totalVehicleCost.toLocaleString()} 원
@@ -519,7 +523,7 @@ export function CostCalculatorModal({
                     <span className="text-emerald-700 font-bold">{fuel5TonCost.toLocaleString()}원</span>
                   </div>
                   <div className="flex items-center justify-between text-[11px] text-gray-500">
-                    <span>편도 {distanceKm}km × 500원:</span>
+                    <span>왕복 {distanceKm * 2}km × 500원:</span>
                     <FormattedModalNumberInput
                       value={fuel5TonCost}
                       onChange={(val) => setFuel5TonCost(val)}
@@ -535,7 +539,7 @@ export function CostCalculatorModal({
                     <span className="text-emerald-700 font-bold">{fuel2_5TonCost.toLocaleString()}원</span>
                   </div>
                   <div className="flex items-center justify-between text-[11px] text-gray-500">
-                    <span>편도 {distanceKm}km × 350원:</span>
+                    <span>왕복 {distanceKm * 2}km × 350원:</span>
                     <FormattedModalNumberInput
                       value={fuel2_5TonCost}
                       onChange={(val) => setFuel2_5TonCost(val)}
@@ -551,7 +555,7 @@ export function CostCalculatorModal({
                     <span className="text-emerald-700 font-bold">{fuel1TonCost.toLocaleString()}원</span>
                   </div>
                   <div className="flex items-center justify-between text-[11px] text-gray-500">
-                    <span>편도 {distanceKm}km × 250원:</span>
+                    <span>왕복 {distanceKm * 2}km × 250원:</span>
                     <FormattedModalNumberInput
                       value={fuel1TonCost}
                       onChange={(val) => setFuel1TonCost(val)}

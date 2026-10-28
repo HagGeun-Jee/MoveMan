@@ -685,6 +685,24 @@
    - `npx next build` 로컬 프로덕션 컴파일 및 최적화 정상 통과 (Exit Code 0).
    - 사용자 배포 승인 완료 후 GitHub `main` 푸시(`ad515b6`) 및 Render 자동 무중단 배포 진행.
 
+### QQ. 차량비 유류비 왕복 거리(편도 × 2) 기준 산출 적용
+1. **요구사항 및 배경**:
+   - 고속도로 통행료와 마찬가지로, 차량 유류비 또한 이사 작업 후 차고지/거점으로 복귀하는 차량 회송을 반영하여 **왕복 주행거리(편도 × 2)** 기준으로 자동 계산되도록 개선.
+2. **조치 내역**:
+   - **원가산출 모달 ([CostCalculatorModal.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/components/CostCalculatorModal.tsx))**:
+     - `resetToRecommended`에서 유류비 산출 공식을 편도 거리(`distanceKm`)에서 **왕복 거리(`distanceKm * 2`)** 기준으로 전환:
+       - 5톤: `Math.round(distanceKm * 2 * standards.fuelCostPerKm5Ton * vehicleStats.count5Ton)`
+       - 2.5톤: `Math.round(distanceKm * 2 * standards.fuelCostPerKm2_5Ton * vehicleStats.count2_5Ton)`
+       - 1톤: `Math.round(distanceKm * 2 * standards.fuelCostPerKm1Ton * vehicleStats.count1Ton)`
+     - 차량비 섹션 타이틀: `2. 차량비 (왕복 유류비 + 왕복 고속도로 톨비)` 및 `왕복 {distanceKm * 2}km 기준 (편도 {distanceKm}km)` 명시.
+     - 차종별 카드 라벨: `왕복 {distanceKm * 2}km × 500원(또는 350원/250원)`으로 왕복 적용 여부를 직관적으로 확인 가능하도록 개선.
+   - **원가기준정보 관리 화면 ([CostStandardsForm.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/app/(dashboard)/cost-standards/CostStandardsForm.tsx))**:
+     - 유류비 섹션 안내 문구를 `차량 회송을 고려한 실제 왕복 주행거리(편도 × 2)에 곱해질 km당 유류비 단가`로 명확화.
+3. **검증 및 배포**:
+   - `npx next build` 로컬 프로덕션 컴파일 정상 통과 (Exit Code 0).
+   - 사용자 배포 승인 확인 후 원격 서버(Render) 배포 진행.
+
+
 
 
 
