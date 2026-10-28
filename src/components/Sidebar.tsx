@@ -302,12 +302,7 @@ export function Sidebar({
                     <span>차량정보</span>
                   </Link>
                 )}
-                {canAccess('/labors') && (
-                  <Link href="/labors" onClick={() => setMobileOpen(false)} className={mobileLinkClass(isActive('/labors'))}>
-                    <Settings size={18} className="shrink-0" />
-                    <span>인건비정보</span>
-                  </Link>
-                )}
+
                 {canAccess('/ladders') && (
                   <Link href="/ladders" onClick={() => setMobileOpen(false)} className={mobileLinkClass(isActive('/ladders'))}>
                     <Settings size={18} className="shrink-0" />
@@ -496,14 +491,7 @@ export function Sidebar({
                 </Link>
               </li>
             )}
-            {canAccess('/labors') && (
-              <li>
-                <Link href="/labors" className={subLinkClass(isActive('/labors'))} title="인건비정보">
-                  <Settings size={18} className="shrink-0" />
-                  {!collapsed && <span>인건비정보</span>}
-                </Link>
-              </li>
-            )}
+
             {canAccess('/ladders') && (
               <li>
                 <Link href="/ladders" className={subLinkClass(isActive('/ladders'))} title="사다리차운임">

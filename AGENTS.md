@@ -3,6 +3,10 @@
 ## 1. 기본 원칙
 - **모든 답변은 한글로 한다.**
 - 간결하고 명확하게 답변하며, 파일 및 심볼 링크는 GitHub 스타일의 `file:///` 절대 경로 링크를 사용한다.
+- **배포 전 로컬 테스트 및 승인 확인 필수**:
+  - 코딩 및 기능 구현 작업이 끝나면 즉시 원격(`git push`)으로 배포하지 않는다.
+  - 먼저 로컬 환경에서 빌드 및 테스트(`npx next build` 등)를 철저히 검증한다.
+  - 사용자에게 작업 완료 내용과 로컬 테스트 결과를 보고한 후, **"로컬 테스트가 완료되었습니다. 원격 서버(Render)로 배포를 진행할까요?"라고 배포 여부를 반드시 먼저 물어보고 승인을 얻은 후 배포한다.**
 
 ## 2. 프로젝트 개요 및 기술 스택
 - **프로젝트명**: MEMAN (이사견적 및 자재 재고관리 시스템)
@@ -531,3 +535,153 @@
      - `쇼파 (아쿠아텍스 코너형, 5.0 CBM)` -> `소파 (아쿠아텍스 코너형, 5.0 CBM)`
      - `쇼파 (스툴, 0.5 CBM)` -> `소파 (스툴, 0.5 CBM)`
    - 자재 품목(`MaterialItem`), 견적서(`Estimate`), 평형 템플릿(`estimatePresets.ts`), AI 분석 프롬프트(`analyze-media`) 등 전체 시스템에서 '쇼파' 잔여 0건 확인 및 '소파'로 통일 완료.
+
+### JJ. 견적 작성 시 전화번호 하이픈(-) 자동 삽입 및 숫자 순서 뒤바뀜 버그 해결
+1. **문제 현상 및 원인 분석**:
+   - **증상**: 견적 작성 시 고객 연락처를 연속 타이핑하거나 11자리 모바일 번호(`010...`) 입력 시 하이픈이 자동 삽입되면서 숫자가 뒤섞이거나 순서가 바뀌는 현상 발생 (예: `010-1234-5678` 입력 시 `010-1238-4567` 등으로 뒤섞임).
+   - **근본 원인 1 (10자리 ➔ 11자리 하이픈 점프 버그)**:
+     - 기존 `formatPhoneNumber` 로직에서 번호가 10자리 이하일 때 `010-XXX-XXXX` (3-3-4 패턴)로 포맷팅되다가, 11번째 숫자를 누르는 순간 갑자기 `010-XXXX-XXXX` (3-4-4 패턴)로 규칙이 전환됨.
+     - 가운데 번호가 3자리에서 4자리로 확장되면서 하이픈 위치가 이동하고 뒤의 숫자들이 밀리면서 브라우저/모바일 키보드 조합 세션과 충돌하여 숫자가 꼬임.
+   - **근본 원인 2 (React 제어 컴포넌트 커서 위치 리셋)**:
+     - `value={contact} onChange={...}` 제어 컴포넌트에서 포맷팅된 문자열이 `input.value`에 재대입될 때, 브라우저가 커서(`selectionStart`)를 하이픈 앞이나 맨 끝으로 튕겨버려 빠른 타이핑 시 입력 순서가 역전됨.
+2. **조치 내역**:
+   - **010 모바일 번호 가운데 4자리 고정 포맷터 개선 ([format.ts](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/lib/format.ts))**:
+     - `010`으로 시작하는 번호는 대한민국 100% 11자리 표준이므로, 8자리 이상 입력 시 항상 가운데 4자리를 고정(`010-XXXX-X...`)하도록 개선.
+     - 8자리부터 11자리까지 항상 맨 끝에 순차적으로 숫자가 추가되므로 하이픈 위치가 중간에 흔들리지 않음.
+   - **커서(Caret) 정밀 복원 핸들러 신규 구축 (`handlePhoneInputChange`)**:
+     - 사용자가 타이핑한 커서 직전까지의 '순수 숫자 개수(`digitsBeforeCursor`)'를 계산.
+     - 하이픈이 추가/제거된 새 포맷팅 문자열에서 정확히 해당 숫자 개수 뒤의 위치를 찾아 `requestAnimationFrame`으로 `input.setSelectionRange(targetPos, targetPos)`를 복원.
+     - 끝에서 연속 타이핑하거나 중간에서 숫자를 수정/삭제해도 커서가 항상 방금 입력한 숫자 바로 뒤를 완벽하게 유지.
+   - **견적 작성 폼 연결 ([EstimateForm.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/components/EstimateForm.tsx))**:
+     - `onChange={e => handlePhoneInputChange(e, setContact)}`로 교체.
+     - `maxLength={13}`, `autoComplete="tel"` 적용으로 모바일/태블릿 키패드 최적화.
+3. **검증 및 배포**:
+   - `npx next build` 프로덕션 빌드 정상 통과.
+   - GitHub `main` 푸시 완료 및 Render 자동 무중단 배포 반영.
+
+### KK. 접수일자 캘린더 프레임 가림 해결 및 기본정보 반응형 그리드로 태블릿 전화번호 잘림 방지
+1. **문제 현상 및 원인 분석**:
+   - **증상 1 (캘린더 프레임 가림)**: 접수일자 클릭 시 캘린더 팝업의 하단 날짜들이 부모 테이블 프레임에 가려져 보이지 않거나 클릭 불가.
+     - 원인: 부모 요소에 `overflow-x-auto`가 지정되어 있어, `DatePicker`의 `absolute` 팝업 레이어가 부모 박스 높이(약 80px)를 벗어날 때 overflow에 의해 70% 이상 잘려버림.
+   - **증상 2 (태블릿 전화번호 잘림)**: 견적 작성 및 수정 시 태블릿 화면에서 오른쪽 열(연락처, 접수일자)이 오른쪽 프레임 밖으로 밀려나 잘려 보임.
+     - 원인: 기본 정보 테이블이 한 줄에 4개 컬럼(`[고객명][연락처]`, `[이사종류][접수일자]`)을 억지로 배치하고 부모가 `overflow-x-auto`로 감싸져 있어, 태블릿 가로폭이 협소할 때 오른쪽 절반이 화면 밖으로 넘어가서 발생.
+2. **조치 내역**:
+   - **CustomDatePicker 포털 및 뷰포트 고정 레이어 적용 ([CustomDatePicker.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/components/CustomDatePicker.tsx))**:
+     - `popperProps={{ strategy: 'fixed' }}`를 적용하여 부모 컨테이너의 `overflow: auto/hidden` 제약을 완전히 벗어나 브라우저 뷰포트 기준으로 팝업이 렌더링되도록 개선.
+     - `popperPlacement="bottom-start"`, `popperClassName="z-[99999]"`, `body .react-datepicker-popper { z-index: 99999 !important; }`를 부여하여 화면 어떤 UI보다도 최상단에 깨끗하게 노출.
+   - **기본 정보 반응형 그리드 개편 ([EstimateForm.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/components/EstimateForm.tsx))**:
+     - 4열 고정 테이블 및 `overflow-x-auto`를 제거하고 모던한 **반응형 카드 그리드(`grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3`)**로 전환.
+     - 태블릿 세로 및 모바일: 각 항목이 100% 폭을 사용하여 고객명, 연락처, 이사종류, 접수일자가 가로 스크롤이나 잘림 없이 100% 한눈에 표시.
+     - 태블릿 가로 및 데스크톱: 2열 그리드로 50%씩 넉넉한 너비를 균등 배분하여 전화번호가 여유 있게 완전 노출.
+3. **검증 및 배포**:
+   - `npx next build` 프로덕션 빌드 정상 통과.
+   - GitHub `main` 푸시 완료 (`ea83e85`) 및 Render 자동 무중단 배포 반영.
+
+### LL. 추천차량 및 시스템 전체 차종 3종(5톤, 2.5톤, 1톤) 완전 일원화
+1. **요구사항 및 배경**:
+   - 기존 시스템에 1톤 일반탑/하이탑, 2.5톤, 3.5톤, 4.5톤, 5톤 등 세분화된 비표준 차종이 혼재하여 차량 자동 추천 시 현장 실무와 괴리 발생.
+   - 현장 포장이사 실무 표준에 맞춰 전체 시스템(추천 차량 알고리즘, 평형별 템플릿, 이사비용 산출 시뮬레이터, DB 기준정보)의 차종을 **`5톤` (메인 탑차)**, **`2.5톤` (골목/중소형)**, **`1톤` (용달/추가 보조)** 단 3종 조합으로 완전 일원화.
+2. **조치 내역**:
+   - **DB 차량 마스터 기준정보 정비 (`VehicleMaster`)**:
+     - 현장에서 거의 쓰지 않는 3.5톤, 4.5톤 및 1톤 중복 분할 항목을 정리하고, **`5톤 탑차` (31 CBM, 13만원)**, **`2.5톤 탑차` (16 CBM, 11만원)**, **`1톤 탑차` (7 CBM, 7만원)** 3종으로 공식 표준화.
+   - **추천 차량 알고리즘 강화 ([EstimateForm.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/components/EstimateForm.tsx))**:
+     - `handleRecommendVehicles`에서 5톤, 2.5톤, 1톤 3종을 조합 대상으로 자동 필터링하여 현실적인 최적 배차(예: 5톤 1대 + 1톤 1대, 5톤 1대 + 2.5톤 1대, 5톤 2대 등)를 자동 산출하도록 보강.
+   - **평형별 표준 템플릿 차종 표기 일원화 ([estimatePresets.ts](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/lib/estimatePresets.ts))**:
+     - 원룸/1인가구: `1톤 1대`
+     - 투룸(15~20평): `2.5톤 1대`
+     - 24~26평(3인): `5톤 1대`
+     - 32~34평(4인): `5톤 1대 + 1톤 1대`
+     - 40평형 이상 대형: `5톤 1대 + 2.5톤 1대 (또는 5톤 2대)`
+   - **이사비용 산출 시뮬레이터 톤수 가이드 일원화 ([MovingCostCalculatorModal.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/components/MovingCostCalculatorModal.tsx))**:
+     - CBM 구간별 운임 가이드의 톤수를 `1톤 1대`, `2.5톤 1대`, `5톤 1대`, `5톤 1대 + 1톤 1대`, `5톤 1대 + 2.5톤 1대`, `5톤 2대`로 직관적 통일.
+3. **검증 및 배포**:
+   - `npx next build` 프로덕션 빌드 정상 통과.
+   - GitHub `main` 푸시 완료 (`e07e6e0`) 및 Render 자동 무중단 배포 반영.
+
+### MM. 이사비용 산출 시뮬레이터와 투입차량 톤수 1:1 일치 연동 (방안 A 적용)
+1. **문제 현상 및 원인 분석**:
+   - 견적 `P2610230001` 건에서 투입차량은 도합 7.5톤(5톤 1대 + 2.5톤 1대)인데, 이사비용 산출 시뮬레이터에서는 '10톤 이상'으로 체크되는 불일치 발생.
+   - 원인: 시뮬레이터의 CBM 구간(31.0 ~ 38.99 CBM = 7.5톤)은 '순수 물품 CBM' 기준인데, `EstimateForm.tsx`에서 시뮬레이터를 띄울 때 데드스페이스 20%가 곱해진 `requiredCbm`(44.78 CBM)을 전달하여 38.99를 초과한 '10톤 이상' 구간으로 잘못 매칭됨.
+2. **조치 내역 ([EstimateForm.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/components/EstimateForm.tsx))**:
+   - 시뮬레이터 모달 호출 시 전달하는 `currentCbm`을 순수 물품 CBM(`totalCbm` = 37.32)으로 직접 전달하도록 수정.
+   - 시뮬레이터 상단에 "현재 견적서 물량: 37.32 CBM"이 정확히 표시되고, CBM 가이드 구간에서도 **`5톤 1대 + 2.5톤 1대 (7.5톤)`**이 100% 일치하여 자동 체크됨.
+3. **검증 및 배포**:
+   - `npx next build` 프로덕션 빌드 정상 통과.
+   - GitHub `main` 푸시 완료 (`6fbcee3`) 및 Render 자동 무중단 배포 반영.
+
+### NN. 적재 대상 CBM 기준 투입인원 추천 및 시뮬레이터 통합 기준표 일치화
+1. **요구사항 및 배경**:
+   - 투입인원 추천 시 `requiredCbm`(데드스페이스 가산치)과 구형 구간이 사용되어, 차량 추천(3종) 및 시뮬레이터 가이드와 인원 수가 어긋나는 현상 정비.
+   - 사용자 확인 원칙에 따라 "적재 대상 순수 물품 CBM(`totalCbm`)"을 기준으로 삼고, 3개 차종(5톤, 2.5톤, 1톤)과 연동된 통합 기준표로 시스템 전체(인원 추천, 시뮬레이터, 추천 사유)를 100% 일치시킴.
+2. **확정된 CBM 물량별 통합 기준표**:
+   - **~ 5.9 CBM**: `1톤 1대` / 남 1명 / 여 0명 (소형·원룸)
+   - **6.0 ~ 13.9 CBM**: `2.5톤 1대` / 남 2명 / 여 1명 (투룸·신혼)
+   - **14.0 ~ 25.9 CBM**: `5톤 1대` / 남 3명 / 여 1명 (20~28평형 표준 가정)
+   - **26.0 ~ 31.9 CBM**: `5톤 1대 + 1톤 1대 (6톤)` / 남 4명 / 여 1명 (32~34평형 표준)
+   - **32.0 ~ 39.9 CBM**: `5톤 1대 + 2.5톤 1대 (7.5톤)` / 남 4~5명 / 여 1명 (34평 짐 많음 / 40평형)
+   - **40.0 CBM 이상**: `5톤 2대 (10톤 이상)` / 남 5~6명 / 여 2명 (45평 이상 대형)
+   *(※ 일반이사는 여성 0명, 계단·수작업 환경 가산은 기존 로직 정상 유지)*
+3. **조치 내역**:
+   - **인원 추천 로직 개편 ([EstimateForm.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/components/EstimateForm.tsx))**:
+     - `handleRecommendLabors`에서 기준 CBM을 `totalCbm`으로 전환하고, 위 통합 기준표 구간을 적용.
+     - 추천 사유 문구: `${moveTypeName} 적재 물량 ${cbm.toFixed(1)} CBM 기준 기본 남성 ${baseMale}명...`으로 명확화.
+   - **시뮬레이터 CBM 구간 정비 ([MovingCostCalculatorModal.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/components/MovingCostCalculatorModal.tsx))**:
+     - `CBM_TIER_GUIDES`의 minCbm/maxCbm 및 권장 인원을 위 통합 기준표와 1:1로 일치시켜 모달과 견적서의 추천 인원이 완벽하게 일치하도록 조정.
+4. **검증 및 배포**:
+   - `npx next build` 프로덕션 빌드 정상 통과.
+   - GitHub `main` 푸시 완료 (`0ffcecd`) 및 Render 자동 무중단 배포 반영.
+
+### OO. 원가 기반 이사비용 산출 시스템(방안 2), 원가기준정보 관리 메뉴 및 기준거리 40km 상향
+1. **요구사항 및 배경**:
+   - 투입 인건비, 차량 유류비, 운전자 추가수당, 장거리 추가수당, 작업원 식비, OPP 테이프 소모 자재비, 왕복 고속도로 통행료를 종합한 실제 원가 기반 이사비용 산출 시스템 구축.
+   - 단가를 중앙에서 관리/수정할 수 있는 **'원가기준정보' 메뉴** 신설 (`/cost-standards`).
+   - 기본 이동 기준거리를 기존 30km에서 **40km**로 상향 조정.
+   - 카카오 모빌리티 자동차 길찾기 API에서 편도 톨게이트비를 받아 **왕복 총 톨비(편도 × 2 × 차량대수)** 자동 산출 연동.
+   - 견적 작성/수정 시 실시간으로 원가를 추천하고 현장에서 수동 미세조정이 가능한 **방안 2** 시뮬레이터 모달 탑재.
+2. **조치 내역**:
+   - **원가 마스터 DB 모델 및 서버 액션 ([schema.prisma](file:///c:/Users/ysjee/Desktop/MEMAN/web/prisma/schema.prisma), [costStandards.ts](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/app/actions/costStandards.ts))**:
+     - `CostStandardMaster` 모델 생성: 운전자수당(20,000원), 기준거리(40km), 초과단위(40km), 초과인당수당(10,000원), 식대(12,000원), 유류비(5톤 500원, 2.5톤 350원, 1톤 250원), 테이프단가(2,000원, 1톤 3롤, 2.5톤 5롤, 5톤 8롤), 기본마진율(20.0%).
+     - `getCostStandards`, `updateCostStandards` CRUD 서버 액션 구현.
+   - **원가기준정보 관리 페이지 ([page.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/app/(dashboard)/cost-standards/page.tsx), [CostStandardsForm.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/app/(dashboard)/cost-standards/CostStandardsForm.tsx))**:
+     - 인건비/수당, 차량 유류비, OPP 테이프 자재비, 목표 마진율 4개 섹션 관리 UI 제공.
+     - [기본 추천값으로 복원] 및 실시간 저장/알림 토스트 연동.
+   - **사이드바 메뉴 탑재 ([Sidebar.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/components/Sidebar.tsx))**:
+     - 기초정보 섹션에 `원가기준정보` (`/cost-standards`, `Coins` 아이콘) 추가 (모바일 드로어 및 데스크탑 사이드바 동시 반영).
+   - **기준거리 40km 상향 및 카카오 왕복 톨비 연동**:
+     - [EstimateForm.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/components/EstimateForm.tsx), [estimate.ts](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/app/actions/estimate.ts), [estimates/[id]/page.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/app/(dashboard)/estimates/[id]/page.tsx): `baseDistanceKm` 기본값을 30에서 40으로 일괄 상향.
+     - 거리 측정 시 `res.tollFare`를 상태에 바인딩하고, 편도 및 왕복 톨게이트비 배지 표시 및 `tollFare` 환경 객체/draft 보존.
+   - **원가 기반 이사비용 산출 시뮬레이터 모달 ([CostCalculatorModal.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/components/CostCalculatorModal.tsx))**:
+     - 기본 이사 비용 입력란 옆에 `[💰 원가산출]` 버튼 배치.
+     - 주행거리, 차량대수, 인원수, 톨비에 따른 인건비/차량비/자재비/외주비 자동 산출 및 각 항목 수동 미세수정(방안 2).
+     - 마진율 프리셋(15%, 18%, 20%, 22%, 25%, 30%, 직접입력) 및 만원 단위 올림 옵션 제공.
+     - `[기본 이사비용에 적용]` 클릭 시 `movingCost` 즉시 반영 및 공급가액/부가세/공급대가/잔금 자동 재계산.
+3. **검증 및 배포**:
+   - `npx next build` 프로덕션 컴파일 및 최적화 정상 통과 (Exit Code 0).
+   - Supabase PostgreSQL DB에 `CostStandardMaster` 테이블 반영 완료.
+
+### PP. 작업원 인건비 정보의 원가기준정보 통합 및 인건비 메뉴 정리
+1. **요구사항 및 배경**:
+   - 원가산출 시 작업원의 인건비 정보가 DB와 매칭되지 않던 문제 해결 (모달 fallback이 과거 18만/14만원으로 되어 있었음).
+   - 독립되어 있던 '인건비정보'(`/labors`)를 '원가기준정보'(`/cost-standards`) 마스터로 통합하여, 관리자가 한 화면에서 기본 일당과 추가 수당, 유류비, 자재비, 마진율을 원스톱 관리할 수 있도록 개편.
+   - 사이드바에서 중복되는 '인건비정보' 메뉴를 정리하고 단일화.
+2. **조치 내역**:
+   - **DB 모델 및 서버 액션 확장 ([schema.prisma](file:///c:/Users/ysjee/Desktop/MEMAN/web/prisma/schema.prisma), [costStandards.ts](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/app/actions/costStandards.ts))**:
+     - `CostStandardMaster` 모델에 `maleLaborCost`(남성 작업원 기본 일당, 190,000원) 및 `femaleLaborCost`(여성 작업원 기본 일당, 170,000원) 컬럼 추가 및 DB 푸시 완료.
+     - `updateCostStandards`: 원가기준정보 저장 시 `LaborMaster`의 남성/여성 레코드도 함께 `upsert` 동기화하여 모바일 앱 및 기존 데이터와의 100% 하위 호환성 유지.
+   - **원가기준정보 UI 개편 ([CostStandardsForm.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/app/(dashboard)/cost-standards/CostStandardsForm.tsx))**:
+     - 최상단에 **`1. 작업원 기본 일당 기준 (인건비)`** 카드를 신설하고 남성/여성 기본 일당 입력 필드 및 1,000단위 콤마 서식 적용.
+     - 전체 섹션을 5단계(1. 기본일당, 2. 추가수당/식비, 3. 차종별유류비, 4. 소모자재비, 5. 목표마진율)로 체계화.
+   - **원가산출 모달 및 견적서 연동 ([CostCalculatorModal.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/components/CostCalculatorModal.tsx), [EstimateForm.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/components/EstimateForm.tsx))**:
+     - 견적 작성/수정 시 원가기준정보의 남성/여성 기본 일당(190,000원 / 170,000원)이 원가산출 팝업에 실시간으로 매칭되어 계산되도록 연동.
+     - 견적서에서 인력을 0명으로 설정한 경우에도 강제 덮어쓰기 없이 0명이 정상 유지되도록 바인딩 개선.
+   - **인건비정보 메뉴 정리 ([Sidebar.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/components/Sidebar.tsx), [labors/page.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/app/(dashboard)/labors/page.tsx), [users/page.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/app/(dashboard)/users/page.tsx))**:
+     - 사이드바(모바일/데스크톱)에서 `/labors` 링크를 제거하고 `/cost-standards`로 단일화.
+     - `/labors` 직접 접속 시 `/cost-standards`로 자동 리다이렉트 처리.
+     - 사용자 권한 설정 메뉴 목록에서 `인건비정보`를 `원가기준정보`로 전환.
+3. **검증 및 배포**:
+   - `npx next build` 로컬 프로덕션 컴파일 및 최적화 정상 통과 (Exit Code 0).
+   - 사용자 배포 승인 완료 후 GitHub `main` 푸시 및 Render 자동 무중단 배포 진행.
+
+
+
+

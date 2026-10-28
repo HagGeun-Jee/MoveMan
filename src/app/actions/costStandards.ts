@@ -5,6 +5,8 @@ import { revalidatePath } from 'next/cache'
 
 export interface CostStandardData {
   id: string
+  maleLaborCost: number // 남성 작업원 기본 일당
+  femaleLaborCost: number // 여성 작업원 기본 일당
   driverAllowance: number
   baseDistanceKm: number
   distanceStepKm: number
@@ -22,6 +24,8 @@ export interface CostStandardData {
 }
 
 const DEFAULT_COST_STANDARDS: Omit<CostStandardData, 'id' | 'updatedAt'> = {
+  maleLaborCost: 190000,
+  femaleLaborCost: 170000,
   driverAllowance: 20000,
   baseDistanceKm: 40,
   distanceStepKm: 40,
@@ -52,6 +56,8 @@ export async function getCostStandards(): Promise<CostStandardData> {
     })
     return {
       id: record.id,
+      maleLaborCost: record.maleLaborCost ?? 190000,
+      femaleLaborCost: record.femaleLaborCost ?? 170000,
       driverAllowance: record.driverAllowance,
       baseDistanceKm: record.baseDistanceKm,
       distanceStepKm: record.distanceStepKm,
@@ -77,10 +83,12 @@ export async function getCostStandards(): Promise<CostStandardData> {
 }
 
 /**
- * 원가 기준정보 저장 및 갱신
+ * 원가 기준정보 저장 및 갱신 (인건비 마스터 자동 동기화 포함)
  */
 export async function updateCostStandards(formData: FormData): Promise<{ success: boolean; error?: string }> {
   try {
+    const maleLaborCost = parseInt(formData.get('maleLaborCost') as string, 10) || DEFAULT_COST_STANDARDS.maleLaborCost
+    const femaleLaborCost = parseInt(formData.get('femaleLaborCost') as string, 10) || DEFAULT_COST_STANDARDS.femaleLaborCost
     const driverAllowance = parseInt(formData.get('driverAllowance') as string, 10) || DEFAULT_COST_STANDARDS.driverAllowance
     const baseDistanceKm = parseInt(formData.get('baseDistanceKm') as string, 10) || DEFAULT_COST_STANDARDS.baseDistanceKm
     const distanceStepKm = parseInt(formData.get('distanceStepKm') as string, 10) || DEFAULT_COST_STANDARDS.distanceStepKm
@@ -95,9 +103,12 @@ export async function updateCostStandards(formData: FormData): Promise<{ success
     const tapeRolls5Ton = parseInt(formData.get('tapeRolls5Ton') as string, 10) || DEFAULT_COST_STANDARDS.tapeRolls5Ton
     const defaultMarginRate = parseFloat(formData.get('defaultMarginRate') as string) || DEFAULT_COST_STANDARDS.defaultMarginRate
 
+    // 1. 원가 기준정보 마스터 저장
     await prisma.costStandardMaster.upsert({
       where: { id: 'default_cost_standard' },
       update: {
+        maleLaborCost,
+        femaleLaborCost,
         driverAllowance,
         baseDistanceKm,
         distanceStepKm,
@@ -114,6 +125,8 @@ export async function updateCostStandards(formData: FormData): Promise<{ success
       },
       create: {
         id: 'default_cost_standard',
+        maleLaborCost,
+        femaleLaborCost,
         driverAllowance,
         baseDistanceKm,
         distanceStepKm,
@@ -130,7 +143,26 @@ export async function updateCostStandards(formData: FormData): Promise<{ success
       }
     })
 
+    // 2. 기존 인건비 마스터(LaborMaster)와 자동 양방향 동기화
+    try {
+      await Promise.all([
+        prisma.laborMaster.upsert({
+          where: { name: '남성' },
+          update: { defaultCost: maleLaborCost },
+          create: { name: '남성', defaultCost: maleLaborCost }
+        }),
+        prisma.laborMaster.upsert({
+          where: { name: '여성' },
+          update: { defaultCost: femaleLaborCost },
+          create: { name: '여성', defaultCost: femaleLaborCost }
+        })
+      ])
+    } catch (syncErr) {
+      console.warn('LaborMaster sync warning:', syncErr)
+    }
+
     revalidatePath('/cost-standards')
+    revalidatePath('/labors')
     revalidatePath('/estimates')
     return { success: true }
   } catch (error) {

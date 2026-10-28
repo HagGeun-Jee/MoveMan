@@ -36,7 +36,7 @@ export default async function UsersPage() {
     { path: '/users', name: '사용자 및 권한' },
     { path: '/items', name: '물품정보' },
     { path: '/vehicles', name: '차량정보' },
-    { path: '/labors', name: '인건비정보' },
+    { path: '/cost-standards', name: '원가기준정보' },
     { path: '/ladders', name: '사다리차운임' },
     { path: '/inventory', name: '자재재고관리' },
   ]

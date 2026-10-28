@@ -28,11 +28,62 @@ interface CostCalculatorModalProps {
   movingType: string
   menCount: number
   womenCount: number
-  menUnitPrice?: number // 남성 일당 (기본 180,000)
-  womenUnitPrice?: number // 여성 일당 (기본 140,000)
+  menUnitPrice?: number // 남성 일당 (기본 190,000)
+  womenUnitPrice?: number // 여성 일당 (기본 170,000)
   vehicles?: { name: string; count: number; tonnage?: number }[] // 투입 차량 목록
   ladderTotalCost?: number
   costStandards?: CostStandardData
+}
+
+function FormattedModalNumberInput({
+  value,
+  onChange,
+  className = '',
+  placeholder = '0'
+}: {
+  value: number
+  onChange: (val: number) => void
+  className?: string
+  placeholder?: string
+}) {
+  const [displayValue, setDisplayValue] = useState<string>(
+    value !== undefined && value !== null ? value.toLocaleString('ko-KR') : '0'
+  )
+
+  useEffect(() => {
+    setDisplayValue(value !== undefined && value !== null ? value.toLocaleString('ko-KR') : '0')
+  }, [value])
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let raw = e.target.value.replace(/[^0-9]/g, '')
+    if (raw.length > 1 && raw.startsWith('0')) {
+      raw = raw.replace(/^0+/, '')
+      if (raw === '') raw = '0'
+    }
+    const num = raw === '' ? 0 : parseInt(raw, 10)
+    setDisplayValue(raw === '' ? '' : num.toLocaleString('ko-KR'))
+    onChange(num)
+  }
+
+  const handleBlur = () => {
+    if (displayValue === '' || isNaN(parseInt(displayValue.replace(/,/g, ''), 10))) {
+      setDisplayValue('0')
+      onChange(0)
+    }
+  }
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      value={displayValue}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      onFocus={(e) => e.target.select()}
+      placeholder={placeholder}
+      className={className}
+    />
+  )
 }
 
 export function CostCalculatorModal({
@@ -44,8 +95,8 @@ export function CostCalculatorModal({
   movingType,
   menCount,
   womenCount,
-  menUnitPrice = 180000,
-  womenUnitPrice = 140000,
+  menUnitPrice = 190000,
+  womenUnitPrice = 170000,
   vehicles = [],
   ladderTotalCost = 0,
   costStandards
@@ -54,6 +105,8 @@ export function CostCalculatorModal({
   const standards: CostStandardData = useMemo(() => {
     return costStandards || {
       id: 'default_cost_standard',
+      maleLaborCost: 190000,
+      femaleLaborCost: 170000,
       driverAllowance: 20000,
       baseDistanceKm: 40,
       distanceStepKm: 40,
@@ -110,10 +163,10 @@ export function CostCalculatorModal({
   const defaultDistanceStepCount = extraDistance > 0 ? Math.ceil(extraDistance / stepDistance) : 0
 
   // 1. 인건비 항목 상태 (기본값 자동 세팅 + 수동 수정 가능)
-  const [menNum, setMenNum] = useState<number>(menCount || 3)
-  const [menRate, setMenRate] = useState<number>(menUnitPrice || 180000)
-  const [womenNum, setWomenNum] = useState<number>(womenCount || 1)
-  const [womenRate, setWomenRate] = useState<number>(womenUnitPrice || 140000)
+  const [menNum, setMenNum] = useState<number>(menCount !== undefined ? menCount : 3)
+  const [menRate, setMenRate] = useState<number>(menUnitPrice || standards.maleLaborCost || 190000)
+  const [womenNum, setWomenNum] = useState<number>(womenCount !== undefined ? womenCount : 1)
+  const [womenRate, setWomenRate] = useState<number>(womenUnitPrice || standards.femaleLaborCost || 170000)
   
   // 운전자 추가 수당 (차량대수 x 20,000)
   const [driverCount, setDriverCount] = useState<number>(vehicleStats.totalCount)
@@ -148,10 +201,10 @@ export function CostCalculatorModal({
 
   // 초기 상태 자동 세팅
   const resetToRecommended = () => {
-    setMenNum(menCount || 3)
-    setMenRate(menUnitPrice || 180000)
-    setWomenNum(womenCount || 1)
-    setWomenRate(womenUnitPrice || 140000)
+    setMenNum(menCount !== undefined ? menCount : 3)
+    setMenRate(menUnitPrice || standards.maleLaborCost || 190000)
+    setWomenNum(womenCount !== undefined ? womenCount : 1)
+    setWomenRate(womenUnitPrice || standards.femaleLaborCost || 170000)
 
     setDriverCount(vehicleStats.totalCount)
     setDriverRate(standards.driverAllowance)
@@ -342,11 +395,9 @@ export function CostCalculatorModal({
                       className="w-12 px-1.5 py-1 text-center font-bold bg-white border border-gray-300 rounded text-xs"
                     />
                     <span className="text-gray-500">명 ×</span>
-                    <input
-                      type="number"
-                      step="5000"
+                    <FormattedModalNumberInput
                       value={menRate}
-                      onChange={(e) => setMenRate(parseInt(e.target.value, 10) || 0)}
+                      onChange={(val) => setMenRate(val)}
                       className="w-24 px-1.5 py-1 text-right font-semibold bg-white border border-gray-300 rounded text-xs"
                     />
                     <span className="text-gray-500">원</span>
@@ -364,11 +415,9 @@ export function CostCalculatorModal({
                       className="w-12 px-1.5 py-1 text-center font-bold bg-white border border-gray-300 rounded text-xs"
                     />
                     <span className="text-gray-500">명 ×</span>
-                    <input
-                      type="number"
-                      step="5000"
+                    <FormattedModalNumberInput
                       value={womenRate}
-                      onChange={(e) => setWomenRate(parseInt(e.target.value, 10) || 0)}
+                      onChange={(val) => setWomenRate(val)}
                       className="w-24 px-1.5 py-1 text-right font-semibold bg-white border border-gray-300 rounded text-xs"
                     />
                     <span className="text-gray-500">원</span>
@@ -471,10 +520,9 @@ export function CostCalculatorModal({
                   </div>
                   <div className="flex items-center justify-between text-[11px] text-gray-500">
                     <span>편도 {distanceKm}km × 500원:</span>
-                    <input
-                      type="number"
+                    <FormattedModalNumberInput
                       value={fuel5TonCost}
-                      onChange={(e) => setFuel5TonCost(parseInt(e.target.value, 10) || 0)}
+                      onChange={(val) => setFuel5TonCost(val)}
                       className="w-20 px-1.5 py-0.5 text-right font-semibold bg-white border border-gray-200 rounded text-xs"
                     />
                   </div>
@@ -488,10 +536,9 @@ export function CostCalculatorModal({
                   </div>
                   <div className="flex items-center justify-between text-[11px] text-gray-500">
                     <span>편도 {distanceKm}km × 350원:</span>
-                    <input
-                      type="number"
+                    <FormattedModalNumberInput
                       value={fuel2_5TonCost}
-                      onChange={(e) => setFuel2_5TonCost(parseInt(e.target.value, 10) || 0)}
+                      onChange={(val) => setFuel2_5TonCost(val)}
                       className="w-20 px-1.5 py-0.5 text-right font-semibold bg-white border border-gray-200 rounded text-xs"
                     />
                   </div>
@@ -505,10 +552,9 @@ export function CostCalculatorModal({
                   </div>
                   <div className="flex items-center justify-between text-[11px] text-gray-500">
                     <span>편도 {distanceKm}km × 250원:</span>
-                    <input
-                      type="number"
+                    <FormattedModalNumberInput
                       value={fuel1TonCost}
-                      onChange={(e) => setFuel1TonCost(parseInt(e.target.value, 10) || 0)}
+                      onChange={(val) => setFuel1TonCost(val)}
                       className="w-20 px-1.5 py-0.5 text-right font-semibold bg-white border border-gray-200 rounded text-xs"
                     />
                   </div>
@@ -527,10 +573,9 @@ export function CostCalculatorModal({
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <input
-                    type="number"
+                  <FormattedModalNumberInput
                     value={roundTollFare}
-                    onChange={(e) => setRoundTollFare(parseInt(e.target.value, 10) || 0)}
+                    onChange={(val) => setRoundTollFare(val)}
                     className="w-24 px-2 py-1 text-right font-bold bg-white border border-emerald-300 rounded-md text-xs text-emerald-900 focus:outline-emerald-500"
                   />
                   <span className="text-gray-600 font-semibold">원</span>
@@ -567,11 +612,10 @@ export function CostCalculatorModal({
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">롤당 단가:</span>
                   <div className="flex items-center gap-1">
-                    <input
-                      type="number"
+                    <FormattedModalNumberInput
                       value={tapeUnitPrice}
-                      onChange={(e) => setTapeUnitPrice(parseInt(e.target.value, 10) || 0)}
-                      className="w-16 px-1.5 py-0.5 text-right font-bold bg-gray-50 border border-gray-200 rounded"
+                      onChange={(val) => setTapeUnitPrice(val)}
+                      className="w-16 px-1.5 py-0.5 text-right font-bold bg-gray-50 border border-gray-200 rounded text-xs"
                     />
                     <span>원</span>
                   </div>
@@ -604,11 +648,9 @@ export function CostCalculatorModal({
                 <div className="flex items-center justify-between pt-1">
                   <span className="text-gray-500 text-[11px]">사다리차 운임 합계:</span>
                   <div className="flex items-center gap-1">
-                    <input
-                      type="number"
-                      disabled={!includeLadderCost}
+                    <FormattedModalNumberInput
                       value={ladderCost}
-                      onChange={(e) => setLadderCost(parseInt(e.target.value, 10) || 0)}
+                      onChange={(val) => setLadderCost(val)}
                       className="w-24 px-1.5 py-0.5 text-right font-bold bg-gray-50 disabled:bg-gray-100 border border-gray-200 rounded text-xs"
                     />
                     <span>원</span>

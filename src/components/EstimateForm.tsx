@@ -1077,8 +1077,9 @@ export function EstimateForm({
       getStandardItems(),
       getVehicles(),
       getLabors(),
-      getLocationCategories()
-    ]).then(([itemsRes, vehiclesRes, laborsRes, catsRes]) => {
+      getLocationCategories(),
+      getCostStandards()
+    ]).then(([itemsRes, vehiclesRes, laborsRes, catsRes, costStandardsRes]) => {
       const sortedStandardItems = [...itemsRes].sort((a: any, b: any) => {
         const nameComp = (a.name || '').localeCompare(b.name || '', 'ko')
         if (nameComp !== 0) return nameComp
@@ -1088,6 +1089,9 @@ export function EstimateForm({
       setStandardVehicles(vehiclesRes)
       setStandardLabors(laborsRes)
       setCategories(catsRes)
+      if (costStandardsRes) {
+        setCostStandardsData(costStandardsRes)
+      }
 
       const defaultCat = catsRes.find((c: any) => c.name === '안방') || catsRes[0]
 
@@ -3273,31 +3277,54 @@ export function EstimateForm({
       )}
 
       {/* 원가 기반 이사비용 산출 시뮬레이터 모달 */}
-      {isCostCalculatorModalOpen && (
-        <CostCalculatorModal
-          isOpen={isCostCalculatorModalOpen}
-          onClose={() => setIsCostCalculatorModalOpen(false)}
-          distanceKm={distance}
-          tollFare={tollFare}
-          movingType={movingType}
-          menCount={labors.find(l => l.name.includes('남') || l.name.includes('팀장'))?.count || 3}
-          womenCount={labors.find(l => l.name.includes('여') || l.name.includes('도우미'))?.count || 1}
-          vehicles={vehicles}
-          ladderTotalCost={totalLadderCost}
-          costStandards={costStandardsData}
-          onApply={(calculatedCost) => {
-            setMovingCost(calculatedCost)
-            setIsCostEdited(true)
-            const newSupply = calculatedCost + additionalCost + storageCost
-            const newVat = Math.floor(newSupply * 0.1)
-            const newTotal = newSupply + newVat
-            const newTarget = paymentTarget === 'supply' ? newSupply : newTotal
-            const newBalance = Math.max(0, newTarget - downPayment - intermediatePayment)
-            setBalance(newBalance)
-            alert(`원가 기반 산출 이사비용 (${calculatedCost.toLocaleString()}원)이 기본 이사 비용에 반영되었습니다!\n(총 공급대가: ${newTotal.toLocaleString()}원 / 잔금: ${newBalance.toLocaleString()}원)`)
-          }}
-        />
-      )}
+      {isCostCalculatorModalOpen && (() => {
+        // DB 인건비 기준정보(standardLabors)에서 남성/여성 기본 일당 추출
+        const dbMaleLabor = standardLabors.find((l: any) => (l.name || '').includes('남')) || standardLabors[0]
+        const dbFemaleLabor = standardLabors.find((l: any) => (l.name || '').includes('여') || (l.name || '').includes('주방')) || standardLabors.find((l: any) => l.id !== dbMaleLabor?.id)
+
+        // 현재 견적서 설정 인력(labors)에서 단가 및 인원수 추출 (직접 수정한 경우 최우선 반영)
+        const hasLabors = labors && labors.length > 0
+        const currentMaleLabor = hasLabors ? labors.find((l: any) => (l.name || '').includes('남') || (l.name || '').includes('팀장')) : undefined
+        const currentFemaleLabor = hasLabors ? labors.find((l: any) => (l.name || '').includes('여') || (l.name || '').includes('도우미') || (l.name || '').includes('주방')) : undefined
+
+        const menUnitPrice = currentMaleLabor?.cost || costStandardsData?.maleLaborCost || dbMaleLabor?.defaultCost || 190000
+        const womenUnitPrice = currentFemaleLabor?.cost || costStandardsData?.femaleLaborCost || dbFemaleLabor?.defaultCost || 170000
+
+        const menCount = hasLabors
+          ? labors.filter((l: any) => (l.name || '').includes('남') || (l.name || '').includes('팀장')).reduce((sum: number, cur: any) => sum + (Number(cur.count) || 0), 0)
+          : 3
+        const womenCount = hasLabors
+          ? labors.filter((l: any) => (l.name || '').includes('여') || (l.name || '').includes('도우미') || (l.name || '').includes('주방')).reduce((sum: number, cur: any) => sum + (Number(cur.count) || 0), 0)
+          : 1
+
+        return (
+          <CostCalculatorModal
+            isOpen={isCostCalculatorModalOpen}
+            onClose={() => setIsCostCalculatorModalOpen(false)}
+            distanceKm={distance}
+            tollFare={tollFare}
+            movingType={movingType}
+            menCount={menCount}
+            womenCount={womenCount}
+            menUnitPrice={menUnitPrice}
+            womenUnitPrice={womenUnitPrice}
+            vehicles={vehicles}
+            ladderTotalCost={totalLadderCost}
+            costStandards={costStandardsData}
+            onApply={(calculatedCost) => {
+              setMovingCost(calculatedCost)
+              setIsCostEdited(true)
+              const newSupply = calculatedCost + additionalCost + storageCost
+              const newVat = Math.floor(newSupply * 0.1)
+              const newTotal = newSupply + newVat
+              const newTarget = paymentTarget === 'supply' ? newSupply : newTotal
+              const newBalance = Math.max(0, newTarget - downPayment - intermediatePayment)
+              setBalance(newBalance)
+              alert(`원가 기반 산출 이사비용 (${calculatedCost.toLocaleString()}원)이 기본 이사 비용에 반영되었습니다!\n(총 공급대가: ${newTotal.toLocaleString()}원 / 잔금: ${newBalance.toLocaleString()}원)`)
+            }}
+          />
+        )
+      })()}
 
       {/* AI 영상·사진 CBM 자동 견적 모달 */}
       {isAiModalOpen && (
