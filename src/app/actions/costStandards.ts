@@ -46,7 +46,16 @@ const DEFAULT_COST_STANDARDS: Omit<CostStandardData, 'id' | 'updatedAt'> = {
  */
 export async function getCostStandards(): Promise<CostStandardData> {
   try {
-    const record = await prisma.costStandardMaster.upsert({
+    const costStandardModel = (prisma as any).costStandardMaster
+    if (!costStandardModel || typeof costStandardModel.upsert !== 'function') {
+      console.warn('prisma.costStandardMaster is not available on current client. Returning defaults.')
+      return {
+        id: 'default_cost_standard',
+        ...DEFAULT_COST_STANDARDS
+      }
+    }
+
+    const record = await costStandardModel.upsert({
       where: { id: 'default_cost_standard' },
       update: {},
       create: {
@@ -87,6 +96,11 @@ export async function getCostStandards(): Promise<CostStandardData> {
  */
 export async function updateCostStandards(formData: FormData): Promise<{ success: boolean; error?: string }> {
   try {
+    const costStandardModel = (prisma as any).costStandardMaster
+    if (!costStandardModel || typeof costStandardModel.upsert !== 'function') {
+      return { success: false, error: '데이터베이스 클라이언트가 초기화 중입니다. 잠시 후 다시 시도해주세요.' }
+    }
+
     const maleLaborCost = parseInt(formData.get('maleLaborCost') as string, 10) || DEFAULT_COST_STANDARDS.maleLaborCost
     const femaleLaborCost = parseInt(formData.get('femaleLaborCost') as string, 10) || DEFAULT_COST_STANDARDS.femaleLaborCost
     const driverAllowance = parseInt(formData.get('driverAllowance') as string, 10) || DEFAULT_COST_STANDARDS.driverAllowance
@@ -104,7 +118,7 @@ export async function updateCostStandards(formData: FormData): Promise<{ success
     const defaultMarginRate = parseFloat(formData.get('defaultMarginRate') as string) || DEFAULT_COST_STANDARDS.defaultMarginRate
 
     // 1. 원가 기준정보 마스터 저장
-    await prisma.costStandardMaster.upsert({
+    await costStandardModel.upsert({
       where: { id: 'default_cost_standard' },
       update: {
         maleLaborCost,

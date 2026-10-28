@@ -17,8 +17,16 @@ declare global {
   var prismaGlobal: undefined | ReturnType<typeof prismaClientSingleton>
 }
 
-const prisma = globalThis.prismaGlobal ?? prismaClientSingleton()
+const getPrismaInstance = () => {
+  // 캐시된 인스턴스가 있고 최신 모델(costStandardMaster)이 정상 포함되어 있으면 재사용
+  if (globalThis.prismaGlobal && (globalThis.prismaGlobal as any).costStandardMaster) {
+    return globalThis.prismaGlobal
+  }
+  const client = prismaClientSingleton()
+  globalThis.prismaGlobal = client
+  return client
+}
+
+const prisma = getPrismaInstance()
 
 export default prisma
-
-globalThis.prismaGlobal = prisma
