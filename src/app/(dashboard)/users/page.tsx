@@ -38,6 +38,7 @@ export default async function UsersPage() {
     { path: '/vehicles', name: '차량정보' },
     { path: '/cost-standards', name: '원가기준정보' },
     { path: '/ladders', name: '사다리차운임' },
+    { path: '/chartered-trucks', name: '용차기준운임' },
     { path: '/inventory', name: '자재재고관리' },
   ]
 

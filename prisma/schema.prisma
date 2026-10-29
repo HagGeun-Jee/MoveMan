@@ -112,12 +112,34 @@ model LadderTruckMaster {
   updatedAt   DateTime @updatedAt
 }
 
+// 3-1. 외주 용차 운임 기준정보 마스터 (거리 구간별 x 차종/차형별 시세)
+model CharteredTruckMaster {
+  id              String   @id @default(cuid())
+  distanceName    String   // 거리 구간명 (예: "시내 관내 (20km 이내)", "30km 이내")
+  minDistanceKm   Int      // 최소 거리 (km)
+  maxDistanceKm   Int      // 최대 거리 (km)
+  cost1TonCargo   Int      @default(0) // 1톤 카고 운임 (원)
+  cost1TonTop     Int      @default(0) // 1톤 탑차/윙바디(우천) 운임 (원)
+  cost2_5TonCargo Int      @default(0) // 2.5톤 카고 운임 (원)
+  cost2_5TonTop   Int      @default(0) // 2.5톤 탑차/윙바디(우천) 운임 (원)
+  cost5TonCargo   Int      @default(0) // 5톤 카고 운임 (원)
+  cost5TonTop     Int      @default(0) // 5톤 탑차/윙바디(우천) 운임 (원)
+  note            String?  @default("") // 비고
+  order           Int      @default(0) // 정렬 순서
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+
 // 4. 원가 기준정보 마스터 (운전자수당, 장거리인건비, 식대, 유류비, 테이프단가, 목표마진율)
 model CostStandardMaster {
   id                          String   @id @default("default_cost_standard")
   maleLaborCost               Int      @default(190000) // 남성 작업원 기본 일당 (190,000원)
   femaleLaborCost             Int      @default(170000) // 여성 작업원 기본 일당 (170,000원)
   driverAllowance             Int      @default(20000) // 운전자 추가 수당 (차량당 20,000원)
+  tonnageAllowance6Ton        Int      @default(10000) // 6톤 투입 시 1인당 물량 추가 수당 (10,000원)
+  tonnageAllowance7_5Ton      Int      @default(20000) // 7.5톤 투입 시 1인당 물량 추가 수당 (20,000원)
+  tonnageAllowance10Ton       Int      @default(30000) // 10톤 이상 투입 시 1인당 물량 추가 수당 (30,000원)
   baseDistanceKm              Int      @default(40)    // 장거리 기준거리 (40km)
   distanceStepKm              Int      @default(40)    // 장거리 초과 단위거리 (40km)
   distanceAllowancePerPerson  Int      @default(10000) // 초과 단위당 1인당 추가 수당 (10,000원)

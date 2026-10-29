@@ -15,9 +15,14 @@ import {
   CreditCard,
   Layers,
   ChevronDown,
-  Info
+  Info,
+  Sun,
+  CloudRain
 } from 'lucide-react'
 import { CostStandardData } from '@/app/actions/costStandards'
+import { getCharteredTruckFares } from '@/app/actions/charteredTruck'
+import type { CharteredTruckFareItem } from '@/types/charteredTruck'
+import { calculate5TonTruckDuration } from '@/lib/distance'
 
 interface CostCalculatorModalProps {
   isOpen: boolean
@@ -25,6 +30,7 @@ interface CostCalculatorModalProps {
   onApply: (calculatedCost: number) => void
   distanceKm: number
   tollFare: number // 카카오 편도 톨비
+  roundTollFare?: number // 대당 왕복 톨게이트비
   movingType: string
   menCount: number
   womenCount: number
@@ -92,6 +98,7 @@ export function CostCalculatorModal({
   onApply,
   distanceKm,
   tollFare,
+  roundTollFare: initialRoundTollFare,
   movingType,
   menCount,
   womenCount,
@@ -101,6 +108,11 @@ export function CostCalculatorModal({
   ladderTotalCost = 0,
   costStandards
 }: CostCalculatorModalProps) {
+  // 대당 왕복 톨비 (전달된 왕복 톨비 우선, 없으면 편도 x 2)
+  const perTruckRoundToll = initialRoundTollFare !== undefined && initialRoundTollFare > 0 
+    ? initialRoundTollFare 
+    : (tollFare * 2)
+
   // 기준값 (DB 마스터값 또는 기본 fallback)
   const standards: CostStandardData = useMemo(() => {
     return costStandards || {
@@ -108,6 +120,9 @@ export function CostCalculatorModal({
       maleLaborCost: 190000,
       femaleLaborCost: 170000,
       driverAllowance: 20000,
+      tonnageAllowance6Ton: 10000,
+      tonnageAllowance7_5Ton: 20000,
+      tonnageAllowance10Ton: 30000,
       baseDistanceKm: 40,
       distanceStepKm: 40,
       distanceAllowancePerPerson: 10000,
@@ -153,8 +168,19 @@ export function CostCalculatorModal({
       totalCount = 1
     }
 
-    return { count5Ton, count2_5Ton, count1Ton, totalCount }
+    // 총 톤수 계산 (5톤 x 대수 + 2.5톤 x 대수 + 1톤 x 대수)
+    const totalTonnage = (count5Ton * 5) + (count2_5Ton * 2.5) + (count1Ton * 1)
+
+    return { count5Ton, count2_5Ton, count1Ton, totalCount, totalTonnage }
   }, [vehicles])
+
+  // 톤수 초과 수당 기본값 계산 (6톤 1만, 7.5톤 2만, 10톤 3만)
+  const defaultTonnageAllowanceRate = useMemo(() => {
+    if (vehicleStats.totalTonnage >= 10) return standards.tonnageAllowance10Ton ?? 30000
+    if (vehicleStats.totalTonnage >= 7.5) return standards.tonnageAllowance7_5Ton ?? 20000
+    if (vehicleStats.totalTonnage >= 6.0) return standards.tonnageAllowance6Ton ?? 10000
+    return 0
+  }, [vehicleStats.totalTonnage, standards])
 
   // 장거리 초과 구간 계산 (기준거리 40km 초과 시 매 40km당 1구간)
   const baseDistance = standards.baseDistanceKm || 40
@@ -172,6 +198,9 @@ export function CostCalculatorModal({
   const [driverCount, setDriverCount] = useState<number>(vehicleStats.totalCount)
   const [driverRate, setDriverRate] = useState<number>(standards.driverAllowance)
 
+  // 톤수 초과 추가 수당 (6톤 1만, 7.5톤 2만, 10톤 3만 x 인원수)
+  const [tonnageRate, setTonnageRate] = useState<number>(defaultTonnageAllowanceRate)
+
   // 장거리 추가 인건비 (인원수 x 구간수 x 10,000)
   const [distanceSteps, setDistanceSteps] = useState<number>(defaultDistanceStepCount)
   const [distanceRatePerPerson, setDistanceRatePerPerson] = useState<number>(standards.distanceAllowancePerPerson)
@@ -183,6 +212,13 @@ export function CostCalculatorModal({
   const [fuel5TonCost, setFuel5TonCost] = useState<number>(0)
   const [fuel2_5TonCost, setFuel2_5TonCost] = useState<number>(0)
   const [fuel1TonCost, setFuel1TonCost] = useState<number>(0)
+
+  // 외주 용차 운임 시세 목록 및 운용 선택 (자사 / 카고 / 우천 탑차)
+  const [charteredFares, setCharteredFares] = useState<CharteredTruckFareItem[]>([])
+  const [charteredType1Ton, setCharteredType1Ton] = useState<'OWN' | 'CARGO' | 'TOP'>('OWN')
+  const [charteredCost1Ton, setCharteredCost1Ton] = useState<number>(0)
+  const [charteredType2_5Ton, setCharteredType2_5Ton] = useState<'OWN' | 'CARGO' | 'TOP'>('OWN')
+  const [charteredCost2_5Ton, setCharteredCost2_5Ton] = useState<number>(0)
   
   // 왕복 톨게이트비 (편도 톨비 x 2 x 차량대수)
   const [roundTollFare, setRoundTollFare] = useState<number>(0)
@@ -199,6 +235,20 @@ export function CostCalculatorModal({
   const [marginRate, setMarginRate] = useState<number>(standards.defaultMarginRate || 20.0)
   const [roundToTenThousand, setRoundToTenThousand] = useState<boolean>(true) // 만원 단위 올림 여부
 
+  // 용차 기준정보 로드
+  useEffect(() => {
+    if (isOpen) {
+      getCharteredTruckFares().then(data => setCharteredFares(data)).catch(() => {})
+    }
+  }, [isOpen])
+
+  // 현재 거리에 해당하는 용차 기준 요금 매칭
+  const currentMatchedFare = useMemo(() => {
+    if (charteredFares.length === 0) return null
+    return charteredFares.find(f => distanceKm >= f.minDistanceKm && distanceKm <= f.maxDistanceKm)
+      || charteredFares[charteredFares.length - 1]
+  }, [charteredFares, distanceKm])
+
   // 초기 상태 자동 세팅
   const resetToRecommended = () => {
     setMenNum(menCount !== undefined ? menCount : 3)
@@ -208,6 +258,8 @@ export function CostCalculatorModal({
 
     setDriverCount(vehicleStats.totalCount)
     setDriverRate(standards.driverAllowance)
+
+    setTonnageRate(defaultTonnageAllowanceRate)
 
     setDistanceSteps(defaultDistanceStepCount)
     setDistanceRatePerPerson(standards.distanceAllowancePerPerson)
@@ -222,8 +274,14 @@ export function CostCalculatorModal({
     setFuel2_5TonCost(f25)
     setFuel1TonCost(f1)
 
-    // 왕복 톨비 (편도 톨비 x 2 x 차량대수)
-    const toll = Math.round(tollFare * 2 * vehicleStats.totalCount)
+    // 용차 기본값 리셋 (자사 운행)
+    setCharteredType1Ton('OWN')
+    setCharteredCost1Ton(0)
+    setCharteredType2_5Ton('OWN')
+    setCharteredCost2_5Ton(0)
+
+    // 왕복 톨비 (대당 왕복 톨비 x 차량대수)
+    const toll = Math.round(perTruckRoundToll * vehicleStats.totalCount)
     setRoundTollFare(toll)
 
     // OPP 테이프 롤수
@@ -238,11 +296,49 @@ export function CostCalculatorModal({
     setMarginRate(standards.defaultMarginRate || 20.0)
   }
 
+  // 1톤 운용 방식 변경 시 (자사 / 카고 / 우천탑차)
+  const handleChartered1TonChange = (type: 'OWN' | 'CARGO' | 'TOP') => {
+    setCharteredType1Ton(type)
+    const roundKm = distanceKm * 2
+    const truckCount = Math.max(1, vehicleStats.count1Ton)
+    if (type === 'OWN') {
+      setFuel1TonCost(Math.round(roundKm * standards.fuelCostPerKm1Ton * vehicleStats.count1Ton))
+      setCharteredCost1Ton(0)
+    } else if (type === 'CARGO') {
+      setFuel1TonCost(0) // 유류비 제외
+      const base = currentMatchedFare ? currentMatchedFare.cost1TonCargo : 70000
+      setCharteredCost1Ton(base * truckCount)
+    } else {
+      setFuel1TonCost(0) // 유류비 제외
+      const base = currentMatchedFare ? currentMatchedFare.cost1TonTop : 90000
+      setCharteredCost1Ton(base * truckCount)
+    }
+  }
+
+  // 2.5톤 운용 방식 변경 시 (자사 / 카고 / 우천탑차)
+  const handleChartered2_5TonChange = (type: 'OWN' | 'CARGO' | 'TOP') => {
+    setCharteredType2_5Ton(type)
+    const roundKm = distanceKm * 2
+    const truckCount = Math.max(1, vehicleStats.count2_5Ton)
+    if (type === 'OWN') {
+      setFuel2_5TonCost(Math.round(roundKm * standards.fuelCostPerKm2_5Ton * vehicleStats.count2_5Ton))
+      setCharteredCost2_5Ton(0)
+    } else if (type === 'CARGO') {
+      setFuel2_5TonCost(0) // 유류비 제외
+      const base = currentMatchedFare ? currentMatchedFare.cost2_5TonCargo : 130000
+      setCharteredCost2_5Ton(base * truckCount)
+    } else {
+      setFuel2_5TonCost(0) // 유류비 제외
+      const base = currentMatchedFare ? currentMatchedFare.cost2_5TonTop : 160000
+      setCharteredCost2_5Ton(base * truckCount)
+    }
+  }
+
   useEffect(() => {
     if (isOpen) {
       resetToRecommended()
     }
-  }, [isOpen, distanceKm, tollFare, vehicleStats, standards, menCount, womenCount, menUnitPrice, womenUnitPrice, ladderTotalCost])
+  }, [isOpen, distanceKm, tollFare, perTruckRoundToll, vehicleStats, standards, menCount, womenCount, menUnitPrice, womenUnitPrice, ladderTotalCost])
 
   // 총 인원 수
   const totalWorkers = menNum + womenNum
@@ -250,9 +346,10 @@ export function CostCalculatorModal({
   // 1. 인건비 합계 계산
   const baseLaborCost = (menNum * menRate) + (womenNum * womenRate)
   const totalDriverAllowance = driverCount * driverRate
+  const totalTonnageAllowance = totalWorkers * tonnageRate
   const totalDistanceAllowance = distanceSteps * distanceRatePerPerson * totalWorkers
   const totalMealCost = totalWorkers * mealRate
-  const totalLaborCost = baseLaborCost + totalDriverAllowance + totalDistanceAllowance + totalMealCost
+  const totalLaborCost = baseLaborCost + totalDriverAllowance + totalTonnageAllowance + totalDistanceAllowance + totalMealCost
 
   // 2. 차량비 합계 계산 (유류비 + 왕복 톨비)
   const totalFuelCost = fuel5TonCost + fuel2_5TonCost + fuel1TonCost
@@ -261,8 +358,10 @@ export function CostCalculatorModal({
   // 3. 자재비 합계 계산
   const totalMaterialCost = tapeRolls * tapeUnitPrice
 
-  // 4. 장비비 합계 계산
-  const totalEquipmentCost = includeLadderCost ? ladderCost : 0
+  // 4. 장비 및 외주비 (외주 용차비 + 사다리차)
+  const totalCharteredCost = (charteredType1Ton !== 'OWN' ? charteredCost1Ton : 0) +
+                             (charteredType2_5Ton !== 'OWN' ? charteredCost2_5Ton : 0)
+  const totalEquipmentCost = (includeLadderCost ? ladderCost : 0) + totalCharteredCost
 
   // 5. 총 원가 (소요비용 합계)
   const totalCost = totalLaborCost + totalVehicleCost + totalMaterialCost + totalEquipmentCost
@@ -331,21 +430,23 @@ export function CostCalculatorModal({
           {/* 주요 기준 현황 요약 배너 */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-amber-50/60 p-3 rounded-xl border border-amber-200/80">
             <div>
-              <span className="text-[11px] text-gray-500">실제 주행거리:</span>
+              <span className="text-[11px] text-gray-500">실제 주행거리 / 시간:</span>
               <p className="font-bold text-gray-900 text-sm">
                 {distanceKm} km{' '}
-                <span className="text-[11px] font-normal text-amber-700">
-                  ({distanceKm <= baseDistance ? `기준거리 ${baseDistance}km 이내` : `${(distanceKm - baseDistance).toFixed(1)}km 초과`})
+                <span className="text-[11px] font-normal text-amber-800">
+                  (5톤 화물차 {calculate5TonTruckDuration(distanceKm).text})
                 </span>
               </p>
             </div>
             <div>
-              <span className="text-[11px] text-gray-500">카카오 톨게이트비:</span>
+              <span className="text-[11px] text-gray-500">고속도로 톨게이트비:</span>
               <p className="font-bold text-gray-900 text-sm">
-                {tollFare > 0 ? (
+                {perTruckRoundToll > 0 ? (
                   <>
-                    편도 {tollFare.toLocaleString()}원{' '}
-                    <span className="text-[11px] font-semibold text-blue-600">(왕복 {(tollFare * 2).toLocaleString()}원)</span>
+                    대당 왕복 {perTruckRoundToll.toLocaleString()}원{' '}
+                    <span className="text-[11px] font-semibold text-blue-600">
+                      ({vehicleStats.totalCount}대 총 {(perTruckRoundToll * vehicleStats.totalCount).toLocaleString()}원)
+                    </span>
                   </>
                 ) : (
                   <span className="text-gray-400 font-normal">통행료 없음 (0원)</span>
@@ -426,8 +527,8 @@ export function CostCalculatorModal({
                 </div>
               </div>
 
-              {/* 추가 수당 3종 */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+              {/* 추가 수당 4종 */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
                 {/* 운전자 추가수당 */}
                 <div className="p-2.5 rounded-lg border border-gray-200 space-y-1 bg-white">
                   <div className="flex items-center justify-between font-bold text-gray-800">
@@ -448,6 +549,46 @@ export function CostCalculatorModal({
                     </div>
                   </div>
                   <p className="text-[10px] text-gray-400">차량 1대당 1명 지급 (기본 20,000원)</p>
+                </div>
+
+                {/* 톤수 초과 추가수당 (6톤 1만, 7.5톤 2만, 10톤 3만) */}
+                <div className={`p-2.5 rounded-lg border space-y-1 ${
+                  tonnageRate > 0 ? 'bg-indigo-50/50 border-indigo-200' : 'bg-white border-gray-200'
+                }`}>
+                  <div className="flex items-center justify-between font-bold text-gray-800">
+                    <span className="flex items-center gap-1">
+                      톤수 초과 인건비
+                      {vehicleStats.totalTonnage > 5 && (
+                        <span className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.2 rounded font-semibold">
+                          {vehicleStats.totalTonnage}톤
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-indigo-600 font-extrabold">{totalTonnageAllowance.toLocaleString()}원</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-gray-600 pt-1">
+                    <span>1인당 수당:</span>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        step="5000"
+                        min="0"
+                        value={tonnageRate}
+                        onChange={(e) => setTonnageRate(parseInt(e.target.value, 10) || 0)}
+                        className="w-16 px-1 py-0.5 text-right font-bold bg-white border border-gray-200 rounded"
+                      />
+                      <span>원 × {totalWorkers}명</span>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-gray-400">
+                    {vehicleStats.totalTonnage >= 10
+                      ? '10톤 이상 물량 가산 (1인당 30,000원)'
+                      : vehicleStats.totalTonnage >= 7.5
+                      ? '7.5톤 물량 가산 (1인당 20,000원)'
+                      : vehicleStats.totalTonnage >= 6.0
+                      ? '6톤 물량 가산 (1인당 10,000원)'
+                      : '5톤 이하 기본 (수당 없음)'}
+                  </p>
                 </div>
 
                 {/* 장거리 추가인건비 */}
@@ -532,36 +673,146 @@ export function CostCalculatorModal({
                   </div>
                 </div>
 
-                {/* 2.5톤 유류비 */}
-                <div className="p-2.5 rounded-lg border border-gray-200 bg-gray-50/40 space-y-1">
-                  <div className="flex items-center justify-between font-bold text-gray-800">
-                    <span>2.5톤 유류비 ({vehicleStats.count2_5Ton}대)</span>
-                    <span className="text-emerald-700 font-bold">{fuel2_5TonCost.toLocaleString()}원</span>
+                {/* 2.5톤 유류비 및 용차 선택 */}
+                <div className={`p-2.5 rounded-lg border space-y-1.5 transition-all ${
+                  charteredType2_5Ton === 'OWN'
+                    ? 'border-gray-200 bg-gray-50/40'
+                    : charteredType2_5Ton === 'CARGO'
+                      ? 'border-blue-300 bg-blue-50/50 shadow-2xs'
+                      : 'border-indigo-300 bg-indigo-50/50 shadow-2xs'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-gray-800 text-xs">2.5톤 차량 ({vehicleStats.count2_5Ton}대)</span>
+                    <span className={`font-bold text-xs ${charteredType2_5Ton === 'OWN' ? 'text-emerald-700' : 'text-blue-700'}`}>
+                      {charteredType2_5Ton === 'OWN' ? `${fuel2_5TonCost.toLocaleString()}원 (유류비)` : '외주 용차 산입'}
+                    </span>
                   </div>
-                  <div className="flex items-center justify-between text-[11px] text-gray-500">
-                    <span>왕복 {distanceKm * 2}km × 350원:</span>
-                    <FormattedModalNumberInput
-                      value={fuel2_5TonCost}
-                      onChange={(val) => setFuel2_5TonCost(val)}
-                      className="w-20 px-1.5 py-0.5 text-right font-semibold bg-white border border-gray-200 rounded text-xs"
-                    />
+
+                  {/* 운용 모드 3단 선택 버튼 */}
+                  <div className="grid grid-cols-3 gap-1 p-0.5 bg-gray-200/80 rounded-md text-[10px] font-bold">
+                    <button
+                      type="button"
+                      onClick={() => handleChartered2_5TonChange('OWN')}
+                      className={`py-1 rounded transition-all ${
+                        charteredType2_5Ton === 'OWN'
+                          ? 'bg-white text-gray-900 shadow-2xs font-extrabold'
+                          : 'text-gray-500 hover:text-gray-800'
+                      }`}
+                    >
+                      자사 운행
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleChartered2_5TonChange('CARGO')}
+                      className={`py-1 rounded transition-all ${
+                        charteredType2_5Ton === 'CARGO'
+                          ? 'bg-blue-600 text-white shadow-2xs font-extrabold'
+                          : 'text-gray-600 hover:text-blue-700'
+                      }`}
+                      title="맑은 날 일반 카고 용차 배차"
+                    >
+                      카고 용차
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleChartered2_5TonChange('TOP')}
+                      className={`py-1 rounded transition-all ${
+                        charteredType2_5Ton === 'TOP'
+                          ? 'bg-indigo-600 text-white shadow-2xs font-extrabold'
+                          : 'text-gray-600 hover:text-indigo-700'
+                      }`}
+                      title="우천·악천후 시 침수 방지 탑차 배차"
+                    >
+                      우천 탑차
+                    </button>
                   </div>
+
+                  {charteredType2_5Ton === 'OWN' ? (
+                    <div className="flex items-center justify-between text-[11px] text-gray-500 pt-0.5">
+                      <span>왕복 {distanceKm * 2}km × 350원:</span>
+                      <FormattedModalNumberInput
+                        value={fuel2_5TonCost}
+                        onChange={(val) => setFuel2_5TonCost(val)}
+                        className="w-20 px-1.5 py-0.5 text-right font-semibold bg-white border border-gray-200 rounded text-xs"
+                      />
+                    </div>
+                  ) : (
+                    <div className="text-[10px] text-blue-700 bg-blue-100/70 px-2 py-1 rounded flex items-center justify-between">
+                      <span className="font-medium text-blue-800">자사 유류비 제외됨</span>
+                      <span className="font-extrabold text-blue-900">+{charteredCost2_5Ton.toLocaleString()}원 (외주비)</span>
+                    </div>
+                  )}
                 </div>
 
-                {/* 1톤 유류비 */}
-                <div className="p-2.5 rounded-lg border border-gray-200 bg-gray-50/40 space-y-1">
-                  <div className="flex items-center justify-between font-bold text-gray-800">
-                    <span>1톤 유류비 ({vehicleStats.count1Ton}대)</span>
-                    <span className="text-emerald-700 font-bold">{fuel1TonCost.toLocaleString()}원</span>
+                {/* 1톤 유류비 및 용차 선택 */}
+                <div className={`p-2.5 rounded-lg border space-y-1.5 transition-all ${
+                  charteredType1Ton === 'OWN'
+                    ? 'border-gray-200 bg-gray-50/40'
+                    : charteredType1Ton === 'CARGO'
+                      ? 'border-blue-300 bg-blue-50/50 shadow-2xs'
+                      : 'border-indigo-300 bg-indigo-50/50 shadow-2xs'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-gray-800 text-xs">1톤 차량 ({vehicleStats.count1Ton}대)</span>
+                    <span className={`font-bold text-xs ${charteredType1Ton === 'OWN' ? 'text-emerald-700' : 'text-blue-700'}`}>
+                      {charteredType1Ton === 'OWN' ? `${fuel1TonCost.toLocaleString()}원 (유류비)` : '외주 용차 산입'}
+                    </span>
                   </div>
-                  <div className="flex items-center justify-between text-[11px] text-gray-500">
-                    <span>왕복 {distanceKm * 2}km × 250원:</span>
-                    <FormattedModalNumberInput
-                      value={fuel1TonCost}
-                      onChange={(val) => setFuel1TonCost(val)}
-                      className="w-20 px-1.5 py-0.5 text-right font-semibold bg-white border border-gray-200 rounded text-xs"
-                    />
+
+                  {/* 운용 모드 3단 선택 버튼 */}
+                  <div className="grid grid-cols-3 gap-1 p-0.5 bg-gray-200/80 rounded-md text-[10px] font-bold">
+                    <button
+                      type="button"
+                      onClick={() => handleChartered1TonChange('OWN')}
+                      className={`py-1 rounded transition-all ${
+                        charteredType1Ton === 'OWN'
+                          ? 'bg-white text-gray-900 shadow-2xs font-extrabold'
+                          : 'text-gray-500 hover:text-gray-800'
+                      }`}
+                    >
+                      자사 운행
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleChartered1TonChange('CARGO')}
+                      className={`py-1 rounded transition-all ${
+                        charteredType1Ton === 'CARGO'
+                          ? 'bg-blue-600 text-white shadow-2xs font-extrabold'
+                          : 'text-gray-600 hover:text-blue-700'
+                      }`}
+                      title="맑은 날 일반 카고 용차 배차"
+                    >
+                      카고 용차
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleChartered1TonChange('TOP')}
+                      className={`py-1 rounded transition-all ${
+                        charteredType1Ton === 'TOP'
+                          ? 'bg-indigo-600 text-white shadow-2xs font-extrabold'
+                          : 'text-gray-600 hover:text-indigo-700'
+                      }`}
+                      title="우천·악천후 시 침수 방지 탑차 배차"
+                    >
+                      우천 탑차
+                    </button>
                   </div>
+
+                  {charteredType1Ton === 'OWN' ? (
+                    <div className="flex items-center justify-between text-[11px] text-gray-500 pt-0.5">
+                      <span>왕복 {distanceKm * 2}km × 250원:</span>
+                      <FormattedModalNumberInput
+                        value={fuel1TonCost}
+                        onChange={(val) => setFuel1TonCost(val)}
+                        className="w-20 px-1.5 py-0.5 text-right font-semibold bg-white border border-gray-200 rounded text-xs"
+                      />
+                    </div>
+                  ) : (
+                    <div className="text-[10px] text-blue-700 bg-blue-100/70 px-2 py-1 rounded flex items-center justify-between">
+                      <span className="font-medium text-blue-800">자사 유류비 제외됨</span>
+                      <span className="font-extrabold text-blue-900">+{charteredCost1Ton.toLocaleString()}원 (외주비)</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -572,7 +823,7 @@ export function CostCalculatorModal({
                   <div>
                     <span className="font-bold text-gray-800">왕복 고속도로 통행료 (톨게이트비)</span>
                     <p className="text-[11px] text-gray-500">
-                      편도 {tollFare.toLocaleString()}원 × 왕복(2회) × 투입차량 {vehicleStats.totalCount}대
+                      대당 왕복 {perTruckRoundToll.toLocaleString()}원 (편도 {Math.round(perTruckRoundToll / 2).toLocaleString()}원) × 투입차량 {vehicleStats.totalCount}대
                     </p>
                   </div>
                 </div>
@@ -588,7 +839,7 @@ export function CostCalculatorModal({
             </div>
           </div>
 
-          {/* 3. 자재비 & 장비비 */}
+          {/* 3. 자재비 & 장비/외주비 */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* OPP 테이프 소모비 */}
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-2xs">
@@ -630,39 +881,90 @@ export function CostCalculatorModal({
               </div>
             </div>
 
-            {/* 사다리차 외주비 (선택 옵션) */}
+            {/* 외주비 및 장비비 (용차비 + 사다리차) */}
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-2xs">
               <div className="px-3.5 py-2 bg-purple-50/70 border-b border-purple-100 flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <Layers className="w-3.5 h-3.5 text-purple-600" />
-                  <span className="font-bold text-purple-900 text-xs">4. 사다리차 장비 외주비 (선택)</span>
+                  <span className="font-bold text-purple-900 text-xs">4. 외주비 및 장비비 (용차/사다리)</span>
                 </div>
                 <span className="font-bold text-purple-800 text-xs">{totalEquipmentCost.toLocaleString()} 원</span>
               </div>
-              <div className="p-3 space-y-2 text-xs">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={includeLadderCost}
-                    onChange={(e) => setIncludeLadderCost(e.target.checked)}
-                    className="w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
-                  />
-                  <span className="font-medium text-gray-700">기본 이사원가에 사다리차 비용 포함</span>
-                </label>
-                <div className="flex items-center justify-between pt-1">
-                  <span className="text-gray-500 text-[11px]">사다리차 운임 합계:</span>
-                  <div className="flex items-center gap-1">
-                    <FormattedModalNumberInput
-                      value={ladderCost}
-                      onChange={(val) => setLadderCost(val)}
-                      className="w-24 px-1.5 py-0.5 text-right font-bold bg-gray-50 disabled:bg-gray-100 border border-gray-200 rounded text-xs"
-                    />
-                    <span>원</span>
+              <div className="p-3 space-y-2.5 text-xs">
+                {/* 외주 용차비 표시 */}
+                <div className="space-y-1 bg-purple-50/40 p-2 rounded-lg border border-purple-100/70">
+                  <div className="flex items-center justify-between font-bold text-purple-950">
+                    <span className="flex items-center gap-1 text-[11px]">
+                      <Truck className="w-3.5 h-3.5 text-purple-600" />
+                      외주 용차비 소계:
+                    </span>
+                    <span className="text-purple-700 font-extrabold">{totalCharteredCost.toLocaleString()} 원</span>
                   </div>
+                  {totalCharteredCost > 0 ? (
+                    <div className="space-y-1 pt-1 text-[11px]">
+                      {charteredType2_5Ton !== 'OWN' && (
+                        <div className="flex items-center justify-between text-gray-600">
+                          <span>• 2.5톤 {charteredType2_5Ton === 'CARGO' ? '카고용차' : '우천탑차'}:</span>
+                          <div className="flex items-center gap-1">
+                            <FormattedModalNumberInput
+                              value={charteredCost2_5Ton}
+                              onChange={(val) => setCharteredCost2_5Ton(val)}
+                              className="w-20 px-1.5 py-0.5 text-right font-bold bg-white border border-purple-200 rounded text-xs text-purple-900"
+                            />
+                            <span>원</span>
+                          </div>
+                        </div>
+                      )}
+                      {charteredType1Ton !== 'OWN' && (
+                        <div className="flex items-center justify-between text-gray-600">
+                          <span>• 1톤 {charteredType1Ton === 'CARGO' ? '카고용차' : '우천탑차'}:</span>
+                          <div className="flex items-center gap-1">
+                            <FormattedModalNumberInput
+                              value={charteredCost1Ton}
+                              onChange={(val) => setCharteredCost1Ton(val)}
+                              className="w-20 px-1.5 py-0.5 text-right font-bold bg-white border border-purple-200 rounded text-xs text-purple-900"
+                            />
+                            <span>원</span>
+                          </div>
+                        </div>
+                      )}
+                      <p className="text-[10px] text-purple-600/90 pt-0.5">
+                        * {currentMatchedFare ? `${currentMatchedFare.distanceName} (${distanceKm}km) 표준 시세 반영` : '표준 시세 적용'} (금액 직접 수정 가능)
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-gray-400">
+                      * 상단 차량비에서 [카고 용차] 또는 [우천 탑차] 선택 시 자동 산입
+                    </p>
+                  )}
                 </div>
-                <p className="text-[10px] text-gray-400">
-                  * 사다리차를 가산비용으로 별도 청구할 경우 체크 해제 유지
-                </p>
+
+                {/* 사다리차 외주비 */}
+                <div className="pt-0.5 space-y-1">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={includeLadderCost}
+                      onChange={(e) => setIncludeLadderCost(e.target.checked)}
+                      className="w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
+                    />
+                    <span className="font-medium text-gray-700">기본 이사원가에 사다리차 비용 포함</span>
+                  </label>
+                  <div className="flex items-center justify-between pt-0.5">
+                    <span className="text-gray-500 text-[11px]">사다리차 운임 합계:</span>
+                    <div className="flex items-center gap-1">
+                      <FormattedModalNumberInput
+                        value={ladderCost}
+                        onChange={(val) => setLadderCost(val)}
+                        className="w-24 px-1.5 py-0.5 text-right font-bold bg-gray-50 disabled:bg-gray-100 border border-gray-200 rounded text-xs"
+                      />
+                      <span>원</span>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-gray-400">
+                    * 사다리차를 가산비용으로 별도 청구할 경우 체크 해제 유지
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -676,7 +978,7 @@ export function CostCalculatorModal({
                   목표 마진율 설정 및 제안가 산출
                 </span>
                 <p className="text-[11px] text-amber-800">
-                  총 원가: <strong className="font-bold">{totalCost.toLocaleString()}원</strong> (인건비 {totalLaborCost.toLocaleString()} + 차량비 {totalVehicleCost.toLocaleString()} + 자재비 {totalMaterialCost.toLocaleString()}{includeLadderCost ? ` + 장비비 ${totalEquipmentCost.toLocaleString()}` : ''})
+                  총 원가: <strong className="font-bold">{totalCost.toLocaleString()}원</strong> (인건비 {totalLaborCost.toLocaleString()} + 차량비 {totalVehicleCost.toLocaleString()} + 자재비 {totalMaterialCost.toLocaleString()}{totalEquipmentCost > 0 ? ` + 외주장비비 ${totalEquipmentCost.toLocaleString()}` : ''})
                 </p>
               </div>
 

@@ -702,6 +702,97 @@
    - `npx next build` 로컬 프로덕션 컴파일 정상 통과 (Exit Code 0).
    - 사용자 배포 승인 확인 후 원격 서버(Render) 배포 진행.
 
+### RR. 5톤 기준 톤수 초과(6톤·7.5톤·10톤) 계단식 추가 인건비(물량 수당) 시스템 구축
+1. **요구사항 및 배경**:
+   - 현장에서 5톤 기본 물량을 초과하여 6톤, 7.5톤, 10톤 등으로 짐 양이 늘어날 경우, 작업 피로도 및 작업 시간 증가에 따라 장거리 추가 인건비처럼 **작업원 1인당 계단식 추가 수당**이 발생함.
+   - 지급 방식: 작업원 1인당 지급 (`총 인원수 × 톤수별 수당`)
+   - 기본 기준 단가:
+     - 6톤: 1인당 10,000원 (5t + 1t 조합 등)
+     - 7.5톤: 1인당 20,000원 (5t + 2.5t 조합 등)
+     - 10톤 이상: 1인당 30,000원 (5t 2대 등)
+   - 원가기준정보(`/cost-standards`)에서 관리자가 금액을 자유롭게 수정/저장할 수 있어야 함.
+   - 견적 작성/수정 시 `[💰 원가산출]` 팝업에서 투입 차량의 총 톤수를 자동 감지하여 1인당 수당 및 총 톤수 초과 수당을 자동 계산하고, 수동 미세조정 가능해야 함.
+2. **조치 내역**:
+   - **DB 모델 및 서버 액션 확장 ([schema.prisma](file:///c:/Users/ysjee/Desktop/MEMAN/web/prisma/schema.prisma), [costStandards.ts](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/app/actions/costStandards.ts))**:
+     - `CostStandardMaster` 모델에 `tonnageAllowance6Ton Int @default(10000)`, `tonnageAllowance7_5Ton Int @default(20000)`, `tonnageAllowance10Ton Int @default(30000)` 필드 추가 및 Supabase DB 마이그레이션(`prisma db push`) 완료.
+     - `getCostStandards`, `updateCostStandards`에 3개 필드 매핑 및 upsert 로직 추가.
+   - **원가기준정보 UI 개편 및 태블릿 뷰 콤팩트 최적화 ([CostStandardsForm.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/app/(dashboard)/cost-standards/CostStandardsForm.tsx), [page.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/app/(dashboard)/cost-standards/page.tsx))**:
+     - `2. 인건비 추가 수당 및 식비 기준` 섹션에 톤수 초과 수당 입력 필드 3종(6톤, 7.5톤, 10톤) 배치.
+     - 1,000단위 콤마 서식(`FormattedNumberInput`), `handleResetToDefault` 복원 및 저장 연동 완료.
+     - **중복 설명 제거 및 2~4열 콤팩트 배치**: 입력란 하단의 중복 설명 문구 및 톤수 보조설명(`5t+1t (인당)` 등)을 전면 제거하고 수당 명 자체에 세련된 배경색 배지(파랑/인디고/보라) 적용. 모든 입력란을 최소 2개~4개 가로 그리드로 촘촘하게 배치(1. 기본일당 2열, 2. 수당 및 식비 4열×2행, 3. 유류비 3열, 4. 테이프 4열, 5. 마진율 인라인 1행)하여 태블릿 화면에서 스크롤 없이 한눈에 들어오는 레이아웃 완성.
+   - **원가 기반 이사비용 산출 모달 연동 ([CostCalculatorModal.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/components/CostCalculatorModal.tsx))**:
+     - 견적서의 투입 차량 차종(5톤, 2.5톤, 1톤)을 기반으로 총 톤수 자동 계산:
+       - `totalTonnage = (count5Ton * 5) + (count2_5Ton * 2.5) + (count1Ton * 1)`
+     - 톤수 구간에 따라 1인당 수당 자동 채번:
+       - 10톤 이상: 10톤 수당 (기본 30,000원)
+       - 7.5톤 이상: 7.5톤 수당 (기본 20,000원)
+       - 6톤 이상: 6톤 수당 (기본 10,000원)
+       - 5톤 이하: 0원 (수당 없음)
+     - `totalTonnageAllowance = totalWorkers * tonnageRate` 자동 계산 및 총 인건비에 합산.
+     - 인건비 추가 수당 카드 그리드를 4종(운전자 수당, 톤수 초과 수당, 장거리 수당, 식대)으로 확장 표시.
+3. **검증 및 배포**:
+   - `npx next build` 로컬 프로덕션 컴파일 정상 통과 (Exit Code 0).
+   - 사용자 배포 승인 후 원격 서버(Render) 배포 진행.
+
+### SS. 외주 용차(카고/우천 탑차) 운임 시세 정기 관리 시스템 구축 및 원가 자동 산출 연동
+1. **요구사항 및 배경**:
+   - 사다리차 기준정보(`/ladders`)와 마찬가지로, 현장에서 5톤 차량을 초과할 때 콜하는 외주 용차(1톤, 2.5톤, 5톤 등)의 운임 시세를 1~2년 주기로 정기 반영/관리할 수 있는 전용 메뉴(`/chartered-trucks`) 신설.
+   - 맑은 날 주로 부르는 **일반 카고 용차**와 우천/악천후 시 가구 침수 방지를 위해 부르는 **우천 탑차**의 시세를 거리 구간별로 구분 관리.
+   - 견적 작성/수정 시 `[💰 원가산출]` 팝업(`CostCalculatorModal.tsx`)에서 초과 차량에 대해 `[자사 운행]`, `[카고 용차]`, `[우천 탑차]`를 원클릭 선택하면:
+     - 외주 용차비가 소요 원가에 실시간 자동 산입됨.
+     - 용차비에는 기사 인건비와 유류비가 포함되어 있으므로, **자사 유류비(이중 청구)는 자동으로 0원 제외** 처리됨.
+2. **조치 내역**:
+   - **Prisma DB 모델 생성 및 Supabase 마이그레이션 ([schema.prisma](file:///c:/Users/ysjee/Desktop/MEMAN/web/prisma/schema.prisma))**:
+     - `CharteredTruckMaster` 테이블 신설: `distanceName`, `minDistanceKm`, `maxDistanceKm`, 차종별 요금(`cost1TonCargo`, `cost1TonTop`, `cost2_5TonCargo`, `cost2_5TonTop`, `cost5TonCargo`, `cost5TonTop`), `note`, `order`.
+     - `npx prisma db push`를 통해 원격 DB 마이그레이션 완료.
+   - **서버 액션 및 표준 시세 데이터 ([charteredTruck.ts](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/app/actions/charteredTruck.ts), [charteredTruck.ts](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/types/charteredTruck.ts))**:
+     - 화물운송연합회/용차콜 공식 표준 시세 8개 구간(`DEFAULT_CHARTERED_TRUCK_FARES`: 15km 이내 ~ 200km 초과) 기본 탑재.
+     - `getCharteredTruckFares`, `batchUpdateCharteredTruckFares`, `resetCharteredTruckFaresToDefault`, `createCharteredTruckFare`, `deleteCharteredTruckFare`, `getCharteredFareByDistance` 구현 완료.
+   - **용차 기준정보 전용 관리 화면 ([chartered-trucks/page.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/app/(dashboard)/chartered-trucks/page.tsx))**:
+     - 실시간 운임 시뮬레이터: 이동거리(km), 톤수(1t/2.5t/5t), 차형(카고/우천탑차) 선택 시 기준 요금 실시간 미리보기 제공.
+     - 스프레드시트형 인라인 수정 테이블: 차종별 카고/탑차 요금을 엑셀처럼 직접 수정 후 `[전체 저장]`.
+     - `[표준운임 복원]` 버튼: 원클릭으로 전국 공식 표준 시세로 초기화 복원.
+     - `[+ 구간 추가]` 모달: 새로운 거리 구간 자유롭게 등록.
+   - **사이드바 메뉴 및 접근 권한 연동 ([Sidebar.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/components/Sidebar.tsx), [users/page.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/app/(dashboard)/users/page.tsx))**:
+     - 모바일 및 데스크톱 사이드바 기초정보 섹션에 `용차기준운임` 메뉴 추가.
+     - 최고관리자 권한 설정 목록에 `/chartered-trucks` 라우트 등록.
+   - **원가산출 모달 연동 ([CostCalculatorModal.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/components/CostCalculatorModal.tsx))**:
+     - 2.5톤 및 1톤 차량 카드에 `[자사 운행]`, `[카고 용차]`, `[우천 탑차]` 3단 토글 스위치 배치.
+     - 카고/탑차 선택 시 해당 차량 유류비 0원 제외(`자사 유류비 제외됨` 배지 표시) 및 외주비에 해당 용차비 자동 반영.
+     - `4. 외주비 및 장비비 (용차/사다리)` 섹션 신설: 외주 용차비 소계 및 항목별 금액 인라인 수정 지원.
+     - 총 원가 및 마진율 계산에 용차비가 100% 정상 연동되어 최종 기본 이사비용 산출.
+3. **검증 및 배포**:
+   - `npx next build` 로컬 프로덕션 컴파일 및 최적화 정상 통과 (Exit Code 0).
+   - 사용자 배포 승인 확인 후 원격 서버(Render) 배포 진행.
+
+### TT. 견적 이동거리 산출 시 왕복 톨게이트비 가시화·원가 연동 및 5톤 화물차 속도제한(80km/h) 주행시간 반영
+1. **요구사항 및 배경**:
+   - **왕복 톨게이트비 직관적 표시 및 원가 연동**:
+     - 견적 작성 시 카카오 모빌리티 API를 통한 이동거리 산출 시, 기존의 편도 중심 표기에서 벗어나 현장 실무에 맞게 **대당 왕복 톨게이트비**를 전용 입력란에 명확히 표기.
+     - 사용자가 현장 도로 사정에 맞게 왕복 톨비를 직접 수정할 수 있도록 하고, 투입차량 전체 대수에 따른 총 왕복 톨비 안내 제공.
+     - `[💰 원가산출]` 팝업 실행 시, 산출/입력된 왕복 톨게이트비가 차량비의 고속도로 통행료 항목에 100% 자동 산입되도록 연동.
+   - **5톤 화물차 속도제한(80km/h) 반영 주행 예상시간**:
+     - 승용차 내비게이션의 소요시간(100~110km/h 기준) 대신, 도로교통법상 5톤 이상 화물차 속도제한장치(최고속도 80km/h) 및 만차 상태의 가감속/신호 지연을 반영한 현실적인 주행 예상시간 자동 계산.
+2. **조치 내역**:
+   - **5톤 화물차 주행 시간 계산 유틸리티 ([distance.ts](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/lib/distance.ts))**:
+     - `calculate5TonTruckDuration`: 승용차 내비 소요 시간 대비 25% 가중 보정 및 최고속도 80km/h 물리적 상한선(`(거리 / 75km/h) * 60분`)을 적용하여 5톤 탑차의 실제 도로 주행시간 산출.
+     - 카카오 모빌리티, OSRM, 폴백 추정 계산 모두 5톤 화물차 기준 소요 시간으로 반환하도록 표준화.
+   - **견적 작성 화면 왕복 톨비 입력/표시 및 주행시간 가시화 ([EstimateForm.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/components/EstimateForm.tsx))**:
+     - 실제 주행거리 인풋 옆에 `화물차 주행시간: 약 N분 (80km/h 제한)` 배지 표시.
+     - `왕복 톨게이트비: [ 7,000 ] 원 (대당 편도 3,500원)` 전용 입력 필드 신설 (거리 계산 시 2배 자동 채번, 수동 수정 가능).
+     - 하단 종합 배지: `고속도로 통행료: 대당 왕복 N원 | 투입 N대 총 왕복 톨비: N원 (원가산출 시 자동 산입)` 표시.
+     - `roundTollFare`를 Draft(임시저장), `currentEnvironmentObj`, 폼 `hidden input`에 안전하게 영구 보존.
+   - **서버 액션 연동 ([estimate.ts](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/app/actions/estimate.ts))**:
+     - `createEstimate`, `updateEstimate`에 `roundTollFare` 필드 파싱 및 environment JSON 보존 로직 추가.
+   - **원가산출 모달 연동 ([CostCalculatorModal.tsx](file:///c:/Users/ysjee/Desktop/MEMAN/web/src/components/CostCalculatorModal.tsx))**:
+     - `roundTollFare` prop을 전달받아 상단 배너에 `대당 왕복 N원 (차량 N대 총 N원)` 표시.
+     - `2. 차량비` 세부 내역의 `왕복 고속도로 통행료`에 `대당 왕복 톨비 × 투입차량 대수`가 기본값으로 100% 자동 산입되어 총 원가 및 마진율에 즉시 반영.
+3. **검증 및 배포**:
+   - `npx next build` 로컬 프로덕션 컴파일 정상 통과 (Exit Code 0).
+   - 사용자 배포 승인 확인 후 원격 서버(Render) 배포 진행.
+
+
+
 
 
 

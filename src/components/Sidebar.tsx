@@ -18,7 +18,8 @@ import {
   KeyRound,
   Boxes,
   Smartphone,
-  Coins
+  Coins,
+  Truck
 } from 'lucide-react'
 import { ChangePasswordModal } from './ChangePasswordModal'
 import { APP_RELEASE_INFO } from '@/lib/appRelease'
@@ -309,6 +310,12 @@ export function Sidebar({
                     <span>사다리차운임</span>
                   </Link>
                 )}
+                {canAccess('/chartered-trucks') && (
+                  <Link href="/chartered-trucks" onClick={() => setMobileOpen(false)} className={mobileLinkClass(isActive('/chartered-trucks'))}>
+                    <Truck size={18} className="shrink-0 text-indigo-600" />
+                    <span>용차기준운임</span>
+                  </Link>
+                )}
                 {canAccess('/inventory') && (
                   <Link href="/inventory" onClick={() => setMobileOpen(false)} className={mobileLinkClass(isActive('/inventory'))}>
                     <Boxes size={18} className="shrink-0 text-blue-600" />
@@ -497,6 +504,14 @@ export function Sidebar({
                 <Link href="/ladders" className={subLinkClass(isActive('/ladders'))} title="사다리차운임">
                   <Settings size={18} className="shrink-0" />
                   {!collapsed && <span>사다리차운임</span>}
+                </Link>
+              </li>
+            )}
+            {canAccess('/chartered-trucks') && (
+              <li>
+                <Link href="/chartered-trucks" className={subLinkClass(isActive('/chartered-trucks'))} title="용차기준운임">
+                  <Truck size={18} className="shrink-0 text-indigo-600" />
+                  {!collapsed && <span>용차기준운임</span>}
                 </Link>
               </li>
             )}

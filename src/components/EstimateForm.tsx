@@ -22,6 +22,7 @@ import { EstimatePresetModal } from '@/components/EstimatePresetModal'
 import { QuickTouchCbmPanel } from '@/components/QuickTouchCbmPanel'
 import { UnassignedBoxTooltip } from '@/components/UnassignedBoxTooltip'
 import type { PresetItem } from '@/lib/estimatePresets'
+import { calculate5TonTruckDuration } from '@/lib/distance'
 
 const NumberInput = ({ value, onChange, className, name }: { value: number, onChange: (val: number) => void, className?: string, name?: string }) => {
   const [localVal, setLocalVal] = useState(value === 0 ? '' : value.toLocaleString())
@@ -318,6 +319,16 @@ export function EstimateForm({
   const [baseDistanceKm, setBaseDistanceKm] = useState<number>(Number(envObj.baseDistanceKm) || 40)
   const [ratePerKm, setRatePerKm] = useState<number>(Number(envObj.ratePerKm) || 2000)
   const [tollFare, setTollFare] = useState<number>(Number(envObj.tollFare) || 0)
+  const [roundTollFare, setRoundTollFare] = useState<number>(
+    envObj.roundTollFare !== undefined 
+      ? Number(envObj.roundTollFare) 
+      : (Number(envObj.tollFare) ? Number(envObj.tollFare) * 2 : 0)
+  )
+
+  const handleRoundTollFareChange = (val: number) => {
+    setRoundTollFare(val)
+    setTollFare(Math.round(val / 2))
+  }
 
   // 특기사항 (내용이 없으면 조회/출력 시 숨김)
   const [specialNotes, setSpecialNotes] = useState<string>(envObj.specialNotes || '')
@@ -340,7 +351,10 @@ export function EstimateForm({
         setDistanceDetail(res.summary)
         const fare = res.tollFare !== undefined ? res.tollFare : 0
         setTollFare(fare)
-        const tollText = fare > 0 ? `, 편도 통행료: ${fare.toLocaleString()}원 (왕복: ${(fare * 2).toLocaleString()}원)` : ''
+        setRoundTollFare(fare * 2)
+        const tollText = fare > 0 
+          ? ` | 대당 왕복 톨비: ${(fare * 2).toLocaleString()}원 (편도 ${fare.toLocaleString()}원)` 
+          : ' | 통행료 없음 (0원)'
         setDistanceNotice(`거리 계산 완료: ${res.distanceKm}km (${res.durationText})${tollText}`)
         setTimeout(() => setDistanceNotice(null), 5000)
       } else {
@@ -1015,6 +1029,9 @@ export function EstimateForm({
           if (draft.ratePerKm !== undefined) setRatePerKm(draft.ratePerKm)
           if (draft.tollFare !== undefined) setTollFare(draft.tollFare)
           else if (envObj.tollFare !== undefined) setTollFare(Number(envObj.tollFare))
+          if (draft.roundTollFare !== undefined) setRoundTollFare(draft.roundTollFare)
+          else if (envObj.roundTollFare !== undefined) setRoundTollFare(Number(envObj.roundTollFare))
+          else if (draft.tollFare) setRoundTollFare(draft.tollFare * 2)
           if (typeof draft.specialNotes === 'string') setSpecialNotes(draft.specialNotes)
           
           if (draft.ladderTonnage) setLadderTonnage(draft.ladderTonnage)
@@ -1232,6 +1249,7 @@ export function EstimateForm({
           baseDistanceKm,
           ratePerKm,
           tollFare,
+          roundTollFare,
           specialNotes,
           ladderTonnage,
           appliedLadderCost,
@@ -1286,6 +1304,7 @@ export function EstimateForm({
     baseDistanceKm,
     ratePerKm,
     tollFare,
+    roundTollFare,
     specialNotes,
     ladderTonnage,
     appliedLadderCost,
@@ -1327,6 +1346,7 @@ export function EstimateForm({
     baseDistanceKm,
     ratePerKm,
     tollFare,
+    roundTollFare,
     extraDistanceKm,
     distanceExtraCost: calculatedExtraCost,
     ladderTonnage,
@@ -1970,9 +1990,10 @@ export function EstimateForm({
                   </th>
                   <td colSpan={3} className="border border-gray-200 p-2 sm:p-2.5 space-y-2">
                     <div className="bg-white rounded-xl border border-blue-200 p-2.5 sm:p-3 shadow-xs space-y-2.5">
-                      {/* 1. 거리 및 시간 표시 / 수동 조정 영역 */}
+                      {/* 1. 거리, 예상시간(5톤 화물차 기준), 왕복 톨게이트비 표시 및 조정 영역 */}
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                          {/* 실제 주행거리 */}
                           <div className="flex items-center gap-1.5">
                             <span className="text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap">실제 주행거리:</span>
                             <div className="flex items-center gap-1 bg-blue-50/60 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border border-blue-200">
@@ -1993,10 +2014,37 @@ export function EstimateForm({
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded-lg border border-gray-200">
-                            <span className="font-medium">예상시간:</span>
-                            <span className="font-bold text-gray-800">
-                              {distanceDuration || (distance > 0 ? `약 ${Math.max(10, Math.round((distance / 45) * 60))}분` : '-')}
+                          {/* 5톤 화물차 기준 예상시간 */}
+                          <div className="flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded-lg border border-gray-200" title="5톤 화물차 법정 속도제한(80km/h) 및 적재 중량 가감속을 반영한 현실적인 주행 소요 시간">
+                            <span className="font-medium text-gray-700">화물차 주행시간:</span>
+                            <span className="font-extrabold text-blue-900">
+                              {distanceDuration || (distance > 0 ? calculate5TonTruckDuration(distance).text : '-')}
+                            </span>
+                            <span className="text-[10px] text-gray-500 font-normal bg-gray-200/60 px-1 py-0.5 rounded">
+                              80km/h 제한
+                            </span>
+                          </div>
+
+                          {/* 왕복 톨게이트비 입력/표시 */}
+                          <div className="flex items-center gap-1.5 bg-indigo-50/70 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border border-indigo-200">
+                            <CreditCard size={13} className="text-indigo-600 shrink-0" />
+                            <span className="text-xs font-bold text-indigo-950 whitespace-nowrap">왕복 톨게이트비:</span>
+                            <div className="flex items-center gap-0.5 bg-white px-1.5 py-0.5 rounded border border-indigo-300">
+                              <input
+                                type="text"
+                                value={roundTollFare === 0 ? '' : roundTollFare.toLocaleString()}
+                                onChange={e => {
+                                  const raw = e.target.value.replace(/[^0-9]/g, '')
+                                  handleRoundTollFareChange(raw ? parseInt(raw, 10) : 0)
+                                }}
+                                onFocus={handleSelectAllOnFocus}
+                                placeholder="0"
+                                className="w-18 bg-transparent text-right font-black text-indigo-900 text-xs sm:text-sm outline-none"
+                              />
+                              <span className="text-xs font-semibold text-indigo-900">원</span>
+                            </div>
+                            <span className="text-[11px] text-indigo-700 hidden md:inline whitespace-nowrap">
+                              (대당 편도 {tollFare.toLocaleString()}원)
                             </span>
                           </div>
                         </div>
@@ -2048,14 +2096,23 @@ export function EstimateForm({
                         </div>
                       )}
 
-                      {/* 고속도로 통행료 배지 */}
-                      {tollFare > 0 && (
-                        <div className="flex items-center gap-1.5 text-xs text-indigo-800 bg-indigo-50/90 px-2.5 py-1 rounded-md border border-indigo-200/80">
-                          <CreditCard size={12} className="text-indigo-600 shrink-0" />
-                          <span className="font-medium text-gray-700">고속도로 통행료:</span>
-                          <span className="font-bold text-indigo-900">편도 {tollFare.toLocaleString()}원</span>
-                          <span className="text-gray-300">|</span>
-                          <span className="text-gray-700">대당 왕복: <strong className="font-bold text-indigo-900">{(tollFare * 2).toLocaleString()}원</strong></span>
+                      {/* 고속도로 통행료 종합 배지 (투입차량 전체 왕복 톨비 안내) */}
+                      {roundTollFare > 0 && (
+                        <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs text-indigo-900 bg-indigo-50/90 px-2.5 py-1.5 rounded-md border border-indigo-200/80">
+                          <div className="flex items-center gap-1.5">
+                            <CreditCard size={13} className="text-indigo-600 shrink-0" />
+                            <span className="font-semibold text-gray-700">고속도로 통행료:</span>
+                            <span className="font-extrabold text-indigo-900">대당 왕복 {roundTollFare.toLocaleString()}원</span>
+                            <span className="text-gray-400">|</span>
+                            <span className="text-gray-600">편도 {tollFare.toLocaleString()}원</span>
+                          </div>
+                          <div className="flex items-center gap-1 font-bold text-indigo-800">
+                            <span>투입 {vehicles.reduce((sum, v) => sum + (Number(v.count) || 0), 0) || 1}대 총 왕복 톨비:</span>
+                            <span className="text-sm font-black text-indigo-900 bg-white px-2 py-0.5 rounded border border-indigo-200">
+                              {(roundTollFare * (vehicles.reduce((sum, v) => sum + (Number(v.count) || 0), 0) || 1)).toLocaleString()}원
+                            </span>
+                            <span className="text-[11px] text-indigo-600 font-normal">(원가산출 시 자동 산입)</span>
+                          </div>
                         </div>
                       )}
 
@@ -2173,6 +2230,7 @@ export function EstimateForm({
           <input type="hidden" name="ladderToCost" value={toLadderCalc.cost} />
           <input type="hidden" name="ladderTotalCost" value={totalLadderCost} />
           <input type="hidden" name="tollFare" value={tollFare} />
+          <input type="hidden" name="roundTollFare" value={roundTollFare} />
           <input type="hidden" name="environment" value={currentEnvironmentStr} />
         </div>
 
@@ -3303,6 +3361,7 @@ export function EstimateForm({
             onClose={() => setIsCostCalculatorModalOpen(false)}
             distanceKm={distance}
             tollFare={tollFare}
+            roundTollFare={roundTollFare}
             movingType={movingType}
             menCount={menCount}
             womenCount={womenCount}

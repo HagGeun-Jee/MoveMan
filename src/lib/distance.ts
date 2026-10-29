@@ -140,6 +140,8 @@ const SIDO_MAP: Record<string, string> = {
 export function cleanKoreanRoadAddress(addr: string): string {
   if (!addr) return ''
   let clean = addr.replace(/\(.*?\)/g, ' ').replace(/\s+/g, ' ').trim()
+  // 대표적인 행정구역 오타 보정
+  clean = clean.replace(/인천\s*서해구/g, '인천 서구')
   
   // 도로명 + 번호 패턴 추출 (예: 테헤란로 152, 세종대로 110, 매영로 345)
   const roadMatch = clean.match(/^(.+?(?:로|길|대로)\s+[0-9]+(?:-[0-9]+)?)/)
@@ -280,6 +282,37 @@ function calculateHaversineKm(p1: Point, p2: Point): number {
 }
 
 /**
+ * 5톤 화물차(최고속도 80km/h 속도제한 및 적재 중량 가감속) 기준 주행 시간 보정
+ * - 도로교통법상 화물차 최고속도 80~90km/h 제한 장치 및 고속도로 주행 속도 감안
+ * - 승용차 내비게이션 대비 약 25% 추가 소요
+ */
+export function calculate5TonTruckDuration(distanceKm: number, rawCarDurationMin?: number): { minutes: number; text: string } {
+  if (distanceKm <= 0) return { minutes: 0, text: '-' }
+
+  let minutes: number
+  if (rawCarDurationMin && rawCarDurationMin > 0) {
+    // 승용차 기준 시간 대비 25% 보정 (최고속도 80km/h 상한 및 가감속 지연)
+    const adjustedFromNavi = Math.round(rawCarDurationMin * 1.25)
+    // 5톤 화물차 속도제한 80km/h에 따른 물리적 최소 소요 시간 (평균 시속 75km/h 기준)
+    const physicalMinLimit = Math.round((distanceKm / 75) * 60)
+    minutes = Math.max(10, Math.max(adjustedFromNavi, physicalMinLimit))
+  } else {
+    // 내비 시간 부재 시 거리 기반 화물차 실주행 추정:
+    if (distanceKm <= 20) {
+      minutes = Math.max(10, Math.round((distanceKm / 35) * 60))
+    } else {
+      minutes = Math.round(15 + (distanceKm / 70) * 60)
+    }
+  }
+
+  const text = minutes < 60
+    ? `약 ${minutes}분`
+    : `약 ${Math.floor(minutes / 60)}시간 ${minutes % 60}분`
+
+  return { minutes, text }
+}
+
+/**
  * 카카오 모빌리티 자동차 길찾기 API
  */
 async function routeKakao(p1: Point, p2: Point, apiKey: string): Promise<DistanceResult | null> {
@@ -292,13 +325,16 @@ async function routeKakao(p1: Point, p2: Point, apiKey: string): Promise<Distanc
     if (data.routes && data.routes.length > 0 && data.routes[0].result_code === 0) {
       const summary = data.routes[0].summary
       const distKm = Math.round((summary.distance / 1000) * 10) / 10
-      const durationMin = Math.round(summary.duration / 60)
+      const carDurationMin = Math.round(summary.duration / 60)
+      // 5톤 화물차 80km/h 속도제한 기준 소요 시간 보정
+      const truckDuration = calculate5TonTruckDuration(distKm, carDurationMin)
+
       return {
         success: true,
         distanceKm: distKm,
-        durationMinutes: durationMin,
-        durationText: durationMin < 60 ? `약 ${durationMin}분` : `약 ${Math.floor(durationMin / 60)}시간 ${durationMin % 60}분`,
-        summary: `실제 주행거리 ${distKm}km (약 ${durationMin}분 소요)`,
+        durationMinutes: truckDuration.minutes,
+        durationText: truckDuration.text,
+        summary: `실제 주행거리 ${distKm}km (5톤 화물차 기준 ${truckDuration.text})`,
         source: 'kakao',
         tollFare: summary.fare?.toll || 0,
         taxiFare: summary.fare?.taxi || 0
@@ -308,6 +344,20 @@ async function routeKakao(p1: Point, p2: Point, apiKey: string): Promise<Distanc
     console.error('Kakao Mobility Route Error:', err)
   }
   return null
+}
+
+/**
+ * 한국 고속도로 톨게이트 통행료 추정 계산 (카카오 API 키 부재 시 스마트 백업)
+ * - 한국도로공사 표준 고속도로 요금 체계: 기본요금 900원 + (고속도로 주행거리 km당 약 45원)
+ * - 25km 미만(시내 주행 위주): 0원
+ * - 25km 이상: 고속도로 이용 구간(전체 거리에서 시내 15km 제외)을 바탕으로 편도 요금 산출 (100원 단위 반올림)
+ */
+export function estimateKoreanHighwayToll(distanceKm: number): number {
+  if (distanceKm < 25) return 0
+
+  const highwayKm = Math.max(0, distanceKm - 15)
+  const rawToll = 900 + (highwayKm * 45)
+  return Math.round(rawToll / 100) * 100
 }
 
 /**
@@ -327,14 +377,20 @@ async function routeOSRM(p1: Point, p2: Point): Promise<DistanceResult | null> {
     if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
       const route = data.routes[0]
       const distKm = Math.round((route.distance / 1000) * 10) / 10
-      const durationMin = Math.round((route.duration || 0) / 60)
+      const carDurationMin = Math.round((route.duration || 0) / 60)
+      // 5톤 화물차 80km/h 속도제한 기준 소요 시간 보정
+      const truckDuration = calculate5TonTruckDuration(distKm, carDurationMin)
+      // 한국 고속도로 통행료 추정 계산 (카카오 키 부재 시 백업)
+      const tollFare = estimateKoreanHighwayToll(distKm)
+
       return {
         success: true,
         distanceKm: distKm,
-        durationMinutes: durationMin,
-        durationText: durationMin < 60 ? `약 ${durationMin}분` : `약 ${Math.floor(durationMin / 60)}시간 ${durationMin % 60}분`,
-        summary: `실제 주행거리 ${distKm}km (약 ${durationMin}분 소요)`,
-        source: 'osrm'
+        durationMinutes: truckDuration.minutes,
+        durationText: truckDuration.text,
+        summary: `실제 주행거리 ${distKm}km (5톤 화물차 기준 ${truckDuration.text})`,
+        source: 'osrm',
+        tollFare
       }
     }
   } catch (err) {
@@ -361,42 +417,49 @@ export async function calculateDrivingDistance(fromAddress: string, toAddress: s
 
   const kakaoApiKey = process.env.KAKAO_REST_API_KEY?.trim()
 
-  // 1. 카카오 API 키가 있는 경우 우선 카카오 모빌리티로 계산 (최고 정밀도)
+  // 1. 좌표 검색: 카카오 지오코딩 -> Nominatim -> 행정구역 중심 좌표 순으로 신뢰성 높은 좌표 확보
+  let p1: Point | null = null
+  let p2: Point | null = null
+
   if (kakaoApiKey) {
-    const p1 = await geocodeKakao(fromAddress, kakaoApiKey)
-    const p2 = await geocodeKakao(toAddress, kakaoApiKey)
-    if (p1 && p2) {
-      const kakaoResult = await routeKakao(p1, p2, kakaoApiKey)
-      if (kakaoResult) return kakaoResult
-    }
+    p1 = await geocodeKakao(fromAddress, kakaoApiKey)
+    p2 = await geocodeKakao(toAddress, kakaoApiKey)
   }
 
-  // 2. 오픈소스 정밀 지오코딩 + OSRM 실제 도로망 주행거리 계산
-  let p1 = await geocodeNominatim(fromAddress)
-  let p2 = await geocodeNominatim(toAddress)
+  // 카카오 지오코딩 실패 시 오픈소스 Nominatim 지오코딩으로 보완
+  if (!p1) p1 = await geocodeNominatim(fromAddress)
+  if (!p2) p2 = await geocodeNominatim(toAddress)
 
   // Nominatim 미검출 시 한국 행정구역 중심 좌표로 보완
   if (!p1) p1 = findFallbackCoordinate(fromAddress)
   if (!p2) p2 = findFallbackCoordinate(toAddress)
 
+  // 2. 경로 및 통행료(톨비) 계산: 카카오 모빌리티(최고 정확도 + 실시간 통행료) 우선 계산
   if (p1 && p2) {
-    // 실제 도로망 주행거리 계산
+    if (kakaoApiKey) {
+      const kakaoResult = await routeKakao(p1, p2, kakaoApiKey)
+      if (kakaoResult) return kakaoResult
+    }
+
+    // 카카오 키가 없거나 일시 장애 시 OSRM 도로망 주행거리 + 고속도로 표준 통행료 추정 계산
     const osrmResult = await routeOSRM(p1, p2)
     if (osrmResult) return osrmResult
 
     // OSRM 일시 장애 시 도로 굴곡도 계수(1.35)를 적용한 정밀 추정 계산
     const straightKm = calculateHaversineKm(p1, p2)
     const roadKm = Math.round(straightKm * 1.35 * 10) / 10
-    // 화물차 평균 주행 속도 시속 45km 기준
-    const durationMin = Math.max(10, Math.round((roadKm / 45) * 60))
+    // 5톤 화물차 기준 주행 시간 계산
+    const truckDuration = calculate5TonTruckDuration(roadKm)
+    const tollFare = estimateKoreanHighwayToll(roadKm)
 
     return {
       success: true,
       distanceKm: roadKm,
-      durationMinutes: durationMin,
-      durationText: durationMin < 60 ? `약 ${durationMin}분` : `약 ${Math.floor(durationMin / 60)}시간 ${durationMin % 60}분`,
-      summary: `추정 주행거리 ${roadKm}km (약 ${durationMin}분 소요)`,
-      source: 'fallback'
+      durationMinutes: truckDuration.minutes,
+      durationText: truckDuration.text,
+      summary: `추정 주행거리 ${roadKm}km (5톤 화물차 기준 ${truckDuration.text})`,
+      source: 'fallback',
+      tollFare
     }
   }
 

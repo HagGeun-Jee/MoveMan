@@ -8,6 +8,9 @@ export interface CostStandardData {
   maleLaborCost: number // 남성 작업원 기본 일당
   femaleLaborCost: number // 여성 작업원 기본 일당
   driverAllowance: number
+  tonnageAllowance6Ton: number // 6톤 투입 시 1인당 물량 추가 수당
+  tonnageAllowance7_5Ton: number // 7.5톤 투입 시 1인당 물량 추가 수당
+  tonnageAllowance10Ton: number // 10톤 이상 투입 시 1인당 물량 추가 수당
   baseDistanceKm: number
   distanceStepKm: number
   distanceAllowancePerPerson: number
@@ -27,6 +30,9 @@ const DEFAULT_COST_STANDARDS: Omit<CostStandardData, 'id' | 'updatedAt'> = {
   maleLaborCost: 190000,
   femaleLaborCost: 170000,
   driverAllowance: 20000,
+  tonnageAllowance6Ton: 10000,
+  tonnageAllowance7_5Ton: 20000,
+  tonnageAllowance10Ton: 30000,
   baseDistanceKm: 40,
   distanceStepKm: 40,
   distanceAllowancePerPerson: 10000,
@@ -67,7 +73,10 @@ export async function getCostStandards(): Promise<CostStandardData> {
       id: record.id,
       maleLaborCost: record.maleLaborCost ?? 190000,
       femaleLaborCost: record.femaleLaborCost ?? 170000,
-      driverAllowance: record.driverAllowance,
+      driverAllowance: record.driverAllowance ?? 20000,
+      tonnageAllowance6Ton: record.tonnageAllowance6Ton ?? 10000,
+      tonnageAllowance7_5Ton: record.tonnageAllowance7_5Ton ?? 20000,
+      tonnageAllowance10Ton: record.tonnageAllowance10Ton ?? 30000,
       baseDistanceKm: record.baseDistanceKm,
       distanceStepKm: record.distanceStepKm,
       distanceAllowancePerPerson: record.distanceAllowancePerPerson,
@@ -104,6 +113,9 @@ export async function updateCostStandards(formData: FormData): Promise<{ success
     const maleLaborCost = parseInt(formData.get('maleLaborCost') as string, 10) || DEFAULT_COST_STANDARDS.maleLaborCost
     const femaleLaborCost = parseInt(formData.get('femaleLaborCost') as string, 10) || DEFAULT_COST_STANDARDS.femaleLaborCost
     const driverAllowance = parseInt(formData.get('driverAllowance') as string, 10) || DEFAULT_COST_STANDARDS.driverAllowance
+    const tonnageAllowance6Ton = parseInt(formData.get('tonnageAllowance6Ton') as string, 10) || DEFAULT_COST_STANDARDS.tonnageAllowance6Ton
+    const tonnageAllowance7_5Ton = parseInt(formData.get('tonnageAllowance7_5Ton') as string, 10) || DEFAULT_COST_STANDARDS.tonnageAllowance7_5Ton
+    const tonnageAllowance10Ton = parseInt(formData.get('tonnageAllowance10Ton') as string, 10) || DEFAULT_COST_STANDARDS.tonnageAllowance10Ton
     const baseDistanceKm = parseInt(formData.get('baseDistanceKm') as string, 10) || DEFAULT_COST_STANDARDS.baseDistanceKm
     const distanceStepKm = parseInt(formData.get('distanceStepKm') as string, 10) || DEFAULT_COST_STANDARDS.distanceStepKm
     const distanceAllowancePerPerson = parseInt(formData.get('distanceAllowancePerPerson') as string, 10) || DEFAULT_COST_STANDARDS.distanceAllowancePerPerson
@@ -124,6 +136,9 @@ export async function updateCostStandards(formData: FormData): Promise<{ success
         maleLaborCost,
         femaleLaborCost,
         driverAllowance,
+        tonnageAllowance6Ton,
+        tonnageAllowance7_5Ton,
+        tonnageAllowance10Ton,
         baseDistanceKm,
         distanceStepKm,
         distanceAllowancePerPerson,
@@ -142,6 +157,9 @@ export async function updateCostStandards(formData: FormData): Promise<{ success
         maleLaborCost,
         femaleLaborCost,
         driverAllowance,
+        tonnageAllowance6Ton,
+        tonnageAllowance7_5Ton,
+        tonnageAllowance10Ton,
         baseDistanceKm,
         distanceStepKm,
         distanceAllowancePerPerson,
