@@ -31,10 +31,11 @@ export function AndroidImeFix() {
       Object.defineProperty(proto, 'value', {
         set(val: any) {
           const stringVal = val === null || val === undefined ? '' : String(val)
+          const prevVal = this.value || ''
           
           // 1. 이미 동일한 값이면 React가 렌더링 중 재대입한 것이므로 setter 생략!
           //    (Android WebView가 커서를 맨 끝으로 강제 점프시키고 조합을 깨뜨리는 것을 원천 차단)
-          if (this.value === stringVal) {
+          if (prevVal === stringVal) {
             return
           }
 
@@ -43,16 +44,17 @@ export function AndroidImeFix() {
           const hasSelection = isFocused && typeof this.selectionStart === 'number'
           const prevStart = hasSelection ? this.selectionStart : null
           const prevEnd = hasSelection ? this.selectionEnd : null
+          const diff = stringVal.length - prevVal.length
 
           // 원본 setter 실행
           originalSet.call(this, val)
 
-          // 3. 타이핑 중 외부 상태 변경 등으로 값이 바뀌었을 때 커서 위치 안전 복원
+          // 3. 타이핑 중 하이픈(-)·콤마(,) 자동 삽입 등으로 길이가 늘어났을 때 diff만큼 보정하여 숫자 뒤로 밀림 방지
           if (isFocused && prevStart !== null && prevEnd !== null) {
             try {
-              if (prevStart <= stringVal.length && prevEnd <= stringVal.length) {
-                this.setSelectionRange(prevStart, prevEnd)
-              }
+              const nextStart = diff > 0 ? Math.min(stringVal.length, prevStart + diff) : Math.min(stringVal.length, prevStart)
+              const nextEnd = diff > 0 ? Math.min(stringVal.length, prevEnd + diff) : Math.min(stringVal.length, prevEnd)
+              this.setSelectionRange(nextStart, nextEnd)
             } catch (_) {
               // number, email 등 selectionRange 미지원 타입 예외 무시
             }

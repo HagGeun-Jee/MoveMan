@@ -49,7 +49,7 @@ export function formatPhoneNumber(value: string | null | undefined): string {
 
 /**
  * 전화번호 입력 시 하이픈(-) 자동 삽입과 함께 커서(Caret) 위치가 튀거나
- * 숫자가 뒤바뀌는 현상을 방지하는 정밀 입력 핸들러
+ * 숫자가 뒤로 밀리는 현상을 원천 방지하는 정밀 동기식 입력 핸들러
  */
 export function handlePhoneInputChange(
   e: React.ChangeEvent<HTMLInputElement>,
@@ -57,38 +57,47 @@ export function handlePhoneInputChange(
 ) {
   const input = e.target
   const rawValue = input.value
-  const selectionStart = input.selectionStart || 0
+  const selectionStart = input.selectionStart ?? rawValue.length
 
   // 1. 커서 직전까지의 순수 숫자 개수 카운트
   const digitsBeforeCursor = rawValue.slice(0, selectionStart).replace(/[^0-9]/g, '').length
 
   // 2. 포맷팅 적용 (최대 11자리)
   const formatted = formatPhoneNumber(rawValue)
-  setter(formatted)
 
-  // 3. 브라우저/모바일 IME 렌더링 직후 커서 위치를 정확한 숫자 뒤로 복원
-  requestAnimationFrame(() => {
-    if (!input) return
-    let digitCount = 0
-    let targetPos = 0
+  // 3. 포맷팅된 문자열에서 커서가 위치해야 할 정확한 인덱스 계산
+  let digitCount = 0
+  let targetPos = 0
 
-    if (digitsBeforeCursor === 0) {
-      targetPos = 0
-    } else {
-      for (let i = 0; i < formatted.length; i++) {
-        if (/[0-9]/.test(formatted[i])) {
-          digitCount++
-        }
-        if (digitCount === digitsBeforeCursor) {
-          targetPos = i + 1
-          break
-        }
+  if (digitsBeforeCursor === 0) {
+    targetPos = 0
+  } else {
+    for (let i = 0; i < formatted.length; i++) {
+      if (/[0-9]/.test(formatted[i])) {
+        digitCount++
       }
-      if (digitCount < digitsBeforeCursor) {
-        targetPos = formatted.length
+      if (digitCount === digitsBeforeCursor) {
+        targetPos = i + 1
+        break
       }
     }
+    if (digitCount < digitsBeforeCursor) {
+      targetPos = formatted.length
+    }
+  }
 
+  // 4. DOM value 및 커서 위치를 동기식(즉시)으로 먼저 반영하여
+  //    전역 IME setter 패치나 연속 고속 타이핑 시 숫자가 뒤로 밀리는 현상 원천 차단
+  try {
+    input.value = formatted
+    input.setSelectionRange(targetPos, targetPos)
+  } catch (_) {}
+
+  setter(formatted)
+
+  // 5. 모바일 브라우저/IME 비동기 리렌더링 직후에도 커서 위치 이중 보장
+  requestAnimationFrame(() => {
+    if (!input || document.activeElement !== input) return
     try {
       input.setSelectionRange(targetPos, targetPos)
     } catch (_) {}

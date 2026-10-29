@@ -299,8 +299,8 @@ export function Sidebar({
                 )}
                 {canAccess('/vehicles') && (
                   <Link href="/vehicles" onClick={() => setMobileOpen(false)} className={mobileLinkClass(isActive('/vehicles'))}>
-                    <Settings size={18} className="shrink-0" />
-                    <span>차량정보</span>
+                    <Truck size={18} className="shrink-0 text-emerald-600" />
+                    <span>차량·배차관리</span>
                   </Link>
                 )}
 
@@ -492,9 +492,9 @@ export function Sidebar({
             )}
             {canAccess('/vehicles') && (
               <li>
-                <Link href="/vehicles" className={subLinkClass(isActive('/vehicles'))} title="차량정보">
-                  <Settings size={18} className="shrink-0" />
-                  {!collapsed && <span>차량정보</span>}
+                <Link href="/vehicles" className={subLinkClass(isActive('/vehicles'))} title="차량·배차관리">
+                  <Truck size={18} className="shrink-0 text-emerald-600" />
+                  {!collapsed && <span>차량·배차관리</span>}
                 </Link>
               </li>
             )}

@@ -521,6 +521,43 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                 )}
               </div>
             </div>
+
+            {/* 이삿날 배차 확정 현황 (배정된 호차 또는 담당 팀장이 있을 때 표시) */}
+            {envObj.dispatch && (
+              (Array.isArray(envObj.dispatch.assignedVehicles) && envObj.dispatch.assignedVehicles.length > 0) ||
+              envObj.dispatch.teamLeader
+            ) && (
+              <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 print:bg-transparent print:border-gray-300">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-600 text-white text-xs font-extrabold print:bg-transparent print:text-black print:border print:border-black">
+                    이삿날 배차 확정
+                  </span>
+                  {Array.isArray(envObj.dispatch.assignedVehicles) &&
+                    envObj.dispatch.assignedVehicles.map((av: any, idx: number) => (
+                      <span
+                        key={idx}
+                        className="px-2.5 py-0.5 rounded-md bg-white border border-emerald-300 text-emerald-950 text-xs font-extrabold shadow-2xs"
+                      >
+                        🚛 {av.name} {av.vehicleNo ? `[${av.vehicleNo}]` : ''}
+                      </span>
+                    ))}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  {envObj.dispatch.teamLeader && (
+                    <span className="font-extrabold text-blue-900 bg-blue-100/80 px-2.5 py-1 rounded-md border border-blue-200">
+                      👤 담당 팀장: {envObj.dispatch.teamLeader}
+                      {envObj.dispatch.leaderPhone ? ` (${formatPhoneNumber(envObj.dispatch.leaderPhone)})` : ''}
+                    </span>
+                  )}
+                  {envObj.dispatch.dispatchMemo && (
+                    <span className="text-gray-700 bg-white px-2.5 py-1 rounded-md border border-gray-200 font-medium">
+                      📝 {envObj.dispatch.dispatchMemo}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </section>
 

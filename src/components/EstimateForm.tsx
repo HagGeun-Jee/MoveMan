@@ -456,6 +456,15 @@ export function EstimateForm({
   const [vehicles, setVehicles] = useState<any[]>(envObj.vehicles || [])
   const [standardVehicles, setStandardVehicles] = useState<any[]>([])
 
+  // 이삿날 배차 호차 및 담당 팀장 상태
+  const [dispatchInfo, setDispatchInfo] = useState<any>(() => ({
+    assignedVehicles: Array.isArray(envObj.dispatch?.assignedVehicles) ? envObj.dispatch.assignedVehicles : [],
+    teamLeader: envObj.dispatch?.teamLeader || '',
+    leaderPhone: envObj.dispatch?.leaderPhone || '',
+    dispatchStatus: envObj.dispatch?.dispatchStatus || 'UNASSIGNED',
+    dispatchMemo: envObj.dispatch?.dispatchMemo || ''
+  }))
+
   const [labors, setLabors] = useState<any[]>(envObj.labors || [])
   const [standardLabors, setStandardLabors] = useState<any[]>([])
 
@@ -1331,10 +1340,18 @@ export function EstimateForm({
     signature
   ])
 
-  // 작업 환경(인원, 차량, 사다리차, 거리 등) 통합 객체 직렬화
+  // 작업 환경(인원, 차량, 사다리차, 거리, 배차 등) 통합 객체 직렬화
   const currentEnvironmentObj = {
     labors,
     vehicles,
+    dispatch: {
+      ...dispatchInfo,
+      dispatchStatus:
+        (Array.isArray(dispatchInfo.assignedVehicles) && dispatchInfo.assignedVehicles.length > 0) ||
+        Boolean(dispatchInfo.teamLeader?.trim())
+          ? 'CONFIRMED'
+          : 'UNASSIGNED'
+    },
     organizeStatus,
     fromFloor,
     fromWorkTypes,
@@ -2983,6 +3000,125 @@ export function EstimateForm({
                   </option>
                 ))}
               </select>
+
+              {/* 이삿날 배차 호차 및 담당 팀장 지정 */}
+              <div className="mt-3 p-3 rounded-xl bg-emerald-50/60 border border-emerald-200/90 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-extrabold text-emerald-950 flex items-center gap-1">
+                    🚚 이삿날 배차 호차 · 담당 팀장 배정
+                  </span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    (dispatchInfo.assignedVehicles?.length > 0 || dispatchInfo.teamLeader?.trim())
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-gray-200 text-gray-600'
+                  }`}>
+                    {(dispatchInfo.assignedVehicles?.length > 0 || dispatchInfo.teamLeader?.trim()) ? '배차 지정됨' : '미지정 (추후 배차 가능)'}
+                  </span>
+                </div>
+
+                {/* 등록된 자사 차량(호차) 원클릭 선택 */}
+                {standardVehicles.filter((sv: any) => sv.ownership !== 'STANDARD').length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {standardVehicles
+                      .filter((sv: any) => sv.ownership !== 'STANDARD')
+                      .map((sv: any) => {
+                        const isSelected = (dispatchInfo.assignedVehicles || []).some((av: any) => av.vehicleId === sv.id)
+                        return (
+                          <button
+                            key={sv.id}
+                            type="button"
+                            onClick={() => {
+                              const curList = Array.isArray(dispatchInfo.assignedVehicles) ? dispatchInfo.assignedVehicles : []
+                              const nextList = isSelected
+                                ? curList.filter((av: any) => av.vehicleId !== sv.id)
+                                : [
+                                    ...curList,
+                                    {
+                                      vehicleId: sv.id,
+                                      name: sv.name,
+                                      vehicleNo: sv.vehicleNo || '',
+                                      tonnage: sv.tonnage || 5,
+                                      ownership: 'OWN'
+                                    }
+                                  ]
+                              const nextLeader =
+                                !isSelected && !dispatchInfo.teamLeader?.trim() && sv.teamLeader
+                                  ? sv.teamLeader
+                                  : dispatchInfo.teamLeader
+                              const nextPhone =
+                                !isSelected && !dispatchInfo.leaderPhone?.trim() && sv.leaderPhone
+                                  ? formatPhoneNumber(sv.leaderPhone)
+                                  : dispatchInfo.leaderPhone
+                              setDispatchInfo({
+                                ...dispatchInfo,
+                                assignedVehicles: nextList,
+                                teamLeader: nextLeader,
+                                leaderPhone: nextPhone
+                              })
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 ${
+                              isSelected
+                                ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                                : 'bg-white text-gray-700 border-gray-300 hover:border-emerald-400'
+                            }`}
+                          >
+                            <span>{sv.name}</span>
+                            {sv.vehicleNo && (
+                              <span className={`px-1 py-0.2 rounded text-[10px] font-black ${
+                                isSelected ? 'bg-amber-300 text-gray-950' : 'bg-amber-100 text-amber-900'
+                              }`}>
+                                {sv.vehicleNo}
+                              </span>
+                            )}
+                            {sv.teamLeader && (
+                              <span className={`text-[10px] ${isSelected ? 'text-emerald-100' : 'text-blue-600'}`}>
+                                ({sv.teamLeader})
+                              </span>
+                            )}
+                          </button>
+                        )
+                      })}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-600 mb-0.5">담당 팀장명</label>
+                    <input
+                      type="text"
+                      value={dispatchInfo.teamLeader || ''}
+                      onChange={e => setDispatchInfo({ ...dispatchInfo, teamLeader: e.target.value })}
+                      placeholder="예: 김철수 팀장"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-xs font-bold text-gray-900 outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-600 mb-0.5">팀장 연락처</label>
+                    <input
+                      type="tel"
+                      maxLength={13}
+                      value={dispatchInfo.leaderPhone || ''}
+                      onFocus={handleSelectAllOnFocus}
+                      onChange={e =>
+                        handlePhoneInputChange(e, val =>
+                          setDispatchInfo({ ...dispatchInfo, leaderPhone: val })
+                        )
+                      }
+                      placeholder="010-0000-0000"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-xs font-semibold text-gray-900 outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    value={dispatchInfo.dispatchMemo || ''}
+                    onChange={e => setDispatchInfo({ ...dispatchInfo, dispatchMemo: e.target.value })}
+                    placeholder="배차/현장 메모 (예: 07:30 현장 집결, 외주 1톤 추가 예정)"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-xs text-gray-800 outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
               <input type="hidden" name="vehicles" value={JSON.stringify(vehicles)} />
             </div>
           </div>

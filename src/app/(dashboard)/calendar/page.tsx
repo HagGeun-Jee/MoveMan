@@ -152,6 +152,12 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
           <div className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
             <span className="w-3 h-3 rounded-full bg-red-500 shadow-sm"></span> 이사/작업
           </div>
+          <Link
+            href="/vehicles"
+            className="ml-1 px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold shadow-2xs transition-colors"
+          >
+            🚛 차량·배차관리
+          </Link>
         </div>
       </div>
 
@@ -171,7 +177,9 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                 const dateStr = format(date, 'yyyy-MM-dd')
                 const isCellToday = dateStr === koreaToday.dateString
 
-                const dayEstimates = estimates.filter(e => e.visitDate && isSameDay(new Date(e.visitDate), date))
+                const dayEstimates = estimates
+                  .filter(e => e.visitDate && isSameDay(new Date(e.visitDate), date))
+                  .sort((a, b) => new Date(a.visitDate!).getTime() - new Date(b.visitDate!).getTime())
                 const dayMovings = estimates.filter(e => e.movingDate && isSameDay(new Date(e.movingDate), date))
                 
                 const solar = Solar.fromYmd(date.getFullYear(), date.getMonth() + 1, date.getDate())
@@ -240,16 +248,53 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                       </div>
                     </div>
                     <div className="flex-1 space-y-1 overflow-y-auto no-scrollbar">
-                      {dayEstimates.map(est => (
-                        <Link href={`/estimates/${est.id}`} key={`est-${est.id}`} className="block text-[11px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 bg-blue-100 text-blue-900 font-bold rounded truncate cursor-pointer hover:bg-blue-200 shadow-sm border border-blue-300">
-                          방문: {est.customerName}
-                        </Link>
-                      ))}
-                      {dayMovings.map(est => (
-                        <Link href={`/estimates/${est.id}`} key={`mov-${est.id}`} className="block text-[11px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 bg-red-100 text-red-900 font-bold rounded truncate cursor-pointer hover:bg-red-200 shadow-sm border border-red-300">
-                          이사: {est.customerName}
-                        </Link>
-                      ))}
+                      {dayEstimates.map(est => {
+                        const visitTimeStr = est.visitDate ? format(new Date(est.visitDate), 'HH:mm') : ''
+                        return (
+                          <Link
+                            href={`/estimates/${est.id}`}
+                            key={`est-${est.id}`}
+                            title={visitTimeStr ? `방문: ${est.customerName} (${visitTimeStr})` : `방문: ${est.customerName}`}
+                            className="block text-[11px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 bg-blue-100 text-blue-900 font-bold rounded truncate cursor-pointer hover:bg-blue-200 shadow-sm border border-blue-300"
+                          >
+                            <span>방문: {est.customerName}</span>
+                            {visitTimeStr && (
+                              <span className="ml-1 text-[10px] font-extrabold text-blue-700 bg-white/90 px-1 rounded">
+                                {visitTimeStr}
+                              </span>
+                            )}
+                          </Link>
+                        )
+                      })}
+                      {dayMovings.map(est => {
+                        let dispatchLabel = ''
+                        try {
+                          if (est.environment) {
+                            const env = JSON.parse(est.environment)
+                            const avs = env?.dispatch?.assignedVehicles || []
+                            const leader = (env?.dispatch?.teamLeader || '').trim()
+                            const vShort = avs.length > 0 ? avs[0].name.split(' ')[0] : ''
+                            if (vShort && leader) dispatchLabel = `${vShort}·${leader}`
+                            else if (vShort) dispatchLabel = vShort
+                            else if (leader) dispatchLabel = leader
+                          }
+                        } catch {}
+                        return (
+                          <Link
+                            href={`/estimates/${est.id}`}
+                            key={`mov-${est.id}`}
+                            title={dispatchLabel ? `이사: ${est.customerName} (${dispatchLabel})` : `이사: ${est.customerName} (미배차)`}
+                            className="block text-[11px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 bg-red-100 text-red-900 font-bold rounded truncate cursor-pointer hover:bg-red-200 shadow-sm border border-red-300"
+                          >
+                            <span>이사: {est.customerName}</span>
+                            {dispatchLabel && (
+                              <span className="ml-1 text-[10px] font-extrabold text-emerald-800 bg-white/90 px-1 rounded">
+                                {dispatchLabel}
+                              </span>
+                            )}
+                          </Link>
+                        )
+                      })}
                     </div>
                   </div>
                 )

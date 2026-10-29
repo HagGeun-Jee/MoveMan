@@ -193,8 +193,21 @@ export async function updateEstimate(formData: FormData) {
     ? JSON.parse(formData.get('vehicles') as string) 
     : (Array.isArray(parsedEnv.vehicles) ? parsedEnv.vehicles : [])
 
+  // 기존 이력 및 배차 정보 조회
+  const existingEstimate = await prisma.estimate.findUnique({
+    where: { id }
+  })
+  let existingEnv: any = {}
+  if (existingEstimate?.environment) {
+    try {
+      existingEnv = JSON.parse(existingEstimate.environment)
+    } catch {}
+  }
+
   const environmentObj = {
+    ...existingEnv,
     ...parsedEnv,
+    dispatch: parsedEnv.dispatch || existingEnv.dispatch || undefined,
     labors,
     vehicles,
     organizeStatus: (formData.get('organizeStatus') as string) || parsedEnv.organizeStatus || '',
@@ -231,11 +244,6 @@ export async function updateEstimate(formData: FormData) {
     specialNotes: String(formData.get('specialNotes') ?? parsedEnv.specialNotes ?? '').trim(),
   }
   const environment = JSON.stringify(environmentObj)
-  
-  // 기존 이력 조회 후 추가
-  const existingEstimate = await prisma.estimate.findUnique({
-    where: { id }
-  })
   
   const adminHistoryArray = existingEstimate?.adminHistory ? JSON.parse(existingEstimate.adminHistory) : []
   adminHistoryArray.push({ action: 'UPDATE', by: session.name, at: new Date().toISOString() })

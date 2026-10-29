@@ -45,18 +45,20 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                     Object.defineProperty(proto, 'value', {
                       set: function(val) {
                         var str = val === null || val === undefined ? '' : String(val);
-                        if (this.value === str) {
+                        var prevVal = this.value || '';
+                        if (prevVal === str) {
                           return;
                         }
                         var isFocused = document.activeElement === this;
                         var start = isFocused && typeof this.selectionStart === 'number' ? this.selectionStart : null;
                         var end = isFocused && typeof this.selectionEnd === 'number' ? this.selectionEnd : null;
+                        var diff = str.length - prevVal.length;
                         originalSet.call(this, val);
                         if (isFocused && start !== null && end !== null) {
                           try {
-                            if (start <= str.length && end <= str.length) {
-                              this.setSelectionRange(start, end);
-                            }
+                            var nextStart = diff > 0 ? Math.min(str.length, start + diff) : Math.min(str.length, start);
+                            var nextEnd = diff > 0 ? Math.min(str.length, end + diff) : Math.min(str.length, end);
+                            this.setSelectionRange(nextStart, nextEnd);
                           } catch(e) {}
                         }
                       },

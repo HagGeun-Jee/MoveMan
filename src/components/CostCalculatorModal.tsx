@@ -296,6 +296,18 @@ export function CostCalculatorModal({
     setMarginRate(standards.defaultMarginRate || 20.0)
   }
 
+  // 외주 용차 대수 계산 (자사운행이 아닌 차량 대수)
+  const calcExcludedCharteredCount = (
+    type2_5: 'OWN' | 'CARGO' | 'TOP',
+    type1: 'OWN' | 'CARGO' | 'TOP'
+  ) => {
+    const ch2_5 = type2_5 !== 'OWN' ? Math.max(1, vehicleStats.count2_5Ton) : 0
+    const ch1 = type1 !== 'OWN' ? Math.max(1, vehicleStats.count1Ton) : 0
+    return ch2_5 + ch1
+  }
+
+  const excludedCharteredCount = calcExcludedCharteredCount(charteredType2_5Ton, charteredType1Ton)
+
   // 1톤 운용 방식 변경 시 (자사 / 카고 / 우천탑차)
   const handleChartered1TonChange = (type: 'OWN' | 'CARGO' | 'TOP') => {
     setCharteredType1Ton(type)
@@ -313,6 +325,10 @@ export function CostCalculatorModal({
       const base = currentMatchedFare ? currentMatchedFare.cost1TonTop : 90000
       setCharteredCost1Ton(base * truckCount)
     }
+
+    // 자사운행이 아닌 경우 운전자 추가 수당 인원 자동 변경 (외주 용차 대수 차감)
+    const newExcluded = calcExcludedCharteredCount(charteredType2_5Ton, type)
+    setDriverCount(Math.max(0, vehicleStats.totalCount - newExcluded))
   }
 
   // 2.5톤 운용 방식 변경 시 (자사 / 카고 / 우천탑차)
@@ -332,6 +348,10 @@ export function CostCalculatorModal({
       const base = currentMatchedFare ? currentMatchedFare.cost2_5TonTop : 160000
       setCharteredCost2_5Ton(base * truckCount)
     }
+
+    // 자사운행이 아닌 경우 운전자 추가 수당 인원 자동 변경 (외주 용차 대수 차감)
+    const newExcluded = calcExcludedCharteredCount(type, charteredType1Ton)
+    setDriverCount(Math.max(0, vehicleStats.totalCount - newExcluded))
   }
 
   useEffect(() => {
@@ -530,25 +550,50 @@ export function CostCalculatorModal({
               {/* 추가 수당 4종 */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
                 {/* 운전자 추가수당 */}
-                <div className="p-2.5 rounded-lg border border-gray-200 space-y-1 bg-white">
+                <div className={`p-2.5 rounded-lg border space-y-1 transition-all ${
+                  excludedCharteredCount > 0
+                    ? 'bg-amber-50/70 border-amber-300 ring-1 ring-amber-400/30 shadow-2xs'
+                    : 'bg-white border-gray-200'
+                }`}>
                   <div className="flex items-center justify-between font-bold text-gray-800">
-                    <span>운전자 추가 수당</span>
+                    <span className="flex items-center gap-1">
+                      운전자 추가 수당
+                      {excludedCharteredCount > 0 && (
+                        <span className="text-[10px] bg-amber-200/90 text-amber-900 px-1.5 py-0.2 rounded font-extrabold">
+                          용차 {excludedCharteredCount}대 제외
+                        </span>
+                      )}
+                    </span>
                     <span className="text-blue-600 font-extrabold">{totalDriverAllowance.toLocaleString()}원</span>
                   </div>
                   <div className="flex items-center justify-between text-[11px] text-gray-600 pt-1">
-                    <span>운전자 인원:</span>
+                    <span>운전자:</span>
                     <div className="flex items-center gap-1">
                       <input
                         type="number"
                         min="0"
                         value={driverCount}
                         onChange={(e) => setDriverCount(parseInt(e.target.value, 10) || 0)}
-                        className="w-10 px-1 py-0.5 text-center font-bold bg-gray-50 border border-gray-200 rounded"
+                        className={`w-10 px-1 py-0.5 text-center font-bold border rounded ${
+                          excludedCharteredCount > 0
+                            ? 'bg-white border-amber-400 text-amber-950'
+                            : 'bg-gray-50 border-gray-200 text-gray-800'
+                        }`}
                       />
-                      <span>명 × {driverRate.toLocaleString()}원</span>
+                      <span>명 ×</span>
+                      <FormattedModalNumberInput
+                        value={driverRate}
+                        onChange={(val) => setDriverRate(val)}
+                        className="w-16 px-1 py-0.5 text-right font-bold bg-white border border-gray-200 rounded text-xs"
+                      />
+                      <span>원</span>
                     </div>
                   </div>
-                  <p className="text-[10px] text-gray-400">차량 1대당 1명 지급 (기본 20,000원)</p>
+                  <p className={`text-[10px] ${excludedCharteredCount > 0 ? 'text-amber-800 font-semibold' : 'text-gray-400'}`}>
+                    {excludedCharteredCount > 0
+                      ? `외주 용차 ${excludedCharteredCount}대 제외 ➔ 자사운행 ${driverCount}대분 적용`
+                      : `자사운행 차량 1대당 1명 지급 (기본 ${standards.driverAllowance.toLocaleString()}원)`}
+                  </p>
                 </div>
 
                 {/* 톤수 초과 추가수당 (6톤 1만, 7.5톤 2만, 10톤 3만) */}
@@ -657,163 +702,271 @@ export function CostCalculatorModal({
 
             <div className="p-3.5 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
-                {/* 5톤 유류비 */}
-                <div className="p-2.5 rounded-lg border border-gray-200 bg-gray-50/40 space-y-1">
-                  <div className="flex items-center justify-between font-bold text-gray-800">
-                    <span>5톤 유류비 ({vehicleStats.count5Ton}대)</span>
-                    <span className="text-emerald-700 font-bold">{fuel5TonCost.toLocaleString()}원</span>
+                {/* 5톤 차량 */}
+                <div className={`p-2.5 rounded-xl space-y-1.5 transition-all ${
+                  vehicleStats.count5Ton > 0
+                    ? 'border-2 border-emerald-500 bg-emerald-50/70 ring-2 ring-emerald-500/20 shadow-sm'
+                    : 'border border-dashed border-gray-200 bg-gray-50/40 opacity-60'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-gray-900 text-xs flex items-center gap-1.5">
+                      <Truck className={`w-3.5 h-3.5 ${vehicleStats.count5Ton > 0 ? 'text-emerald-600' : 'text-gray-400'}`} />
+                      <span>5톤 차량</span>
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-extrabold ${
+                        vehicleStats.count5Ton > 0
+                          ? 'bg-emerald-600 text-white shadow-2xs'
+                          : 'bg-gray-200 text-gray-500'
+                      }`}>
+                        {vehicleStats.count5Ton > 0 ? `배차 ${vehicleStats.count5Ton}대` : '미배차 (0대)'}
+                      </span>
+                    </span>
+                    <span className="text-emerald-800 font-extrabold text-xs">
+                      {fuel5TonCost.toLocaleString()}원
+                    </span>
                   </div>
-                  <div className="flex items-center justify-between text-[11px] text-gray-500">
-                    <span>왕복 {distanceKm * 2}km × 500원:</span>
+
+                  {/* 5톤 운용 상태 표시 바 (2.5톤/1톤 카드와 높이 및 시각적 정렬 통일) */}
+                  <div className={`py-1 px-2 rounded-md text-[10px] font-extrabold text-center ${
+                    vehicleStats.count5Ton > 0
+                      ? 'bg-emerald-600 text-white shadow-2xs'
+                      : 'bg-gray-200/80 text-gray-500'
+                  }`}>
+                    자사 운행 (기본 메인차량)
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] text-gray-600 pt-0.5">
+                    <span className="font-medium">왕복 {distanceKm * 2}km × {standards.fuelCostPerKm5Ton}원:</span>
                     <FormattedModalNumberInput
                       value={fuel5TonCost}
                       onChange={(val) => setFuel5TonCost(val)}
-                      className="w-20 px-1.5 py-0.5 text-right font-semibold bg-white border border-gray-200 rounded text-xs"
+                      className={`w-20 px-1.5 py-0.5 text-right font-bold bg-white rounded text-xs ${
+                        vehicleStats.count5Ton > 0 ? 'border border-emerald-400 text-emerald-950' : 'border border-gray-200 text-gray-500'
+                      }`}
                     />
                   </div>
                 </div>
 
                 {/* 2.5톤 유류비 및 용차 선택 */}
-                <div className={`p-2.5 rounded-lg border space-y-1.5 transition-all ${
-                  charteredType2_5Ton === 'OWN'
-                    ? 'border-gray-200 bg-gray-50/40'
-                    : charteredType2_5Ton === 'CARGO'
-                      ? 'border-blue-300 bg-blue-50/50 shadow-2xs'
-                      : 'border-indigo-300 bg-indigo-50/50 shadow-2xs'
-                }`}>
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-gray-800 text-xs">2.5톤 차량 ({vehicleStats.count2_5Ton}대)</span>
-                    <span className={`font-bold text-xs ${charteredType2_5Ton === 'OWN' ? 'text-emerald-700' : 'text-blue-700'}`}>
-                      {charteredType2_5Ton === 'OWN' ? `${fuel2_5TonCost.toLocaleString()}원 (유류비)` : '외주 용차 산입'}
-                    </span>
-                  </div>
+                {(() => {
+                  const isDispatched2_5 = vehicleStats.count2_5Ton > 0 || charteredType2_5Ton !== 'OWN'
+                  const effectiveCount2_5 = charteredType2_5Ton !== 'OWN' ? Math.max(1, vehicleStats.count2_5Ton) : vehicleStats.count2_5Ton
+                  return (
+                    <div className={`p-2.5 rounded-xl space-y-1.5 transition-all ${
+                      !isDispatched2_5
+                        ? 'border border-dashed border-gray-200 bg-gray-50/40 opacity-60'
+                        : charteredType2_5Ton === 'OWN'
+                          ? 'border-2 border-emerald-500 bg-emerald-50/70 ring-2 ring-emerald-500/20 shadow-sm'
+                          : charteredType2_5Ton === 'CARGO'
+                            ? 'border-2 border-blue-500 bg-blue-50/80 ring-2 ring-blue-500/20 shadow-sm'
+                            : 'border-2 border-indigo-500 bg-indigo-50/80 ring-2 ring-indigo-500/20 shadow-sm'
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-gray-900 text-xs flex items-center gap-1.5">
+                          <Truck className={`w-3.5 h-3.5 ${
+                            !isDispatched2_5
+                              ? 'text-gray-400'
+                              : charteredType2_5Ton === 'OWN'
+                                ? 'text-emerald-600'
+                                : charteredType2_5Ton === 'CARGO'
+                                  ? 'text-blue-600'
+                                  : 'text-indigo-600'
+                          }`} />
+                          <span>2.5톤 차량</span>
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-extrabold ${
+                            !isDispatched2_5
+                              ? 'bg-gray-200 text-gray-500'
+                              : charteredType2_5Ton === 'OWN'
+                                ? 'bg-emerald-600 text-white shadow-2xs'
+                                : charteredType2_5Ton === 'CARGO'
+                                  ? 'bg-blue-600 text-white shadow-2xs'
+                                  : 'bg-indigo-600 text-white shadow-2xs'
+                          }`}>
+                            {!isDispatched2_5
+                              ? '미배차 (0대)'
+                              : charteredType2_5Ton === 'OWN'
+                                ? `배차 ${effectiveCount2_5}대`
+                                : `용차 ${effectiveCount2_5}대`}
+                          </span>
+                        </span>
+                        <span className={`font-extrabold text-xs ${
+                          charteredType2_5Ton === 'OWN' ? 'text-emerald-800' : 'text-blue-700'
+                        }`}>
+                          {charteredType2_5Ton === 'OWN' ? `${fuel2_5TonCost.toLocaleString()}원` : '외주 용차 산입'}
+                        </span>
+                      </div>
 
-                  {/* 운용 모드 3단 선택 버튼 */}
-                  <div className="grid grid-cols-3 gap-1 p-0.5 bg-gray-200/80 rounded-md text-[10px] font-bold">
-                    <button
-                      type="button"
-                      onClick={() => handleChartered2_5TonChange('OWN')}
-                      className={`py-1 rounded transition-all ${
-                        charteredType2_5Ton === 'OWN'
-                          ? 'bg-white text-gray-900 shadow-2xs font-extrabold'
-                          : 'text-gray-500 hover:text-gray-800'
-                      }`}
-                    >
-                      자사 운행
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleChartered2_5TonChange('CARGO')}
-                      className={`py-1 rounded transition-all ${
-                        charteredType2_5Ton === 'CARGO'
-                          ? 'bg-blue-600 text-white shadow-2xs font-extrabold'
-                          : 'text-gray-600 hover:text-blue-700'
-                      }`}
-                      title="맑은 날 일반 카고 용차 배차"
-                    >
-                      카고 용차
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleChartered2_5TonChange('TOP')}
-                      className={`py-1 rounded transition-all ${
-                        charteredType2_5Ton === 'TOP'
-                          ? 'bg-indigo-600 text-white shadow-2xs font-extrabold'
-                          : 'text-gray-600 hover:text-indigo-700'
-                      }`}
-                      title="우천·악천후 시 침수 방지 탑차 배차"
-                    >
-                      우천 탑차
-                    </button>
-                  </div>
+                      {/* 운용 모드 3단 선택 버튼 */}
+                      <div className="grid grid-cols-3 gap-1 p-0.5 bg-gray-200/80 rounded-md text-[10px] font-bold">
+                        <button
+                          type="button"
+                          onClick={() => handleChartered2_5TonChange('OWN')}
+                          className={`py-1 rounded transition-all ${
+                            charteredType2_5Ton === 'OWN'
+                              ? isDispatched2_5
+                                ? 'bg-emerald-600 text-white shadow-2xs font-extrabold'
+                                : 'bg-white text-gray-800 shadow-2xs font-extrabold'
+                              : 'text-gray-600 hover:text-gray-900'
+                          }`}
+                        >
+                          자사 운행
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleChartered2_5TonChange('CARGO')}
+                          className={`py-1 rounded transition-all ${
+                            charteredType2_5Ton === 'CARGO'
+                              ? 'bg-blue-600 text-white shadow-2xs font-extrabold'
+                              : 'text-gray-600 hover:text-blue-700'
+                          }`}
+                          title="맑은 날 일반 카고 용차 배차"
+                        >
+                          카고 용차
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleChartered2_5TonChange('TOP')}
+                          className={`py-1 rounded transition-all ${
+                            charteredType2_5Ton === 'TOP'
+                              ? 'bg-indigo-600 text-white shadow-2xs font-extrabold'
+                              : 'text-gray-600 hover:text-indigo-700'
+                          }`}
+                          title="우천·악천후 시 침수 방지 탑차 배차"
+                        >
+                          우천 탑차
+                        </button>
+                      </div>
 
-                  {charteredType2_5Ton === 'OWN' ? (
-                    <div className="flex items-center justify-between text-[11px] text-gray-500 pt-0.5">
-                      <span>왕복 {distanceKm * 2}km × 350원:</span>
-                      <FormattedModalNumberInput
-                        value={fuel2_5TonCost}
-                        onChange={(val) => setFuel2_5TonCost(val)}
-                        className="w-20 px-1.5 py-0.5 text-right font-semibold bg-white border border-gray-200 rounded text-xs"
-                      />
+                      {charteredType2_5Ton === 'OWN' ? (
+                        <div className="flex items-center justify-between text-[11px] text-gray-600 pt-0.5">
+                          <span className="font-medium">왕복 {distanceKm * 2}km × {standards.fuelCostPerKm2_5Ton}원:</span>
+                          <FormattedModalNumberInput
+                            value={fuel2_5TonCost}
+                            onChange={(val) => setFuel2_5TonCost(val)}
+                            className={`w-20 px-1.5 py-0.5 text-right font-bold bg-white rounded text-xs ${
+                              isDispatched2_5 ? 'border border-emerald-400 text-emerald-950' : 'border border-gray-200 text-gray-500'
+                            }`}
+                          />
+                        </div>
+                      ) : (
+                        <div className="text-[10px] text-blue-700 bg-blue-100/80 px-2 py-1 rounded flex items-center justify-between border border-blue-200">
+                          <span className="font-semibold text-blue-900">유류비 · 운전자수당 제외됨</span>
+                          <span className="font-extrabold text-blue-950">+{charteredCost2_5Ton.toLocaleString()}원 (외주)</span>
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <div className="text-[10px] text-blue-700 bg-blue-100/70 px-2 py-1 rounded flex items-center justify-between">
-                      <span className="font-medium text-blue-800">자사 유류비 제외됨</span>
-                      <span className="font-extrabold text-blue-900">+{charteredCost2_5Ton.toLocaleString()}원 (외주비)</span>
-                    </div>
-                  )}
-                </div>
+                  )
+                })()}
 
                 {/* 1톤 유류비 및 용차 선택 */}
-                <div className={`p-2.5 rounded-lg border space-y-1.5 transition-all ${
-                  charteredType1Ton === 'OWN'
-                    ? 'border-gray-200 bg-gray-50/40'
-                    : charteredType1Ton === 'CARGO'
-                      ? 'border-blue-300 bg-blue-50/50 shadow-2xs'
-                      : 'border-indigo-300 bg-indigo-50/50 shadow-2xs'
-                }`}>
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-gray-800 text-xs">1톤 차량 ({vehicleStats.count1Ton}대)</span>
-                    <span className={`font-bold text-xs ${charteredType1Ton === 'OWN' ? 'text-emerald-700' : 'text-blue-700'}`}>
-                      {charteredType1Ton === 'OWN' ? `${fuel1TonCost.toLocaleString()}원 (유류비)` : '외주 용차 산입'}
-                    </span>
-                  </div>
+                {(() => {
+                  const isDispatched1 = vehicleStats.count1Ton > 0 || charteredType1Ton !== 'OWN'
+                  const effectiveCount1 = charteredType1Ton !== 'OWN' ? Math.max(1, vehicleStats.count1Ton) : vehicleStats.count1Ton
+                  return (
+                    <div className={`p-2.5 rounded-xl space-y-1.5 transition-all ${
+                      !isDispatched1
+                        ? 'border border-dashed border-gray-200 bg-gray-50/40 opacity-60'
+                        : charteredType1Ton === 'OWN'
+                          ? 'border-2 border-emerald-500 bg-emerald-50/70 ring-2 ring-emerald-500/20 shadow-sm'
+                          : charteredType1Ton === 'CARGO'
+                            ? 'border-2 border-blue-500 bg-blue-50/80 ring-2 ring-blue-500/20 shadow-sm'
+                            : 'border-2 border-indigo-500 bg-indigo-50/80 ring-2 ring-indigo-500/20 shadow-sm'
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-gray-900 text-xs flex items-center gap-1.5">
+                          <Truck className={`w-3.5 h-3.5 ${
+                            !isDispatched1
+                              ? 'text-gray-400'
+                              : charteredType1Ton === 'OWN'
+                                ? 'text-emerald-600'
+                                : charteredType1Ton === 'CARGO'
+                                  ? 'text-blue-600'
+                                  : 'text-indigo-600'
+                          }`} />
+                          <span>1톤 차량</span>
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-extrabold ${
+                            !isDispatched1
+                              ? 'bg-gray-200 text-gray-500'
+                              : charteredType1Ton === 'OWN'
+                                ? 'bg-emerald-600 text-white shadow-2xs'
+                                : charteredType1Ton === 'CARGO'
+                                  ? 'bg-blue-600 text-white shadow-2xs'
+                                  : 'bg-indigo-600 text-white shadow-2xs'
+                          }`}>
+                            {!isDispatched1
+                              ? '미배차 (0대)'
+                              : charteredType1Ton === 'OWN'
+                                ? `배차 ${effectiveCount1}대`
+                                : `용차 ${effectiveCount1}대`}
+                          </span>
+                        </span>
+                        <span className={`font-extrabold text-xs ${
+                          charteredType1Ton === 'OWN' ? 'text-emerald-800' : 'text-blue-700'
+                        }`}>
+                          {charteredType1Ton === 'OWN' ? `${fuel1TonCost.toLocaleString()}원` : '외주 용차 산입'}
+                        </span>
+                      </div>
 
-                  {/* 운용 모드 3단 선택 버튼 */}
-                  <div className="grid grid-cols-3 gap-1 p-0.5 bg-gray-200/80 rounded-md text-[10px] font-bold">
-                    <button
-                      type="button"
-                      onClick={() => handleChartered1TonChange('OWN')}
-                      className={`py-1 rounded transition-all ${
-                        charteredType1Ton === 'OWN'
-                          ? 'bg-white text-gray-900 shadow-2xs font-extrabold'
-                          : 'text-gray-500 hover:text-gray-800'
-                      }`}
-                    >
-                      자사 운행
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleChartered1TonChange('CARGO')}
-                      className={`py-1 rounded transition-all ${
-                        charteredType1Ton === 'CARGO'
-                          ? 'bg-blue-600 text-white shadow-2xs font-extrabold'
-                          : 'text-gray-600 hover:text-blue-700'
-                      }`}
-                      title="맑은 날 일반 카고 용차 배차"
-                    >
-                      카고 용차
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleChartered1TonChange('TOP')}
-                      className={`py-1 rounded transition-all ${
-                        charteredType1Ton === 'TOP'
-                          ? 'bg-indigo-600 text-white shadow-2xs font-extrabold'
-                          : 'text-gray-600 hover:text-indigo-700'
-                      }`}
-                      title="우천·악천후 시 침수 방지 탑차 배차"
-                    >
-                      우천 탑차
-                    </button>
-                  </div>
+                      {/* 운용 모드 3단 선택 버튼 */}
+                      <div className="grid grid-cols-3 gap-1 p-0.5 bg-gray-200/80 rounded-md text-[10px] font-bold">
+                        <button
+                          type="button"
+                          onClick={() => handleChartered1TonChange('OWN')}
+                          className={`py-1 rounded transition-all ${
+                            charteredType1Ton === 'OWN'
+                              ? isDispatched1
+                                ? 'bg-emerald-600 text-white shadow-2xs font-extrabold'
+                                : 'bg-white text-gray-800 shadow-2xs font-extrabold'
+                              : 'text-gray-600 hover:text-gray-900'
+                          }`}
+                        >
+                          자사 운행
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleChartered1TonChange('CARGO')}
+                          className={`py-1 rounded transition-all ${
+                            charteredType1Ton === 'CARGO'
+                              ? 'bg-blue-600 text-white shadow-2xs font-extrabold'
+                              : 'text-gray-600 hover:text-blue-700'
+                          }`}
+                          title="맑은 날 일반 카고 용차 배차"
+                        >
+                          카고 용차
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleChartered1TonChange('TOP')}
+                          className={`py-1 rounded transition-all ${
+                            charteredType1Ton === 'TOP'
+                              ? 'bg-indigo-600 text-white shadow-2xs font-extrabold'
+                              : 'text-gray-600 hover:text-indigo-700'
+                          }`}
+                          title="우천·악천후 시 침수 방지 탑차 배차"
+                        >
+                          우천 탑차
+                        </button>
+                      </div>
 
-                  {charteredType1Ton === 'OWN' ? (
-                    <div className="flex items-center justify-between text-[11px] text-gray-500 pt-0.5">
-                      <span>왕복 {distanceKm * 2}km × 250원:</span>
-                      <FormattedModalNumberInput
-                        value={fuel1TonCost}
-                        onChange={(val) => setFuel1TonCost(val)}
-                        className="w-20 px-1.5 py-0.5 text-right font-semibold bg-white border border-gray-200 rounded text-xs"
-                      />
+                      {charteredType1Ton === 'OWN' ? (
+                        <div className="flex items-center justify-between text-[11px] text-gray-600 pt-0.5">
+                          <span className="font-medium">왕복 {distanceKm * 2}km × {standards.fuelCostPerKm1Ton}원:</span>
+                          <FormattedModalNumberInput
+                            value={fuel1TonCost}
+                            onChange={(val) => setFuel1TonCost(val)}
+                            className={`w-20 px-1.5 py-0.5 text-right font-bold bg-white rounded text-xs ${
+                              isDispatched1 ? 'border border-emerald-400 text-emerald-950' : 'border border-gray-200 text-gray-500'
+                            }`}
+                          />
+                        </div>
+                      ) : (
+                        <div className="text-[10px] text-blue-700 bg-blue-100/80 px-2 py-1 rounded flex items-center justify-between border border-blue-200">
+                          <span className="font-semibold text-blue-900">유류비 · 운전자수당 제외됨</span>
+                          <span className="font-extrabold text-blue-950">+{charteredCost1Ton.toLocaleString()}원 (외주)</span>
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <div className="text-[10px] text-blue-700 bg-blue-100/70 px-2 py-1 rounded flex items-center justify-between">
-                      <span className="font-medium text-blue-800">자사 유류비 제외됨</span>
-                      <span className="font-extrabold text-blue-900">+{charteredCost1Ton.toLocaleString()}원 (외주비)</span>
-                    </div>
-                  )}
-                </div>
+                  )
+                })()}
               </div>
 
               {/* 왕복 톨게이트비 */}
