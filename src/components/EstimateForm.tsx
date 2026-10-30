@@ -10,7 +10,7 @@ import { getDistance } from '@/app/actions/distance'
 import { getLadderFares } from '@/app/actions/ladder'
 import type { LadderFareItem } from '@/types/ladder'
 import DaumPostcodeEmbed from 'react-daum-postcode'
-import { MapPin, Search, ChevronDown, ChevronUp, Navigation, RefreshCw, Car, AlertCircle, CheckCircle2, Calculator, Truck, Plus, FileText, Sparkles, Zap, Smartphone, Table, Trash2, Coins, CreditCard } from 'lucide-react'
+import { MapPin, Search, ChevronDown, ChevronUp, Navigation, RefreshCw, Car, AlertCircle, CheckCircle2, Calculator, Truck, Plus, FileText, Sparkles, Zap, Smartphone, Table, Trash2, Coins, CreditCard, PackagePlus, X } from 'lucide-react'
 import { CustomDatePicker } from '@/components/CustomDatePicker'
 import { format } from 'date-fns'
 import { formatPhoneNumber, handlePhoneInputChange, handleSelectAllOnFocus } from '@/lib/format'
@@ -20,9 +20,28 @@ import { getCostStandards, CostStandardData } from '@/app/actions/costStandards'
 import { AiCbmEstimateModal, type AiIdentifiedItem } from '@/components/AiCbmEstimateModal'
 import { EstimatePresetModal } from '@/components/EstimatePresetModal'
 import { QuickTouchCbmPanel } from '@/components/QuickTouchCbmPanel'
+import { ItemQuickAddModal } from '@/components/ItemQuickAddModal'
+import {
+  CHOSUNG_BUTTONS,
+  ChosungFilter,
+  ITEM_MID_CATEGORIES,
+  ItemMidCategory,
+  matchesChosungFilter,
+  matchesKoreanSearch,
+  classifyItemMidCategory,
+  convertEngInputToKor,
+} from '@/lib/itemFilterUtils'
 import { UnassignedBoxTooltip } from '@/components/UnassignedBoxTooltip'
 import type { PresetItem } from '@/lib/estimatePresets'
 import { calculate5TonTruckDuration } from '@/lib/distance'
+import {
+  TONNAGE_DISTANCE_FARE_TABLE,
+  TONNAGE_DISTANCE_FARE_LIST,
+  resolveTonnageTierKey,
+  calculateTonnageDistanceFare,
+  adjustTollForHeavyTruck,
+  type TonnageTierKey,
+} from '@/lib/distanceFare'
 
 const NumberInput = ({ value, onChange, className, name }: { value: number, onChange: (val: number) => void, className?: string, name?: string }) => {
   const [localVal, setLocalVal] = useState(value === 0 ? '' : value.toLocaleString())
@@ -315,9 +334,88 @@ export function EstimateForm({
     }
   }
 
-  // 거리 초과 운임 계산 설정 (기본거리 40km, km당 2,000원)
-  const [baseDistanceKm, setBaseDistanceKm] = useState<number>(Number(envObj.baseDistanceKm) || 40)
-  const [ratePerKm, setRatePerKm] = useState<number>(Number(envObj.ratePerKm) || 2000)
+  const [items, setItems] = useState<any[]>(() => parseAndFilterCbmItems(initialData?.cbmItems))
+  const [standardItems, setStandardItems] = useState<any[]>([])
+  const [categories, setCategories] = useState<any[]>([])
+  const [activeCategoryIds, setActiveCategoryIds] = useState<string[]>([])
+  
+  const [vehicles, setVehicles] = useState<any[]>(envObj.vehicles || [])
+  const [standardVehicles, setStandardVehicles] = useState<any[]>([])
+
+  // 이삿날 배차 호차 및 담당 팀장 상태
+  const [dispatchInfo, setDispatchInfo] = useState<any>(() => ({
+    assignedVehicles: Array.isArray(envObj.dispatch?.assignedVehicles) ? envObj.dispatch.assignedVehicles : [],
+    teamLeader: envObj.dispatch?.teamLeader || '',
+    leaderPhone: envObj.dispatch?.leaderPhone || '',
+    dispatchStatus: envObj.dispatch?.dispatchStatus || 'UNASSIGNED',
+    dispatchMemo: envObj.dispatch?.dispatchMemo || ''
+  }))
+
+  const [labors, setLabors] = useState<any[]>(envObj.labors || [])
+  const [standardLabors, setStandardLabors] = useState<any[]>([])
+
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({})
+  const [selectedItemNames, setSelectedItemNames] = useState<Record<string, string>>({})
+
+  // 차량 톤수별 거리 초과 운임 계산 설정 (기본 20/25km, 근거리 26~100km, 장거리 101km~, 초장거리 250km+)
+  const initialDistanceTierKey = resolveTonnageTierKey(envObj.vehicles || [], 0)
+  const initialDistanceSpec = TONNAGE_DISTANCE_FARE_TABLE[initialDistanceTierKey]
+  const [distanceTierKey, setDistanceTierKey] = useState<TonnageTierKey>(
+    (envObj.distanceTierKey as TonnageTierKey) || initialDistanceTierKey
+  )
+  const [baseDistanceKm, setBaseDistanceKm] = useState<number>(
+    envObj.baseDistanceKm !== undefined ? Number(envObj.baseDistanceKm) : initialDistanceSpec.baseDistanceKm
+  )
+  const [ratePerKm, setRatePerKm] = useState<number>(
+    envObj.ratePerKm !== undefined ? Number(envObj.ratePerKm) : initialDistanceSpec.shortExtraRate
+  )
+  const [longRatePerKm, setLongRatePerKm] = useState<number>(
+    envObj.longRatePerKm !== undefined ? Number(envObj.longRatePerKm) : initialDistanceSpec.longExtraRate
+  )
+  const [applyUltraLong, setApplyUltraLong] = useState<boolean>(
+    envObj.applyUltraLong !== undefined ? Boolean(envObj.applyUltraLong) : true
+  )
+  const [customUltraLongFee, setCustomUltraLongFee] = useState<number>(
+    envObj.customUltraLongFee !== undefined ? Number(envObj.customUltraLongFee) : initialDistanceSpec.ultraLongSurcharge
+  )
+
+  // 경유 품목 자동 감지
+  const waypointCount = useMemo(
+    () => items.filter((i: any) => i.treatment === '경유' && Number(i.quantity) > 0).length,
+    [items]
+  )
+  const [includeWaypointInDistance, setIncludeWaypointInDistance] = useState<boolean>(
+    envObj.includeWaypointInDistance !== undefined ? Boolean(envObj.includeWaypointInDistance) : false
+  )
+  const [waypointFeeAmount, setWaypointFeeAmount] = useState<number>(
+    envObj.waypointFeeAmount !== undefined ? Number(envObj.waypointFeeAmount) : 70000
+  )
+
+  useEffect(() => {
+    if (waypointCount > 0) {
+      setIncludeWaypointInDistance(true)
+    }
+  }, [waypointCount])
+
+  const handleSelectDistanceTier = (key: TonnageTierKey) => {
+    setDistanceTierKey(key)
+    const spec = TONNAGE_DISTANCE_FARE_TABLE[key]
+    setBaseDistanceKm(spec.baseDistanceKm)
+    setRatePerKm(spec.shortExtraRate)
+    setLongRatePerKm(spec.longExtraRate)
+    setCustomUltraLongFee(spec.ultraLongSurcharge)
+  }
+
+  // 투입 차량이 변경되면 해당 차량 톤수 규격의 표준 거리 단가로 자동 연동
+  useEffect(() => {
+    if (vehicles && vehicles.length > 0) {
+      const detectedKey = resolveTonnageTierKey(vehicles, 0)
+      if (detectedKey !== distanceTierKey) {
+        handleSelectDistanceTier(detectedKey)
+      }
+    }
+  }, [vehicles])
+
   const [tollFare, setTollFare] = useState<number>(Number(envObj.tollFare) || 0)
   const [roundTollFare, setRoundTollFare] = useState<number>(
     envObj.roundTollFare !== undefined 
@@ -350,10 +448,13 @@ export function EstimateForm({
         setDistanceDuration(res.durationText)
         setDistanceDetail(res.summary)
         const fare = res.tollFare !== undefined ? res.tollFare : 0
-        setTollFare(fare)
-        setRoundTollFare(fare * 2)
-        const tollText = fare > 0 
-          ? ` | 대당 왕복 톨비: ${(fare * 2).toLocaleString()}원 (편도 ${fare.toLocaleString()}원)` 
+        // 5톤 화물차(3종 대형화물) 기준 약 1.45배 요금 보정 (1톤 제외)
+        const isHeavyTruck = distanceTierKey !== '1'
+        const adjustedOneWay = fare > 0 && isHeavyTruck ? adjustTollForHeavyTruck(fare, true) : fare
+        setTollFare(adjustedOneWay)
+        setRoundTollFare(adjustedOneWay * 2)
+        const tollText = adjustedOneWay > 0 
+          ? ` | 대당 왕복 톨비${isHeavyTruck ? '(3종화물 1.45배)' : ''}: ${(adjustedOneWay * 2).toLocaleString()}원 (편도 ${adjustedOneWay.toLocaleString()}원)` 
           : ' | 통행료 없음 (0원)'
         setDistanceNotice(`거리 계산 완료: ${res.distanceKm}km (${res.durationText})${tollText}`)
         setTimeout(() => setDistanceNotice(null), 5000)
@@ -383,9 +484,36 @@ export function EstimateForm({
     setPostcodeOpen(false)
   }
 
-  // 거리 초과 가산 요금 계산
-  const extraDistanceKm = Math.max(0, Math.round((distance - baseDistanceKm) * 10) / 10)
-  const calculatedExtraCost = Math.round(extraDistanceKm * ratePerKm)
+  // 차량 톤수별 2단 체감 구간 + 250km 초장거리 + 경유 수고비 통합 산출
+  const distanceFareResult = useMemo(() => {
+    return calculateTonnageDistanceFare({
+      tierKey: distanceTierKey,
+      distanceKm: distance,
+      customBaseDistanceKm: baseDistanceKm,
+      customShortRate: ratePerKm,
+      customLongRate: longRatePerKm,
+      includeUltraLongSurcharge: applyUltraLong,
+      customUltraLongSurcharge: customUltraLongFee,
+      includeTollWhenOver30Km: false,
+      includeWaypointFee: includeWaypointInDistance,
+      waypointCount,
+      customWaypointFee: waypointFeeAmount,
+    })
+  }, [
+    distanceTierKey,
+    distance,
+    baseDistanceKm,
+    ratePerKm,
+    longRatePerKm,
+    applyUltraLong,
+    customUltraLongFee,
+    includeWaypointInDistance,
+    waypointCount,
+    waypointFeeAmount,
+  ])
+
+  const extraDistanceKm = distanceFareResult.extraDistanceKm
+  const calculatedExtraCost = distanceFareResult.totalExtraCost
 
   const isDistanceApplied = appliedDistanceCost > 0 && appliedDistanceCost === calculatedExtraCost
 
@@ -398,12 +526,12 @@ export function EstimateForm({
         alert('거리 초과 운임이 없으므로 가산 비용에서 이전 거리운임이 제외되었습니다.')
         return
       }
-      alert(`기본 거리(${baseDistanceKm}km) 이하이므로 추가 운임이 없습니다.`)
+      alert(`기본 거리(${baseDistanceKm}km) 이하이며 추가 경유 수고비가 없으므로 추가 운임이 없습니다.`)
       return
     }
 
     if (appliedDistanceCost === calculatedExtraCost) {
-      alert(`이미 거리 초과 운임 (${calculatedExtraCost.toLocaleString()}원)이 가산 비용에 반영되어 있습니다. (중복 가산되지 않습니다)`)
+      alert(`이미 거리 가산 운임 (${calculatedExtraCost.toLocaleString()}원)이 가산 비용에 반영되어 있습니다. (중복 가산되지 않습니다)`)
       return
     }
 
@@ -412,10 +540,24 @@ export function EstimateForm({
     setAppliedDistanceCost(calculatedExtraCost)
     setIsCostEdited(true)
 
+    const breakdownParts: string[] = []
+    if (distanceFareResult.shortExtraKm > 0) {
+      breakdownParts.push(`근거리(${distanceFareResult.shortExtraKm}km×${ratePerKm.toLocaleString()}원=${distanceFareResult.shortExtraCost.toLocaleString()}원)`)
+    }
+    if (distanceFareResult.longExtraKm > 0) {
+      breakdownParts.push(`장거리(${distanceFareResult.longExtraKm}km×${longRatePerKm.toLocaleString()}원=${distanceFareResult.longExtraCost.toLocaleString()}원)`)
+    }
+    if (distanceFareResult.ultraLongSurcharge > 0) {
+      breakdownParts.push(`250km+초장거리(${distanceFareResult.ultraLongSurcharge.toLocaleString()}원)`)
+    }
+    if (distanceFareResult.waypointFee > 0) {
+      breakdownParts.push(`경유수고비(${distanceFareResult.waypointFee.toLocaleString()}원)`)
+    }
+
     if (appliedDistanceCost > 0) {
-      alert(`거리 초과 운임이 변경되어 가산 비용에 갱신되었습니다!\n(기존: ${appliedDistanceCost.toLocaleString()}원 → 변경: ${calculatedExtraCost.toLocaleString()}원 / 차액: ${diff > 0 ? '+' : ''}${diff.toLocaleString()}원)`)
+      alert(`거리 가산 운임이 변경되어 가산 비용에 갱신되었습니다!\n(기존: ${appliedDistanceCost.toLocaleString()}원 → 변경: ${calculatedExtraCost.toLocaleString()}원 / 차액: ${diff > 0 ? '+' : ''}${diff.toLocaleString()}원)`)
     } else {
-      alert(`거리 초과 운임(${extraDistanceKm}km 초과 × ${ratePerKm.toLocaleString()}원 = ${calculatedExtraCost.toLocaleString()}원)이 가산 비용에 반영되었습니다!`)
+      alert(`거리 가산 운임(${breakdownParts.join(' + ')} = 총 ${calculatedExtraCost.toLocaleString()}원)이 가산 비용에 반영되었습니다!`)
     }
   }
 
@@ -447,29 +589,6 @@ export function EstimateForm({
 
     alert(`사다리차 운임(${totalLadderCost.toLocaleString()}원)과 거리가산운임(${calculatedExtraCost.toLocaleString()}원) 총 ${totalExtra.toLocaleString()}원이 가산 비용에 일괄 반영되었습니다!`)
   }
-
-  const [items, setItems] = useState<any[]>(() => parseAndFilterCbmItems(initialData?.cbmItems))
-  const [standardItems, setStandardItems] = useState<any[]>([])
-  const [categories, setCategories] = useState<any[]>([])
-  const [activeCategoryIds, setActiveCategoryIds] = useState<string[]>([])
-  
-  const [vehicles, setVehicles] = useState<any[]>(envObj.vehicles || [])
-  const [standardVehicles, setStandardVehicles] = useState<any[]>([])
-
-  // 이삿날 배차 호차 및 담당 팀장 상태
-  const [dispatchInfo, setDispatchInfo] = useState<any>(() => ({
-    assignedVehicles: Array.isArray(envObj.dispatch?.assignedVehicles) ? envObj.dispatch.assignedVehicles : [],
-    teamLeader: envObj.dispatch?.teamLeader || '',
-    leaderPhone: envObj.dispatch?.leaderPhone || '',
-    dispatchStatus: envObj.dispatch?.dispatchStatus || 'UNASSIGNED',
-    dispatchMemo: envObj.dispatch?.dispatchMemo || ''
-  }))
-
-  const [labors, setLabors] = useState<any[]>(envObj.labors || [])
-  const [standardLabors, setStandardLabors] = useState<any[]>([])
-
-  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({})
-  const [selectedItemNames, setSelectedItemNames] = useState<Record<string, string>>({})
 
   // 전체 공간 목록 (기타/미지정 포함)
   const allCategoriesWithUnassigned = useMemo(() => {
@@ -564,6 +683,69 @@ export function EstimateForm({
   const [isAiModalOpen, setIsAiModalOpen] = useState(false)
   const [isPresetModalOpen, setIsPresetModalOpen] = useState(false)
   const [cbmInputMode, setCbmInputMode] = useState<'touch' | 'table'>('touch')
+
+  // 테이블 모드 필터 및 품목 빠른 추가 모달 상태
+  const [tableMidCat, setTableMidCat] = useState<ItemMidCategory>('all')
+  const [tableChosung, setTableChosung] = useState<ChosungFilter>('전체')
+  const [tableSearch, setTableSearch] = useState('')
+  const [quickAddModalCat, setQuickAddModalCat] = useState<{ id: string; name: string } | null>(null)
+
+  const handleAddStandardItemToCategory = (catId: string, catName: string, stdItem: any) => {
+    if (!stdItem) return
+    setItems(prev => {
+      const exactIdx = prev.findIndex(
+        it =>
+          (it.locationId || '') === catId &&
+          it.name === stdItem.name &&
+          (it.spec || '') === (stdItem.spec || '')
+      )
+      if (exactIdx >= 0) {
+        const next = [...prev]
+        const cur = next[exactIdx]
+        next[exactIdx] = {
+          ...cur,
+          spec: stdItem.spec || cur.spec || '',
+          cbm: stdItem.defaultCbm ?? cur.cbm,
+          innerBoxCbm: stdItem.defaultInnerCbm ?? cur.innerBoxCbm ?? 0,
+          quantity: (Number(cur.quantity) || 0) + 1,
+        }
+        return next
+      }
+
+      const emptyIdx = prev.findIndex(
+        it =>
+          (it.locationId || '') === catId &&
+          it.name === stdItem.name &&
+          (Number(it.quantity) || 0) === 0
+      )
+      if (emptyIdx >= 0) {
+        const next = [...prev]
+        const cur = next[emptyIdx]
+        next[emptyIdx] = {
+          ...cur,
+          spec: stdItem.spec || '',
+          cbm: stdItem.defaultCbm ?? 0,
+          innerBoxCbm: stdItem.defaultInnerCbm ?? 0,
+          quantity: 1,
+        }
+        return next
+      }
+
+      return [
+        ...prev,
+        ensureItemUid({
+          locationId: catId,
+          locationName: catName,
+          name: stdItem.name,
+          spec: stdItem.spec || '',
+          quantity: 1,
+          cbm: stdItem.defaultCbm ?? 0.5,
+          innerBoxCbm: stdItem.defaultInnerCbm ?? 0,
+          treatment: '이동',
+        }),
+      ]
+    })
+  }
 
   // 백그라운드 AI 분석 태스크 상태
   interface BackgroundAiTask {
@@ -1360,8 +1542,14 @@ export function EstimateForm({
     distance,
     distanceDuration,
     distanceDetail,
+    distanceTierKey,
     baseDistanceKm,
     ratePerKm,
+    longRatePerKm,
+    applyUltraLong,
+    customUltraLongFee,
+    includeWaypointInDistance,
+    waypointFeeAmount,
     tollFare,
     roundTollFare,
     extraDistanceKm,
@@ -2113,71 +2301,197 @@ export function EstimateForm({
                         </div>
                       )}
 
-                      {/* 고속도로 통행료 종합 배지 (투입차량 전체 왕복 톨비 안내) */}
+                      {/* 고속도로 통행료 종합 배지 (투입차량 전체 왕복 톨비 안내 + 5톤 3종 화물차 1.45배 보정) */}
                       {roundTollFare > 0 && (
                         <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs text-indigo-900 bg-indigo-50/90 px-2.5 py-1.5 rounded-md border border-indigo-200/80">
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             <CreditCard size={13} className="text-indigo-600 shrink-0" />
                             <span className="font-semibold text-gray-700">고속도로 통행료:</span>
                             <span className="font-extrabold text-indigo-900">대당 왕복 {roundTollFare.toLocaleString()}원</span>
                             <span className="text-gray-400">|</span>
                             <span className="text-gray-600">편도 {tollFare.toLocaleString()}원</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRoundTollFareChange(adjustTollForHeavyTruck(roundTollFare, true))}
+                              className="px-1.5 py-0.5 bg-white hover:bg-indigo-100 text-indigo-700 border border-indigo-300 rounded text-[11px] font-bold transition-colors"
+                              title="한국도로공사 3종 대형화물(5톤) 통행료 약 1.45배 할증 적용"
+                            >
+                              3종 화물(×1.45)
+                            </button>
+                            {distance > 0 && distance <= 30 && (
+                              <button
+                                type="button"
+                                onClick={() => handleRoundTollFareChange(0)}
+                                className="px-1.5 py-0.5 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-300 rounded text-[11px] font-bold transition-colors"
+                                title="30km 이내 시내/근거리 통행료 기본운임 흡수 처리"
+                              >
+                                30km이내 흡수(0원)
+                              </button>
+                            )}
                           </div>
                           <div className="flex items-center gap-1 font-bold text-indigo-800">
                             <span>투입 {vehicles.reduce((sum, v) => sum + (Number(v.count) || 0), 0) || 1}대 총 왕복 톨비:</span>
                             <span className="text-sm font-black text-indigo-900 bg-white px-2 py-0.5 rounded border border-indigo-200">
                               {(roundTollFare * (vehicles.reduce((sum, v) => sum + (Number(v.count) || 0), 0) || 1)).toLocaleString()}원
                             </span>
-                            <span className="text-[11px] text-indigo-600 font-normal">(원가산출 시 자동 산입)</span>
+                            <span className="text-[11px] text-indigo-600 font-normal">(원가/비용 산출 연동)</span>
                           </div>
                         </div>
                       )}
 
-                      {/* 2. 견적금액 연동: 거리 가산 요금 산출 보조 섹션 */}
-                      <div className="mt-1.5 pt-2 border-t border-dashed border-gray-200 bg-gray-50/70 p-2 sm:p-2.5 rounded-lg space-y-1.5">
+                      {/* 2. 견적금액 연동: 차량 톤수별 2단 구간 거리 가산 요금 산출 보조 섹션 */}
+                      <div className="mt-1.5 pt-2 border-t border-dashed border-gray-200 bg-gray-50/70 p-2 sm:p-2.5 rounded-lg space-y-2">
                         <div className="flex flex-wrap items-center justify-between gap-1.5">
-                          <div className="flex items-center gap-1 text-xs sm:text-sm font-bold text-gray-800">
+                          <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-gray-800">
                             <Calculator size={14} className="text-blue-600" />
-                            <span>거리 가산 운임</span>
-                            <span className="text-[10px] sm:text-[11px] font-normal text-gray-500">(추가비용)</span>
+                            <span>톤수별 거리 가산 운임</span>
+                            <span className="text-[10px] sm:text-[11px] font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
+                              기본운임 {TONNAGE_DISTANCE_FARE_TABLE[distanceTierKey].vehicleBaseFee.toLocaleString()}원 기준
+                            </span>
                           </div>
-                          
-                          <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                            <span className="text-gray-600 font-medium">기준:</span>
-                            <div className="flex items-center">
-                              <input 
-                                type="number" 
-                                min="0" 
-                                value={baseDistanceKm} 
-                                onChange={e => setBaseDistanceKm(Number(e.target.value) || 0)} 
-                                onFocus={handleSelectAllOnFocus}
-                                className="w-10 text-center rounded border border-gray-300 bg-white py-0.5 px-0.5 font-bold text-gray-800 outline-none focus:border-blue-500 text-xs" 
-                              />
-                              <span className="ml-0.5 text-gray-600">km 초과</span>
-                            </div>
 
-                            <span className="text-gray-600 font-medium ml-1">km당:</span>
-                            <div className="flex items-center">
-                              <input 
-                                type="number" 
-                                min="0" 
-                                step="500" 
-                                value={ratePerKm} 
-                                onChange={e => setRatePerKm(Number(e.target.value) || 0)} 
-                                onFocus={handleSelectAllOnFocus}
-                                className="w-14 text-right rounded border border-gray-300 bg-white py-0.5 px-1 font-bold text-gray-800 outline-none focus:border-blue-500 text-xs" 
-                              />
-                              <span className="ml-0.5 text-gray-600">원</span>
-                            </div>
+                          {/* 차량 톤수별 단가표 프리셋 선택 */}
+                          <div className="flex flex-wrap items-center gap-1">
+                            {TONNAGE_DISTANCE_FARE_LIST.map((spec) => (
+                              <button
+                                key={spec.key}
+                                type="button"
+                                onClick={() => handleSelectDistanceTier(spec.key)}
+                                className={`px-2 py-0.5 rounded text-[11px] font-bold transition-all border ${
+                                  distanceTierKey === spec.key
+                                    ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                                    : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-100'
+                                }`}
+                              >
+                                {spec.key}톤
+                              </button>
+                            ))}
                           </div>
                         </div>
 
+                        {/* 기본거리 / 근거리(26~100km) / 장거리(101km~) / 250km+ 초장거리 설정 */}
+                        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-xs bg-white p-2 rounded-md border border-gray-200/80">
+                          <div className="flex items-center gap-1">
+                            <span className="text-gray-600 font-semibold">기본포함:</span>
+                            <input 
+                              type="number" 
+                              min="0" 
+                              value={baseDistanceKm} 
+                              onChange={e => setBaseDistanceKm(Number(e.target.value) || 0)} 
+                              onFocus={handleSelectAllOnFocus}
+                              className="w-11 text-center rounded border border-gray-300 bg-gray-50 py-0.5 px-1 font-bold text-gray-800 outline-none focus:border-blue-500 text-xs" 
+                            />
+                            <span className="text-gray-500">km</span>
+                          </div>
+
+                          <span className="text-gray-300">|</span>
+
+                          <div className="flex items-center gap-1">
+                            <span className="text-gray-600 font-semibold">근거리(~100km):</span>
+                            <input 
+                              type="number" 
+                              min="0" 
+                              step="100" 
+                              value={ratePerKm} 
+                              onChange={e => setRatePerKm(Number(e.target.value) || 0)} 
+                              onFocus={handleSelectAllOnFocus}
+                              className="w-14 text-right rounded border border-gray-300 bg-gray-50 py-0.5 px-1 font-bold text-blue-700 outline-none focus:border-blue-500 text-xs" 
+                            />
+                            <span className="text-gray-500">원/km</span>
+                          </div>
+
+                          <span className="text-gray-300">|</span>
+
+                          <div className="flex items-center gap-1">
+                            <span className="text-gray-600 font-semibold">장거리(101km~):</span>
+                            <input 
+                              type="number" 
+                              min="0" 
+                              step="100" 
+                              value={longRatePerKm} 
+                              onChange={e => setLongRatePerKm(Number(e.target.value) || 0)} 
+                              onFocus={handleSelectAllOnFocus}
+                              className="w-14 text-right rounded border border-gray-300 bg-gray-50 py-0.5 px-1 font-bold text-indigo-700 outline-none focus:border-blue-500 text-xs" 
+                            />
+                            <span className="text-gray-500">원/km</span>
+                          </div>
+
+                          {distance >= 250 && (
+                            <>
+                              <span className="text-gray-300">|</span>
+                              <label className="flex items-center gap-1 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={applyUltraLong}
+                                  onChange={e => setApplyUltraLong(e.target.checked)}
+                                  className="rounded text-amber-600"
+                                />
+                                <span className="font-bold text-amber-800">250km+ 초장거리 수당:</span>
+                                <input
+                                  type="number"
+                                  step="10000"
+                                  value={customUltraLongFee}
+                                  onChange={e => setCustomUltraLongFee(Number(e.target.value) || 0)}
+                                  onFocus={handleSelectAllOnFocus}
+                                  className="w-18 text-right rounded border border-amber-300 bg-amber-50/60 py-0.5 px-1 font-bold text-amber-900 text-xs"
+                                />
+                                <span className="text-gray-500">원</span>
+                              </label>
+                            </>
+                          )}
+
+                          {(waypointCount > 0 || includeWaypointInDistance) && (
+                            <>
+                              <span className="text-gray-300">|</span>
+                              <label className="flex items-center gap-1 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={includeWaypointInDistance}
+                                  onChange={e => setIncludeWaypointInDistance(e.target.checked)}
+                                  className="rounded text-purple-600"
+                                />
+                                <span className="font-bold text-purple-800">
+                                  경유 수고비{waypointCount > 0 ? `(경유품목 ${waypointCount}건)` : ''}:
+                                </span>
+                                <input
+                                  type="number"
+                                  step="10000"
+                                  value={waypointFeeAmount}
+                                  onChange={e => setWaypointFeeAmount(Number(e.target.value) || 0)}
+                                  onFocus={handleSelectAllOnFocus}
+                                  className="w-16 text-right rounded border border-purple-300 bg-purple-50/60 py-0.5 px-1 font-bold text-purple-900 text-xs"
+                                />
+                                <span className="text-gray-500">원</span>
+                              </label>
+                            </>
+                          )}
+                        </div>
+
                         <div className="flex flex-wrap items-center justify-between gap-1.5 pt-1 border-t border-gray-200/80">
-                          <div className="text-xs text-gray-600 flex items-center gap-1 flex-wrap">
-                            <span>초과:</span>
-                            <span className="font-bold text-gray-900">{extraDistanceKm}km</span>
+                          <div className="text-xs text-gray-600 flex items-center gap-1.5 flex-wrap">
+                            <span>총 초과: <strong className="text-gray-900">{extraDistanceKm}km</strong></span>
+                            {distanceFareResult.shortExtraKm > 0 && (
+                              <span className="text-[11px] bg-blue-50 text-blue-800 px-1.5 py-0.5 rounded border border-blue-200">
+                                근거리 {distanceFareResult.shortExtraKm}km (+{distanceFareResult.shortExtraCost.toLocaleString()}원)
+                              </span>
+                            )}
+                            {distanceFareResult.longExtraKm > 0 && (
+                              <span className="text-[11px] bg-indigo-50 text-indigo-800 px-1.5 py-0.5 rounded border border-indigo-200">
+                                장거리 {distanceFareResult.longExtraKm}km (+{distanceFareResult.longExtraCost.toLocaleString()}원)
+                              </span>
+                            )}
+                            {distanceFareResult.ultraLongSurcharge > 0 && (
+                              <span className="text-[11px] bg-amber-50 text-amber-800 px-1.5 py-0.5 rounded border border-amber-200 font-semibold">
+                                250km+수당 (+{distanceFareResult.ultraLongSurcharge.toLocaleString()}원)
+                              </span>
+                            )}
+                            {distanceFareResult.waypointFee > 0 && (
+                              <span className="text-[11px] bg-purple-50 text-purple-800 px-1.5 py-0.5 rounded border border-purple-200 font-semibold">
+                                경유 (+{distanceFareResult.waypointFee.toLocaleString()}원)
+                              </span>
+                            )}
                             <span className="text-gray-300">|</span>
-                            <span>산출액:</span>
+                            <span>합계:</span>
                             <span className="font-extrabold text-blue-700 text-xs sm:text-sm">+{calculatedExtraCost.toLocaleString()} 원</span>
                           </div>
 
@@ -2443,11 +2757,131 @@ export function EstimateForm({
               />
             ) : (
               <div className="space-y-3">
+              {/* 테이블 모드 스마트 필터 바 (선택됨만 보기 / 중분류 / 초성 ㄱ~ㅎ / 검색) */}
+              <div className="bg-slate-50/90 border border-slate-200/90 rounded-xl p-2.5 space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+                    {ITEM_MID_CATEGORIES.map(cat => {
+                      const isSelected = tableMidCat === cat.key
+                      const isSelectedTab = cat.key === 'selected'
+                      const selectedCount = items.filter(i => (Number(i.quantity) || 0) > 0).length
+                      return (
+                        <button
+                          key={cat.key}
+                          type="button"
+                          onClick={() => setTableMidCat(cat.key)}
+                          className={`px-2 sm:px-2.5 py-1 rounded-lg text-xs font-extrabold whitespace-nowrap transition-all flex items-center gap-1 border ${
+                            isSelected
+                              ? isSelectedTab
+                                ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                                : 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                              : isSelectedTab && selectedCount > 0
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                              : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+                          }`}
+                        >
+                          <span>{cat.shortLabel}</span>
+                          {isSelectedTab && (
+                            <span
+                              className={`text-[10px] px-1 rounded-full font-bold ${
+                                isSelected ? 'bg-white/25 text-white' : 'bg-emerald-200/80 text-emerald-900'
+                              }`}
+                            >
+                              {selectedCount}
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  <div className="relative flex-1 sm:flex-initial sm:w-56">
+                    <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      lang="ko"
+                      inputMode="text"
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      style={{ imeMode: 'active' } as React.CSSProperties}
+                      value={tableSearch}
+                      onChange={e => setTableSearch(convertEngInputToKor(e.target.value))}
+                      placeholder="테이블 내 품목·초성 검색 (예: 침대, ㅊㄷ)"
+                      className="w-full pl-7 pr-6 py-1 rounded-lg border border-gray-300 bg-white text-xs font-medium text-gray-800 outline-none focus:border-blue-500"
+                    />
+                    {tableSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setTableSearch('')}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+                    {CHOSUNG_BUTTONS.map(ch => {
+                      const isSelected = tableChosung === ch
+                      return (
+                        <button
+                          key={ch}
+                          type="button"
+                          onClick={() => setTableChosung(prev => (prev === ch && ch !== '전체' ? '전체' : ch))}
+                          className={`min-w-[26px] h-6 sm:h-7 px-1.5 rounded-md text-[11px] sm:text-xs font-extrabold transition-all shrink-0 border ${
+                            isSelected
+                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
+                              : 'bg-white text-gray-700 border-gray-300 hover:bg-indigo-50 hover:border-indigo-300'
+                          }`}
+                        >
+                          {ch}
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {(tableMidCat !== 'all' || tableChosung !== '전체' || tableSearch.trim()) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTableMidCat('all')
+                        setTableChosung('전체')
+                        setTableSearch('')
+                      }}
+                      className="text-[11px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 shrink-0 whitespace-nowrap"
+                    >
+                      필터 해제
+                    </button>
+                  )}
+                </div>
+              </div>
+
               {displayedCategories.map((cat: any) => {
                 // 실시간 동적 정렬 제거: 타이핑 중 행 위치가 변경되어 모바일 한글 조합(IME)이 깨지는 현상 방지
-                const catItems = items.filter(i => (i.locationId || '') === cat.id)
+                const allCatItems = items.filter(i => (i.locationId || '') === cat.id)
+                const catItems = allCatItems.filter(it => {
+                  const qty = Number(it.quantity) || 0
+                  if (tableMidCat === 'selected' && qty <= 0) return false
+                  if (
+                    tableMidCat !== 'all' &&
+                    tableMidCat !== 'selected' &&
+                    classifyItemMidCategory(it.name) !== tableMidCat
+                  ) {
+                    return false
+                  }
+                  if (tableChosung !== '전체' && !matchesChosungFilter(it.name, tableChosung)) {
+                    return false
+                  }
+                  if (tableSearch.trim() && !matchesKoreanSearch(it.name, it.spec, tableSearch)) {
+                    return false
+                  }
+                  return true
+                })
                 // Hide '기타/미지정' if it has no items
-                if (cat.id === '' && catItems.length === 0) return null
+                if (cat.id === '' && allCatItems.length === 0) return null
                 
                 const isExpanded = expandedCategories[cat.id] !== false
 
@@ -2466,7 +2900,7 @@ export function EstimateForm({
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-xs sm:text-sm font-semibold text-blue-700 bg-white/90 px-2 sm:px-2.5 py-0.5 rounded-full border border-blue-200 shadow-2xs">
-                          {catItems.reduce((acc, item) => acc + getItemEffectiveCbm(item), 0).toFixed(2)} CBM
+                          {allCatItems.reduce((acc, item) => acc + getItemEffectiveCbm(item), 0).toFixed(2)} CBM
                         </span>
                         {displayedCategories.length > 1 && (
                           <button
@@ -2684,12 +3118,25 @@ export function EstimateForm({
                           })}
                           {catItems.length === 0 && (
                             <tr className="border-b">
-                              <td colSpan={7} className="px-3 py-3 text-center text-gray-400 text-xs">등록된 항목이 없습니다.</td>
+                              <td colSpan={7} className="px-3 py-3 text-center text-gray-400 text-xs">
+                                {allCatItems.length > 0
+                                  ? '필터 조건에 맞는 항목이 없습니다.'
+                                  : '등록된 항목이 없습니다.'}
+                              </td>
                             </tr>
                           )}
                           <tr className="bg-gray-50/80 border-t border-gray-200">
                             <td colSpan={7} className="px-2 sm:px-3 py-2">
                               <div className="flex flex-wrap gap-1.5 sm:gap-2 items-center">
+                                <button
+                                  type="button"
+                                  onClick={() => setQuickAddModalCat({ id: cat.id, name: cat.name })}
+                                  className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-extrabold flex items-center gap-1 shadow-2xs transition-all active:scale-95"
+                                >
+                                  <PackagePlus size={14} />
+                                  <span>+ 품목 빠른 검색·추가</span>
+                                </button>
+
                                 <select 
                                   className="min-w-[130px] sm:min-w-[170px] max-w-[210px] rounded-lg border-gray-300 border px-2 sm:px-2.5 py-1.5 text-xs sm:text-sm font-semibold outline-none text-gray-800 bg-white focus:border-blue-500 cursor-pointer shadow-2xs"
                                   value={selectedItemNames[cat.id] || ''}
@@ -2697,7 +3144,7 @@ export function EstimateForm({
                                     setSelectedItemNames(prev => ({ ...prev, [cat.id]: e.target.value }))
                                   }}
                                 >
-                                  <option value="">+ 품목 선택</option>
+                                  <option value="">+ 드롭다운 선택</option>
                                   {(() => {
                                     // 1. 현재 위치(카테고리)와 일치하는 품목명 목록 (BOX 최상단 우선, 그 외 가나다순 정렬)
                                     const matchedNames = Array.from(new Set(
@@ -2754,7 +3201,7 @@ export function EstimateForm({
                                       if(!e.target.value) return;
                                       const stdItem = standardItems.find(i => i.id === e.target.value)
                                       if(stdItem) {
-                                        setItems([...items, ensureItemUid({ locationId: cat.id, locationName: cat.name, name: stdItem.name, spec: stdItem.spec || '', quantity: 1, treatment: '이동', cbm: stdItem.defaultCbm, innerBoxCbm: stdItem.defaultInnerCbm })])
+                                        handleAddStandardItemToCategory(cat.id, cat.name, stdItem)
                                         setSelectedItemNames(prev => ({ ...prev, [cat.id]: '' }))
                                       }
                                     }}
@@ -2813,6 +3260,34 @@ export function EstimateForm({
                     </select>
                   </div>
                 </div>
+              )}
+
+              {/* 테이블 모드용 품목 빠른 검색·추가 모달 */}
+              {quickAddModalCat && (
+                <ItemQuickAddModal
+                  isOpen={Boolean(quickAddModalCat)}
+                  onClose={() => setQuickAddModalCat(null)}
+                  categoryId={quickAddModalCat.id}
+                  categoryName={quickAddModalCat.name}
+                  standardItems={standardItems}
+                  currentCategoryItems={items.filter(i => (i.locationId || '') === quickAddModalCat.id)}
+                  onAddItem={(stdItem) => handleAddStandardItemToCategory(quickAddModalCat.id, quickAddModalCat.name, stdItem)}
+                  onAddCustomItem={(name, spec, cbm) => {
+                    setItems(prev => [
+                      ...prev,
+                      ensureItemUid({
+                        locationId: quickAddModalCat.id,
+                        locationName: quickAddModalCat.name,
+                        name,
+                        spec,
+                        quantity: 1,
+                        cbm,
+                        innerBoxCbm: 0,
+                        treatment: '이동',
+                      }),
+                    ])
+                  }}
+                />
               )}
             </div>
             )}
@@ -3456,6 +3931,10 @@ export function EstimateForm({
           currentCbm={totalCbm}
           movingDate={movingDate}
           currentMovingCost={movingCost}
+          distanceKm={distance}
+          roundTollFare={roundTollFare}
+          vehicleCount={vehicles.reduce((sum, v) => sum + (Number(v.count) || 0), 0) || 1}
+          waypointCount={waypointCount}
           onApply={(calculatedCost) => {
             setMovingCost(calculatedCost)
             setIsCostEdited(true)
@@ -3505,6 +3984,7 @@ export function EstimateForm({
             womenUnitPrice={womenUnitPrice}
             vehicles={vehicles}
             ladderTotalCost={totalLadderCost}
+            waypointCount={waypointCount}
             costStandards={costStandardsData}
             onApply={(calculatedCost) => {
               setMovingCost(calculatedCost)

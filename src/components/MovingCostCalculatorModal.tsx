@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { 
   X, 
   Calculator, 
@@ -15,13 +15,23 @@ import {
   Trash2,
   Users,
   Layers,
-  ArrowRight
+  ArrowRight,
+  Navigation,
+  CreditCard,
+  MapPin
 } from 'lucide-react'
 import KoreanLunarCalendar from 'korean-lunar-calendar'
+import {
+  TONNAGE_DISTANCE_FARE_TABLE,
+  TONNAGE_DISTANCE_FARE_LIST,
+  calculateTonnageDistanceFare,
+  type TonnageTierKey
+} from '@/lib/distanceFare'
 
 // 1. CBM별 표준 가이드 구간 정의
 export interface CbmTierGuide {
   id: string
+  tierKey: TonnageTierKey
   name: string
   tonnage: string
   minCbm: number
@@ -29,23 +39,33 @@ export interface CbmTierGuide {
   recommendedWorkers: string // 예: "남 3명 + 여 1명"
   guidePriceRange: string // 예: "1,100,000 ~ 1,300,000"
   defaultPrice: number // 기본 적용 추천가
+  vehicleBaseFee: number // 순수 차량 고정 기본료 (인건비 제외 차량분)
+  baseDistanceKm: number // 기본 포함 거리
+  shortExtraRate: number // 근거리 초과 할증 (26~100km)
+  longExtraRate: number // 장거리 초과 할증 (101km~)
   description: string
 }
 
 export const CBM_TIER_GUIDES: CbmTierGuide[] = [
   {
     id: '1ton',
+    tierKey: '1',
     name: '소형 / 원룸 이사',
     tonnage: '1톤 1대',
     minCbm: 0,
     maxCbm: 5.99,
-    recommendedWorkers: '남 1명',
+    recommendedWorkers: '남 1~2명',
     guidePriceRange: '400,000 ~ 550,000원',
     defaultPrice: 450000,
-    description: '원룸, 오피스텔 및 소형 짐'
+    vehicleBaseFee: 120000,
+    baseDistanceKm: 20,
+    shortExtraRate: 1000,
+    longExtraRate: 900,
+    description: '원룸, 오피스텔 및 소형 짐 (20km 이내 기본)'
   },
   {
     id: '2.5ton',
+    tierKey: '2.5',
     name: '투룸 / 소형가구',
     tonnage: '2.5톤 1대',
     minCbm: 6.0,
@@ -53,10 +73,15 @@ export const CBM_TIER_GUIDES: CbmTierGuide[] = [
     recommendedWorkers: '남 2명 + 여 1명',
     guidePriceRange: '700,000 ~ 900,000원',
     defaultPrice: 800000,
-    description: '투룸, 신혼부부 소형 아파트'
+    vehicleBaseFee: 220000,
+    baseDistanceKm: 25,
+    shortExtraRate: 1400,
+    longExtraRate: 1200,
+    description: '투룸, 신혼부부 소형 아파트 (25km 이내 기본)'
   },
   {
     id: '5ton',
+    tierKey: '5',
     name: '표준 가정 이사',
     tonnage: '5톤 1대',
     minCbm: 14.0,
@@ -64,10 +89,15 @@ export const CBM_TIER_GUIDES: CbmTierGuide[] = [
     recommendedWorkers: '남 3명 + 여 1명',
     guidePriceRange: '1,100,000 ~ 1,300,000원',
     defaultPrice: 1200000,
-    description: '20 ~ 28평형 표준 가정집'
+    vehicleBaseFee: 350000,
+    baseDistanceKm: 25,
+    shortExtraRate: 1800,
+    longExtraRate: 1500,
+    description: '20 ~ 28평형 표준 가정집 (25km 이내 기본)'
   },
   {
     id: '6ton',
+    tierKey: '6',
     name: '중대형 이사 (짐 많음)',
     tonnage: '5톤 1대 + 1톤 1대',
     minCbm: 26.0,
@@ -75,10 +105,15 @@ export const CBM_TIER_GUIDES: CbmTierGuide[] = [
     recommendedWorkers: '남 4명 + 여 1명',
     guidePriceRange: '1,400,000 ~ 1,600,000원',
     defaultPrice: 1500000,
-    description: '32 ~ 34평형 표준 세대'
+    vehicleBaseFee: 470000,
+    baseDistanceKm: 25,
+    shortExtraRate: 2600,
+    longExtraRate: 2200,
+    description: '32 ~ 34평형 표준 세대 (25km 이내 기본)'
   },
   {
     id: '7.5ton',
+    tierKey: '7.5',
     name: '대형 평형 이사',
     tonnage: '5톤 1대 + 2.5톤 1대',
     minCbm: 32.0,
@@ -86,10 +121,15 @@ export const CBM_TIER_GUIDES: CbmTierGuide[] = [
     recommendedWorkers: '남 4~5명 + 여 1명',
     guidePriceRange: '1,700,000 ~ 2,000,000원',
     defaultPrice: 1850000,
-    description: '34평 짐 많음 / 40평형대 세대'
+    vehicleBaseFee: 570000,
+    baseDistanceKm: 25,
+    shortExtraRate: 3000,
+    longExtraRate: 2600,
+    description: '34평 짐 많음 / 40평형대 세대 (25km 이내 기본)'
   },
   {
     id: '10ton',
+    tierKey: '10',
     name: '초대형 / 복층 이사',
     tonnage: '5톤 2대',
     minCbm: 40.0,
@@ -97,7 +137,11 @@ export const CBM_TIER_GUIDES: CbmTierGuide[] = [
     recommendedWorkers: '남 5~6명 + 여 2명',
     guidePriceRange: '2,200,000 ~ 2,600,000원~',
     defaultPrice: 2400000,
-    description: '45평형 이상 대형 주택 및 복층'
+    vehicleBaseFee: 700000,
+    baseDistanceKm: 25,
+    shortExtraRate: 3600,
+    longExtraRate: 3000,
+    description: '45평형 이상 대형 주택 및 복층 (25km 이내 기본)'
   }
 ]
 
@@ -128,8 +172,13 @@ interface MovingCostCalculatorModalProps {
   currentCbm: number
   movingDate: Date | null
   currentMovingCost: number
+  distanceKm?: number
+  roundTollFare?: number
+  vehicleCount?: number
+  waypointCount?: number
   onApply: (calculatedCost: number, details: {
     baseCost: number
+    distanceSurcharge?: number
     calendarSurcharge: number
     specialItemCost: number
     summaryText: string
@@ -142,13 +191,27 @@ export function MovingCostCalculatorModal({
   currentCbm,
   movingDate,
   currentMovingCost,
+  distanceKm = 0,
+  roundTollFare = 0,
+  vehicleCount = 1,
+  waypointCount = 0,
   onApply
 }: MovingCostCalculatorModalProps) {
   // 1. 선택된 CBM 티어 및 기본운임
   const [selectedTierId, setSelectedTierId] = useState<string>('5ton')
   const [baseCost, setBaseCost] = useState<number>(1200000)
 
-  // 2. 캘린더 할증 상태
+  // 2. 차량 톤수별 초과 거리 할증 및 초장거리/톨비/경유 상태
+  const [includeDistanceInCalc, setIncludeDistanceInCalc] = useState<boolean>(false)
+  const [simDistanceKm, setSimDistanceKm] = useState<number>(distanceKm)
+  const [applyUltraLong, setApplyUltraLong] = useState<boolean>(true)
+  const [customUltraLongFee, setCustomUltraLongFee] = useState<number | undefined>(undefined)
+  const [includeTollOver30Km, setIncludeTollOver30Km] = useState<boolean>(distanceKm > 30)
+  const [applyWaypointFee, setApplyWaypointFee] = useState<boolean>(waypointCount > 0)
+  const [waypointFeeAmount, setWaypointFeeAmount] = useState<number>(70000)
+  const [roundDistanceToTenThousand, setRoundDistanceToTenThousand] = useState<boolean>(true)
+
+  // 3. 캘린더 할증 상태
   const [isSonEobNeunNal, setIsSonEobNeunNal] = useState<boolean>(false)
   const [isWeekend, setIsWeekend] = useState<boolean>(false)
   const [isFriday, setIsFriday] = useState<boolean>(false)
@@ -169,7 +232,7 @@ export function MovingCostCalculatorModal({
   const [applyHoliday, setApplyHoliday] = useState<boolean>(false)
   const [holidayCost, setHolidayCost] = useState<number>(100000)
 
-  // 3. 특수물품 분해조립 목록
+  // 4. 특수물품 분해조립 목록
   const [specialItems, setSpecialItems] = useState<SpecialItemOption[]>(DEFAULT_SPECIAL_ITEMS)
   const [customItemName, setCustomItemName] = useState<string>('')
   const [customItemPrice, setCustomItemPrice] = useState<number>(50000)
@@ -178,12 +241,15 @@ export function MovingCostCalculatorModal({
   useEffect(() => {
     if (!isOpen) return
 
-    // CBM 기반 티어 자동 감지
     const matched = CBM_TIER_GUIDES.find(t => currentCbm >= t.minCbm && currentCbm <= t.maxCbm)
       || (currentCbm > 0 ? CBM_TIER_GUIDES[CBM_TIER_GUIDES.length - 1] : CBM_TIER_GUIDES[2])
 
     setSelectedTierId(matched.id)
     setBaseCost(currentMovingCost > 0 ? currentMovingCost : matched.defaultPrice)
+    setSimDistanceKm(distanceKm)
+    setIncludeTollOver30Km(distanceKm > 30)
+    setApplyWaypointFee(waypointCount > 0)
+    setCustomUltraLongFee(undefined)
 
     // 이사일자 기반 캘린더 할증 판정
     if (movingDate) {
@@ -191,7 +257,6 @@ export function MovingCostCalculatorModal({
       const dayOfWeek = d.getDay() // 0: 일, 5: 금, 6: 토
       const dateNum = d.getDate()
 
-      // 손없는날 체크 (음력 9, 10, 19, 20, 29, 30일)
       try {
         const korCal = new KoreanLunarCalendar()
         korCal.setSolarDate(d.getFullYear(), d.getMonth() + 1, d.getDate())
@@ -204,7 +269,6 @@ export function MovingCostCalculatorModal({
         setApplySonEobNeunNal(false)
       }
 
-      // 주말 및 금요일
       const isWk = dayOfWeek === 0 || dayOfWeek === 6
       const isFri = dayOfWeek === 5
       setIsWeekend(isWk)
@@ -212,7 +276,6 @@ export function MovingCostCalculatorModal({
       setApplyWeekend(isWk)
       setApplyFriday(isFri)
 
-      // 월말 (25일 이상)
       const isEnd = dateNum >= 25
       setIsMonthEnd(isEnd)
       setApplyMonthEnd(isEnd)
@@ -226,12 +289,51 @@ export function MovingCostCalculatorModal({
       setApplyFriday(false)
       setApplyMonthEnd(false)
     }
-  }, [isOpen, currentCbm, movingDate, currentMovingCost])
+  }, [isOpen, currentCbm, movingDate, currentMovingCost, distanceKm, waypointCount])
+
+  const selectedTier = useMemo(() => {
+    return CBM_TIER_GUIDES.find(t => t.id === selectedTierId) || CBM_TIER_GUIDES[2]
+  }, [selectedTierId])
+
+  // 차량 톤수별 거리 할증 계산 결과
+  const distanceCalc = useMemo(() => {
+    const totalRoundToll = (Number(roundTollFare) || 0) * Math.max(1, vehicleCount)
+    return calculateTonnageDistanceFare({
+      tierKey: selectedTier.tierKey,
+      distanceKm: simDistanceKm,
+      includeUltraLongSurcharge: applyUltraLong,
+      customUltraLongSurcharge: customUltraLongFee,
+      includeTollWhenOver30Km: includeTollOver30Km,
+      totalRoundTollFare: totalRoundToll,
+      includeWaypointFee: applyWaypointFee,
+      waypointCount,
+      customWaypointFee: waypointFeeAmount
+    })
+  }, [
+    selectedTier.tierKey,
+    simDistanceKm,
+    applyUltraLong,
+    customUltraLongFee,
+    includeTollOver30Km,
+    roundTollFare,
+    vehicleCount,
+    applyWaypointFee,
+    waypointCount,
+    waypointFeeAmount
+  ])
+
+  const finalDistanceSurcharge = useMemo(() => {
+    if (!includeDistanceInCalc) return 0
+    const raw = distanceCalc.totalExtraCost
+    if (raw <= 0) return 0
+    return roundDistanceToTenThousand ? Math.round(raw / 10000) * 10000 : raw
+  }, [includeDistanceInCalc, distanceCalc.totalExtraCost, roundDistanceToTenThousand])
 
   // CBM 티어 변경 시
   const handleSelectTier = (tier: CbmTierGuide) => {
     setSelectedTierId(tier.id)
     setBaseCost(tier.defaultPrice)
+    setCustomUltraLongFee(undefined)
   }
 
   // 특수물품 토글 및 수량 변경
@@ -309,14 +411,16 @@ export function MovingCostCalculatorModal({
     .filter(i => i.checked)
     .reduce((acc, cur) => acc + (cur.price || 0), 0)
 
-  const finalTotalMovingCost = (Number(baseCost) || 0) + totalCalendarSurcharge + totalSpecialItemCost
+  const finalTotalMovingCost = (Number(baseCost) || 0) + finalDistanceSurcharge + totalCalendarSurcharge + totalSpecialItemCost
 
   // 견적서에 적용 핸들러
   const handleApplyToEstimate = () => {
     const breakdownItems: string[] = []
-    const selectedTier = CBM_TIER_GUIDES.find(t => t.id === selectedTierId)
     if (selectedTier) {
       breakdownItems.push(`기준: ${selectedTier.tonnage} (${baseCost.toLocaleString()}원)`)
+    }
+    if (finalDistanceSurcharge > 0) {
+      breakdownItems.push(`거리·경유할증(${simDistanceKm}km) +${finalDistanceSurcharge.toLocaleString()}원`)
     }
     if (applySonEobNeunNal) breakdownItems.push(`손없는날 +${sonEobNeunNalCost.toLocaleString()}원`)
     if (applyWeekend) breakdownItems.push(`주말 +${weekendCost.toLocaleString()}원`)
@@ -332,6 +436,7 @@ export function MovingCostCalculatorModal({
 
     onApply(finalTotalMovingCost, {
       baseCost,
+      distanceSurcharge: finalDistanceSurcharge,
       calendarSurcharge: totalCalendarSurcharge,
       specialItemCost: totalSpecialItemCost,
       summaryText: breakdownItems.join(' / ')
@@ -357,11 +462,11 @@ export function MovingCostCalculatorModal({
                   이사비용 산출 시뮬레이터
                 </h2>
                 <span className="bg-blue-100 text-blue-800 text-[11px] font-bold px-2 py-0.5 rounded-full">
-                  CBM 가이드 & 할증 계산
+                  CBM · 톤수별 거리할증 · 캘린더 통합
                 </span>
               </div>
               <p className="text-xs text-gray-500 mt-0.5">
-                물량(CBM) 구간별 권장 운임과 캘린더 할증, 특수물품 분해조립 비용을 종합하여 이사비용을 계산합니다.
+                물량(CBM)별 기본운임(차량 고정기본료 포함), 구간별 초과거리 할증(26~100km / 101km~), 캘린더·특수작업 할증을 종합 산출합니다.
               </p>
             </div>
           </div>
@@ -384,7 +489,7 @@ export function MovingCostCalculatorModal({
                 <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-black flex items-center justify-center">1</span>
                 <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
                   <Truck size={16} className="text-blue-600" />
-                  <span>CBM별 물량 기준운임 가이드</span>
+                  <span>CBM별 물량 · 차량 톤수 기본운임 가이드</span>
                 </h3>
               </div>
 
@@ -442,14 +547,23 @@ export function MovingCostCalculatorModal({
                       <p className="text-[11px] text-gray-500 mt-1">
                         권장 구간: {tier.minCbm === 0 ? '6 CBM 이하' : `${tier.minCbm}~${tier.maxCbm > 100 ? '이상' : tier.maxCbm} CBM`}
                       </p>
-                      <div className="flex items-center gap-1 text-[11px] text-gray-600 mt-1">
-                        <Users size={12} className="text-gray-400" />
-                        <span>{tier.recommendedWorkers}</span>
+                      <div className="flex items-center justify-between text-[11px] text-gray-600 mt-1">
+                        <span className="flex items-center gap-1">
+                          <Users size={12} className="text-gray-400" />
+                          {tier.recommendedWorkers}
+                        </span>
+                        <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded border border-indigo-100">
+                          기본 {tier.baseDistanceKm}km 이내
+                        </span>
+                      </div>
+                      <div className="mt-1 text-[10px] text-gray-500 flex items-center justify-between bg-white/80 px-1.5 py-0.5 rounded border border-gray-100">
+                        <span>차량 고정기본료: <strong className="text-gray-800">{(tier.vehicleBaseFee / 10000).toLocaleString()}만</strong></span>
+                        <span>초과: <strong className="text-blue-700">{tier.shortExtraRate.toLocaleString()}원/km</strong></span>
                       </div>
                     </div>
 
-                    <div className="mt-2.5 pt-2 border-t border-gray-100 flex items-center justify-between">
-                      <span className="text-[10px] text-gray-400">가이드</span>
+                    <div className="mt-2 pt-1.5 border-t border-gray-100 flex items-center justify-between">
+                      <span className="text-[10px] text-gray-400">포장이사 표준가</span>
                       <span className={`text-xs font-black ${isSelected ? 'text-blue-700' : 'text-gray-800'}`}>
                         {tier.defaultPrice.toLocaleString()}원
                       </span>
@@ -462,8 +576,8 @@ export function MovingCostCalculatorModal({
             {/* 선택된 기본 운임 직접 수정 인풋 */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-200 gap-2">
               <div className="text-xs text-gray-700">
-                <span className="font-bold text-gray-900">선택된 기준 이사비용: </span>
-                <span className="text-gray-500">필요 시 현장 상황에 맞추어 직접 금액을 변경할 수 있습니다.</span>
+                <span className="font-bold text-gray-900">선택된 기준 이사비용 ({selectedTier.tonnage} · 기본 {selectedTier.baseDistanceKm}km 포함): </span>
+                <span className="text-gray-500">순수 차량 고정기본료 {selectedTier.vehicleBaseFee.toLocaleString()}원 + 표준 인건비 포함</span>
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <span className="text-xs font-bold text-gray-600">기준운임:</span>
@@ -481,11 +595,173 @@ export function MovingCostCalculatorModal({
             </div>
           </div>
 
-          {/* 2. 캘린더 할증 체크 (손없는날, 월말, 주말 등) */}
+          {/* 2. 차량 톤수별 초과 거리(km) 체감 할증 & 초장거리/경유 산출 */}
+          <div className="pt-5 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-sky-100 text-sky-700 text-xs font-black flex items-center justify-center">2</span>
+                <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                  <Navigation size={16} className="text-sky-600" />
+                  <span>차량 톤수별 초과 거리(km) 할증 및 초장거리·경유 산출</span>
+                </h3>
+                <span className="text-[10px] font-bold bg-sky-50 text-sky-800 px-2 py-0.5 rounded-full border border-sky-200">
+                  {distanceCalc.rule.label} 기준 (기본 {distanceCalc.baseDistanceKm}km 공제)
+                </span>
+              </div>
+
+              <label className="flex items-center gap-1.5 cursor-pointer text-xs font-extrabold text-sky-900 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200">
+                <input
+                  type="checkbox"
+                  checked={includeDistanceInCalc}
+                  onChange={e => setIncludeDistanceInCalc(e.target.checked)}
+                  className="w-4 h-4 text-sky-600 rounded"
+                />
+                <span>기본 이사비용에 거리할증 합산 반영 (+{finalDistanceSurcharge.toLocaleString()}원)</span>
+              </label>
+            </div>
+
+            <div className={`p-3.5 rounded-xl border space-y-3 transition-all ${
+              includeDistanceInCalc
+                ? 'bg-sky-50/50 border-sky-300 shadow-2xs'
+                : 'bg-gray-50/70 border-gray-200'
+            }`}>
+              {/* 주행거리 입력 및 단가 요약 */}
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-bold text-gray-700">편도 실주행거리:</span>
+                  <div className="flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-sky-300">
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={simDistanceKm === 0 ? '' : simDistanceKm}
+                      onChange={e => {
+                        const v = parseFloat(e.target.value) || 0
+                        setSimDistanceKm(v)
+                        if (v > distanceCalc.baseDistanceKm) setIncludeDistanceInCalc(true)
+                      }}
+                      placeholder="0.0"
+                      className="w-16 text-right font-black text-sky-800 outline-none text-xs sm:text-sm"
+                    />
+                    <span className="font-bold text-gray-700">km</span>
+                  </div>
+                  <span className="text-gray-500">
+                    (기본 <strong className="text-gray-800">{distanceCalc.baseDistanceKm}km</strong> 공제 ➔ 초과 <strong className="text-sky-700">{distanceCalc.extraDistanceKm}km</strong>)
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                  <span className="px-2 py-0.5 rounded bg-white border border-gray-200 text-gray-700">
+                    근거리({distanceCalc.baseDistanceKm + 1}~100km): <strong className="text-sky-700">{distanceCalc.shortExtraRate.toLocaleString()}원/km</strong>
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-white border border-gray-200 text-gray-700">
+                    장거리(101km~): <strong className="text-indigo-700">{distanceCalc.longExtraRate.toLocaleString()}원/km</strong>
+                  </span>
+                </div>
+              </div>
+
+              {/* 구간별 상세 계산 박스 */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-xs">
+                {/* 1구간 */}
+                <div className="p-2.5 rounded-lg bg-white border border-gray-200 space-y-1">
+                  <div className="flex items-center justify-between font-bold text-gray-800">
+                    <span>① 근거리 초과 ({distanceCalc.baseDistanceKm + 1}~100km)</span>
+                    <span className="text-sky-700 font-extrabold">+{distanceCalc.shortExtraCost.toLocaleString()}원</span>
+                  </div>
+                  <p className="text-[11px] text-gray-500">
+                    {distanceCalc.shortExtraKm}km × {distanceCalc.shortExtraRate.toLocaleString()}원/km
+                  </p>
+                </div>
+
+                {/* 2구간 */}
+                <div className="p-2.5 rounded-lg bg-white border border-gray-200 space-y-1">
+                  <div className="flex items-center justify-between font-bold text-gray-800">
+                    <span>② 장거리 체감 (101km~)</span>
+                    <span className="text-indigo-700 font-extrabold">+{distanceCalc.longExtraCost.toLocaleString()}원</span>
+                  </div>
+                  <p className="text-[11px] text-gray-500">
+                    {distanceCalc.longExtraKm}km × {distanceCalc.longExtraRate.toLocaleString()}원/km
+                  </p>
+                </div>
+
+                {/* 초장거리 야간/복귀 수당 (250km 이상) */}
+                <div className={`p-2.5 rounded-lg border space-y-1 ${
+                  distanceCalc.isUltraLong && applyUltraLong
+                    ? 'bg-amber-50 border-amber-300'
+                    : 'bg-white border-gray-200'
+                }`}>
+                  <div className="flex items-center justify-between font-bold text-gray-800">
+                    <label className="flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={applyUltraLong}
+                        onChange={e => setApplyUltraLong(e.target.checked)}
+                        className="w-3.5 h-3.5 text-amber-600 rounded"
+                      />
+                      <span>③ 250km+ 초장거리 수당</span>
+                    </label>
+                    <span className="text-amber-700 font-extrabold">
+                      +{distanceCalc.ultraLongSurcharge.toLocaleString()}원
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-gray-500 truncate" title={distanceCalc.rule.ultraLongNote}>
+                    {distanceCalc.isUltraLong ? distanceCalc.rule.ultraLongNote : '250km 이상 시 야간/복귀 수당 자동 적용'}
+                  </p>
+                </div>
+
+                {/* 시외 톨비 & 경유 수고비 */}
+                <div className="p-2.5 rounded-lg bg-white border border-gray-200 space-y-1">
+                  <div className="flex items-center justify-between font-bold text-gray-800">
+                    <label className="flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={includeTollOver30Km}
+                        onChange={e => setIncludeTollOver30Km(e.target.checked)}
+                        className="w-3.5 h-3.5 text-indigo-600 rounded"
+                      />
+                      <span>④ 30km+ 왕복톨비·경유</span>
+                    </label>
+                    <span className="text-purple-700 font-extrabold">
+                      +{(distanceCalc.effectiveRoundToll + distanceCalc.waypointFee).toLocaleString()}원
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[10px] text-gray-500">
+                    <span>톨비: {distanceCalc.effectiveRoundToll.toLocaleString()}원</span>
+                    <label className="flex items-center gap-1 cursor-pointer text-purple-700 font-bold">
+                      <input
+                        type="checkbox"
+                        checked={applyWaypointFee}
+                        onChange={e => setApplyWaypointFee(e.target.checked)}
+                        className="w-3 h-3 rounded"
+                      />
+                      <span>경유(+{(waypointFeeAmount / 10000).toFixed(0)}만)</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px] text-gray-600">
+                <span>
+                  * 거리 할증 단가에는 이미 <strong>왕복 유류비 원가 + 이동 중 작업자 대기 인건비</strong>가 모두 포함되어 있습니다. (가산비용 항목에 이미 거리운임을 넣으셨다면 체크를 해제하세요)
+                </span>
+                <label className="flex items-center gap-1 cursor-pointer font-bold text-sky-900">
+                  <input
+                    type="checkbox"
+                    checked={roundDistanceToTenThousand}
+                    onChange={e => setRoundDistanceToTenThousand(e.target.checked)}
+                    className="w-3.5 h-3.5 text-sky-600 rounded"
+                  />
+                  <span>1만 원 단위 반올림 ({distanceCalc.totalExtraCost.toLocaleString()}원 ➔ {finalDistanceSurcharge.toLocaleString()}원)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. 캘린더 할증 체크 (손없는날, 월말, 주말 등) */}
           <div className="pt-5 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-black flex items-center justify-center">2</span>
+                <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-black flex items-center justify-center">3</span>
                 <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
                   <CalendarIcon size={16} className="text-indigo-600" />
                   <span>캘린더 및 이사일정 할증</span>
@@ -680,11 +956,11 @@ export function MovingCostCalculatorModal({
             </div>
           </div>
 
-          {/* 3. 특수물품 분해조립 및 특수작업 비용 가산 */}
+          {/* 4. 특수물품 분해조립 및 특수작업 비용 가산 */}
           <div className="pt-5 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 text-xs font-black flex items-center justify-center">3</span>
+                <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 text-xs font-black flex items-center justify-center">4</span>
                 <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
                   <Wrench size={16} className="text-emerald-600" />
                   <span>특수물품 분해조립 및 부가작업 가산</span>
@@ -743,7 +1019,6 @@ export function MovingCostCalculatorModal({
                       <span className="text-[11px] text-gray-500">원</span>
                     </div>
 
-                    {/* 사용자 직접 추가한 항목이면 삭제 버튼 */}
                     {item.id.startsWith('custom_') && (
                       <button
                         type="button"
@@ -802,6 +1077,12 @@ export function MovingCostCalculatorModal({
               <span className="text-gray-500 font-medium">기준운임:</span>
               <strong className="text-gray-900">{baseCost.toLocaleString()}원</strong>
             </div>
+            {finalDistanceSurcharge > 0 && (
+              <div className="flex items-center gap-1 text-sky-700">
+                <span className="font-medium">+ 거리·경유할증:</span>
+                <strong className="font-black">+{finalDistanceSurcharge.toLocaleString()}원</strong>
+              </div>
+            )}
             {totalCalendarSurcharge > 0 && (
               <div className="flex items-center gap-1 text-indigo-700">
                 <span className="font-medium">+ 캘린더할증:</span>
