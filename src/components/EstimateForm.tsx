@@ -32,6 +32,7 @@ import {
   convertEngInputToKor,
 } from '@/lib/itemFilterUtils'
 import { UnassignedBoxTooltip } from '@/components/UnassignedBoxTooltip'
+import { CustomerPreMoveSmsTrigger, type ScheduledSmsItem } from '@/components/CustomerPreMoveSmsModal'
 import type { PresetItem } from '@/lib/estimatePresets'
 import { calculate5TonTruckDuration } from '@/lib/distance'
 import {
@@ -507,6 +508,11 @@ export function EstimateForm({
 
   // 특기사항 (내용이 없으면 조회/출력 시 숨김)
   const [specialNotes, setSpecialNotes] = useState<string>(envObj.specialNotes || '')
+
+  // 이사 전 고객 당부사항 & 처리구분 사전표기 문자 발송예약 목록
+  const [scheduledMessages, setScheduledMessages] = useState<ScheduledSmsItem[]>(
+    Array.isArray(envObj.scheduledMessages) ? envObj.scheduledMessages : []
+  )
 
   // 주행거리 자동/수동 계산 함수
   const handleCalculateDistance = async (fromVal?: string, toVal?: string) => {
@@ -1325,6 +1331,8 @@ export function EstimateForm({
           if (typeof draft.specialNotes === 'string') setSpecialNotes(draft.specialNotes)
           if (Array.isArray(draft.installRequestItems)) setInstallRequestItems(draft.installRequestItems)
           else if (Array.isArray(envObj.installRequestItems)) setInstallRequestItems(envObj.installRequestItems)
+          if (Array.isArray(draft.scheduledMessages)) setScheduledMessages(draft.scheduledMessages)
+          else if (Array.isArray(envObj.scheduledMessages)) setScheduledMessages(envObj.scheduledMessages)
           
           if (draft.ladderTonnage) setLadderTonnage(draft.ladderTonnage)
           else if (envObj.ladderTonnage) setLadderTonnage(envObj.ladderTonnage)
@@ -1563,6 +1571,7 @@ export function EstimateForm({
           tollFareByClass,
           installRequestItems,
           specialNotes,
+          scheduledMessages,
           ladderTonnage,
           appliedLadderCost,
           appliedDistanceCost,
@@ -1619,6 +1628,7 @@ export function EstimateForm({
     roundTollFare,
     installRequestItems,
     specialNotes,
+    scheduledMessages,
     ladderTonnage,
     appliedLadderCost,
     appliedDistanceCost,
@@ -1684,6 +1694,7 @@ export function EstimateForm({
     deadSpaceRatio,
     installRequestItems,
     specialNotes: specialNotes.trim(),
+    scheduledMessages,
   }
   const currentEnvironmentStr = JSON.stringify(currentEnvironmentObj)
 
@@ -1826,6 +1837,23 @@ export function EstimateForm({
         <div className="bg-white p-3 sm:p-4 md:p-5 rounded-xl shadow-sm border border-gray-100 space-y-3">
           <div className="flex items-center justify-between border-b pb-2">
             <h2 className="text-base sm:text-lg font-bold text-blue-600">기본 정보</h2>
+            <CustomerPreMoveSmsTrigger
+              variant="inline"
+              estimateId={initialData?.id}
+              customerName={customerName}
+              contact={contact}
+              movingType={movingType === 'P' ? '포장이사' : movingType === 'G' ? '일반이사' : '보관이사'}
+              movingDate={movingDate}
+              fromAddress={fromAddress}
+              toAddress={toAddress}
+              fromWorkTypes={fromWorkTypes}
+              toWorkTypes={toWorkTypes}
+              cbmItems={items}
+              installRequestItems={installRequestItems}
+              balanceAmount={Number(balance) || 0}
+              initialScheduledMessages={scheduledMessages}
+              onScheduledMessagesChange={setScheduledMessages}
+            />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3">
             {/* 고객명 */}

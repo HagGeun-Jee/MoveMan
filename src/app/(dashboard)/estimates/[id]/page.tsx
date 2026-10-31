@@ -6,6 +6,7 @@ import { MapPin, Phone } from 'lucide-react'
 import { PrintButton } from '@/components/PrintButton'
 import { formatPhoneNumber } from '@/lib/format'
 import { EstimateContractItemsView } from '@/components/EstimateContractItemsView'
+import { CustomerPreMoveSmsTrigger } from '@/components/CustomerPreMoveSmsModal'
 
 import { Metadata } from 'next'
 
@@ -56,6 +57,9 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
   const specialNotes = typeof envObj.specialNotes === 'string' ? envObj.specialNotes.trim() : ''
   const installRequestItems: string[] = Array.isArray(envObj.installRequestItems)
     ? envObj.installRequestItems.filter(Boolean)
+    : []
+  const scheduledMessages = Array.isArray(envObj.scheduledMessages)
+    ? envObj.scheduledMessages
     : []
   const payPlanObj = safeJsonParse(estimate.paymentPlan, {})
   const rawItems = safeJsonParse(estimate.cbmItems, [])
@@ -164,6 +168,23 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
           </span>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <CustomerPreMoveSmsTrigger
+            variant="header"
+            estimateId={estimate.id}
+            customerName={estimate.customerName}
+            contact={estimate.contact}
+            movingType={estimate.movingType === 'P' ? '포장이사' : estimate.movingType === 'G' ? '일반이사' : '보관이사'}
+            movingDate={estimate.movingDate}
+            packingDate={envObj.packingDate || null}
+            fromAddress={estimate.fromAddress}
+            toAddress={estimate.toAddress}
+            fromWorkTypes={Array.isArray(envObj.fromWorkTypes) ? envObj.fromWorkTypes : []}
+            toWorkTypes={Array.isArray(envObj.toWorkTypes) ? envObj.toWorkTypes : []}
+            cbmItems={items}
+            installRequestItems={installRequestItems}
+            balanceAmount={Number(payPlanObj.balance) || 0}
+            initialScheduledMessages={scheduledMessages}
+          />
           <PrintButton />
           <Link 
             href="/estimates" 

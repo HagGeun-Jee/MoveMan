@@ -2,6 +2,7 @@
 
 import prisma from '@/lib/prisma'
 import { redirect } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { decrypt } from '@/lib/session'
 import { format } from 'date-fns'
@@ -118,6 +119,7 @@ export async function createEstimate(formData: FormData) {
     installRequestItems: formData.get('installRequestItems')
       ? JSON.parse(formData.get('installRequestItems') as string)
       : (Array.isArray(parsedEnv.installRequestItems) ? parsedEnv.installRequestItems : []),
+    scheduledMessages: Array.isArray(parsedEnv.scheduledMessages) ? parsedEnv.scheduledMessages : [],
     specialNotes: String(formData.get('specialNotes') ?? parsedEnv.specialNotes ?? '').trim(),
   }
   const environment = JSON.stringify(environmentObj)
@@ -253,6 +255,9 @@ export async function updateEstimate(formData: FormData) {
     installRequestItems: formData.get('installRequestItems')
       ? JSON.parse(formData.get('installRequestItems') as string)
       : (Array.isArray(parsedEnv.installRequestItems) ? parsedEnv.installRequestItems : []),
+    scheduledMessages: Array.isArray(parsedEnv.scheduledMessages)
+      ? parsedEnv.scheduledMessages
+      : (Array.isArray(existingEnv.scheduledMessages) ? existingEnv.scheduledMessages : []),
     specialNotes: String(formData.get('specialNotes') ?? parsedEnv.specialNotes ?? '').trim(),
   }
   const environment = JSON.stringify(environmentObj)
@@ -291,4 +296,47 @@ export async function updateEstimate(formData: FormData) {
   })
 
   redirect('/estimates')
+}
+
+export async function saveEstimateScheduledMessages(estimateId: string, scheduledMessages: any[]) {
+  const cookieStore = await cookies()
+  const cookie = cookieStore.get('session')?.value
+  const session = await decrypt(cookie)
+  if (!session?.userId) {
+    return { success: false, error: '인증이 필요합니다.' }
+  }
+  if (!estimateId) {
+    return { success: false, error: '견적 식별번호가 필요합니다.' }
+  }
+
+  try {
+    const existing = await prisma.estimate.findUnique({ where: { id: estimateId } })
+    if (!existing) {
+      return { success: false, error: '견적 정보를 찾을 수 없습니다.' }
+    }
+
+    let envObj: any = {}
+    if (existing.environment) {
+      try {
+        envObj = JSON.parse(existing.environment)
+      } catch {}
+    }
+
+    envObj.scheduledMessages = Array.isArray(scheduledMessages) ? scheduledMessages : []
+
+    await prisma.estimate.update({
+      where: { id: estimateId },
+      data: {
+        environment: JSON.stringify(envObj),
+      },
+    })
+
+    revalidatePath(`/estimates/${estimateId}`)
+    revalidatePath(`/estimates/${estimateId}/edit`)
+    revalidatePath('/estimates')
+    return { success: true }
+  } catch (err) {
+    console.error('saveEstimateScheduledMessages error:', err)
+    return { success: false, error: '발송예약 저장 중 오류가 발생했습니다.' }
+  }
 }
