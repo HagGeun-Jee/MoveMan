@@ -3,10 +3,11 @@ import { startOfMonth, endOfMonth, eachDayOfInterval, format, getDay, isSameDay 
 import { ko } from 'date-fns/locale'
 import { Solar } from 'lunar-javascript'
 import KoreanLunarCalendar from 'korean-lunar-calendar'
-import { Sun, Cloud, CloudRain, CloudSnow, CloudLightning, Star } from 'lucide-react'
+import { Sun, Star } from 'lucide-react'
 import Link from 'next/link'
+import { CalendarWeatherProvider, CalendarDayWeatherBadge } from './CalendarWeatherClient'
 
-// 한국 표준시(KST, Asia/Seoul) 기준 오늘 날짜 정보 구하기 (Vercel UTC 서버 환경 대응)
+// 한국 표준시(KST, Asia/Seoul) 기준 오늘 날짜 정보 구하기 (Vercel/Render UTC 서버 환경 대응)
 function getKoreaToday(): { year: number, month: number, day: number, dateString: string } {
   const now = new Date()
   const formatter = new Intl.DateTimeFormat('en-CA', {
@@ -20,25 +21,20 @@ function getKoreaToday(): { year: number, month: number, day: number, dateString
   return { year, month, day, dateString }
 }
 
-// Fetch weather data for the next 14 days (Seoul)
+// Fetch weather data (past 31 days + next 16 days forecast for Seoul)
 async function getWeatherData() {
   try {
-    const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=37.5665&longitude=126.9780&daily=weathercode&timezone=Asia%2FSeoul&forecast_days=14', { next: { revalidate: 3600 } })
+    const res = await fetch(
+      'https://api.open-meteo.com/v1/forecast?latitude=37.5665&longitude=126.9780&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FSeoul&past_days=31&forecast_days=16',
+      { cache: 'no-store' }
+    )
+    if (!res.ok) return null
     const data = await res.json()
-    return data.daily // { time: ['2023-10-01', ...], weathercode: [0, 1, 3, ...] }
+    return data?.daily || null
   } catch (error) {
     console.error('Failed to fetch weather data:', error)
     return null
   }
-}
-
-function getWeatherIcon(code: number) {
-  if (code === 0 || code === 1) return <Sun className="w-4 h-4 text-orange-500" />
-  if (code === 2 || code === 3) return <Cloud className="w-4 h-4 text-gray-400" />
-  if (code >= 51 && code <= 67) return <CloudRain className="w-4 h-4 text-blue-500" />
-  if (code >= 71 && code <= 82) return <CloudSnow className="w-4 h-4 text-teal-400" />
-  if (code >= 95 && code <= 99) return <CloudLightning className="w-4 h-4 text-yellow-500" />
-  return <Cloud className="w-4 h-4 text-gray-400" />
 }
 
 import CalendarNavigation from './CalendarNavigation'
@@ -161,6 +157,11 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
         </div>
       </div>
 
+      <CalendarWeatherProvider
+        initialDaily={weatherData}
+        koreaTodayStr={koreaToday.dateString}
+        targetMonthTodayStr={`${targetYear}-${String(targetMonth).padStart(2, '0')}-${String(koreaToday.day).padStart(2, '0')}`}
+      >
       <div className="bg-white rounded-xl shadow-sm border border-gray-300 overflow-hidden">
         <div className="overflow-x-auto">
           <div className="min-w-[560px]">
@@ -193,10 +194,6 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
 
                 // 휴일 및 절기
                 const { holidayName, isRedDay, jieQi } = getKoreanHolidayAndJieQi(solar, lunar)
-
-                // 날씨 매칭
-                const weatherIndex = weatherData?.time?.indexOf(dateStr)
-                const weatherCode = weatherIndex !== undefined && weatherIndex !== -1 ? weatherData?.weathercode[weatherIndex] : null
                 
                 // 주말 및 휴일 색상 처리
                 const dayOfWeek = getDay(date)
@@ -234,17 +231,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                             <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-yellow-500" />
                           </div>
                         )}
-                        {weatherCode !== null && weatherCode !== undefined && (
-                          <a 
-                            href="https://weather.naver.com/" 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            title="네이버 날씨 예보 확인하기" 
-                            className="p-0.5 sm:p-1 bg-white rounded-full shadow-sm border border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer block"
-                          >
-                            {getWeatherIcon(weatherCode)}
-                          </a>
-                        )}
+                        <CalendarDayWeatherBadge dateStr={dateStr} />
                       </div>
                     </div>
                     <div className="flex-1 space-y-1 overflow-y-auto no-scrollbar">
@@ -303,6 +290,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
           </div>
         </div>
       </div>
+      </CalendarWeatherProvider>
     </div>
   )
 }
