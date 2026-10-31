@@ -422,6 +422,9 @@ export function EstimateForm({
       ? Number(envObj.roundTollFare) 
       : (Number(envObj.tollFare) ? Number(envObj.tollFare) * 2 : 0)
   )
+  const [tollFareByClass, setTollFareByClass] = useState<{ class1: number; class2: number; class3: number } | null>(
+    envObj.tollFareByClass || null
+  )
 
   const handleRoundTollFareChange = (val: number) => {
     setRoundTollFare(val)
@@ -521,17 +524,21 @@ export function EstimateForm({
         setDistance(res.distanceKm)
         setDistanceDuration(res.durationText)
         setDistanceDetail(res.summary)
-        const fare = res.tollFare !== undefined ? res.tollFare : 0
-        // 5톤 화물차(3종 대형화물) 기준 약 1.45배 요금 보정 (1톤 제외)
-        const isHeavyTruck = distanceTierKey !== '1'
-        const adjustedOneWay = fare > 0 && isHeavyTruck ? adjustTollForHeavyTruck(fare, true) : fare
-        setTollFare(adjustedOneWay)
-        setRoundTollFare(adjustedOneWay * 2)
-        const tollText = adjustedOneWay > 0 
-          ? ` | 대당 왕복 톨비${isHeavyTruck ? '(3종화물 1.45배)' : ''}: ${(adjustedOneWay * 2).toLocaleString()}원 (편도 ${adjustedOneWay.toLocaleString()}원)` 
+        const fare1 = res.tollFare !== undefined ? res.tollFare : 0
+        const byClass = res.tollFareByClass || {
+          class1: fare1,
+          class2: fare1,
+          class3: fare1 > 0 ? Math.round((fare1 * 1.05) / 100) * 100 : 0,
+        }
+        setTollFareByClass(byClass)
+        // 카카오맵 기본 표시 금액(1종 진입IC~진출TG 실경로 통행료)과 100% 일치하도록 기본 세팅
+        setTollFare(fare1)
+        setRoundTollFare(fare1 * 2)
+        const tollText = fare1 > 0 
+          ? ` | 카카오맵(1종) 편도 ${fare1.toLocaleString()}원 (왕복 ${(fare1 * 2).toLocaleString()}원) · 3종(5톤) 편도 ${byClass.class3.toLocaleString()}원` 
           : ' | 통행료 없음 (0원)'
         setDistanceNotice(`거리 계산 완료: ${res.distanceKm}km (${res.durationText})${tollText}`)
-        setTimeout(() => setDistanceNotice(null), 5000)
+        setTimeout(() => setDistanceNotice(null), 6000)
       } else {
         setDistanceCalcError(res.error || '거리 계산에 실패했습니다. 거리를 직접 입력해주세요.')
       }
@@ -1313,6 +1320,8 @@ export function EstimateForm({
           if (draft.roundTollFare !== undefined) setRoundTollFare(draft.roundTollFare)
           else if (envObj.roundTollFare !== undefined) setRoundTollFare(Number(envObj.roundTollFare))
           else if (draft.tollFare) setRoundTollFare(draft.tollFare * 2)
+          if (draft.tollFareByClass) setTollFareByClass(draft.tollFareByClass)
+          else if (envObj.tollFareByClass) setTollFareByClass(envObj.tollFareByClass)
           if (typeof draft.specialNotes === 'string') setSpecialNotes(draft.specialNotes)
           if (Array.isArray(draft.installRequestItems)) setInstallRequestItems(draft.installRequestItems)
           else if (Array.isArray(envObj.installRequestItems)) setInstallRequestItems(envObj.installRequestItems)
@@ -1551,6 +1560,7 @@ export function EstimateForm({
           ratePerKm,
           tollFare,
           roundTollFare,
+          tollFareByClass,
           installRequestItems,
           specialNotes,
           ladderTonnage,
@@ -1664,6 +1674,7 @@ export function EstimateForm({
     waypointFeeAmount,
     tollFare,
     roundTollFare,
+    tollFareByClass,
     extraDistanceKm,
     distanceExtraCost: calculatedExtraCost,
     ladderTonnage,
@@ -2415,23 +2426,57 @@ export function EstimateForm({
                         </div>
                       )}
 
-                      {/* 고속도로 통행료 종합 배지 (투입차량 전체 왕복 톨비 안내 + 5톤 3종 화물차 1.45배 보정) */}
+                      {/* 고속도로 통행료 종합 배지 (카카오 모빌리티 진입IC~진출TG 실경로 차종별 통행료 연동) */}
                       {roundTollFare > 0 && (
                         <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs text-indigo-900 bg-indigo-50/90 px-2.5 py-1.5 rounded-md border border-indigo-200/80">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <CreditCard size={13} className="text-indigo-600 shrink-0" />
-                            <span className="font-semibold text-gray-700">고속도로 통행료:</span>
+                            <span className="font-semibold text-gray-700">고속도로 통행료(진입~진출):</span>
                             <span className="font-extrabold text-indigo-900">대당 왕복 {roundTollFare.toLocaleString()}원</span>
                             <span className="text-gray-400">|</span>
                             <span className="text-gray-600">편도 {tollFare.toLocaleString()}원</span>
-                            <button
-                              type="button"
-                              onClick={() => handleRoundTollFareChange(adjustTollForHeavyTruck(roundTollFare, true))}
-                              className="px-1.5 py-0.5 bg-white hover:bg-indigo-100 text-indigo-700 border border-indigo-300 rounded text-[11px] font-bold transition-colors"
-                              title="한국도로공사 3종 대형화물(5톤) 통행료 약 1.45배 할증 적용"
-                            >
-                              3종 화물(×1.45)
-                            </button>
+                            {tollFareByClass && tollFareByClass.class1 > 0 && (
+                              <div className="flex items-center gap-1 flex-wrap">
+                                <button
+                                  type="button"
+                                  onClick={() => handleRoundTollFareChange(tollFareByClass.class1 * 2)}
+                                  className={`px-1.5 py-0.5 border rounded text-[11px] font-bold transition-colors ${
+                                    tollFare === tollFareByClass.class1
+                                      ? 'bg-indigo-600 text-white border-indigo-600'
+                                      : 'bg-white hover:bg-indigo-100 text-indigo-700 border-indigo-300'
+                                  }`}
+                                  title="카카오맵 기본(1종 소형·1톤 화물차) 진입~진출 편도 통행료 적용"
+                                >
+                                  1종(카카오맵) {tollFareByClass.class1.toLocaleString()}원
+                                </button>
+                                {tollFareByClass.class2 !== tollFareByClass.class1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRoundTollFareChange(tollFareByClass.class2 * 2)}
+                                    className={`px-1.5 py-0.5 border rounded text-[11px] font-bold transition-colors ${
+                                      tollFare === tollFareByClass.class2
+                                        ? 'bg-indigo-600 text-white border-indigo-600'
+                                        : 'bg-white hover:bg-indigo-100 text-indigo-700 border-indigo-300'
+                                    }`}
+                                    title="카카오내비 2종(2.5톤 중형화물차) 진입~진출 편도 통행료 적용"
+                                  >
+                                    2종(2.5톤) {tollFareByClass.class2.toLocaleString()}원
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => handleRoundTollFareChange(tollFareByClass.class3 * 2)}
+                                  className={`px-1.5 py-0.5 border rounded text-[11px] font-bold transition-colors ${
+                                    tollFare === tollFareByClass.class3
+                                      ? 'bg-indigo-600 text-white border-indigo-600'
+                                      : 'bg-white hover:bg-indigo-100 text-indigo-700 border-indigo-300'
+                                  }`}
+                                  title="카카오내비 3종(5톤 대형화물차) 진입~진출 편도 통행료 적용"
+                                >
+                                  3종(5톤) {tollFareByClass.class3.toLocaleString()}원
+                                </button>
+                              </div>
+                            )}
                             {distance > 0 && distance <= 30 && (
                               <button
                                 type="button"
@@ -2444,11 +2489,8 @@ export function EstimateForm({
                             )}
                           </div>
                           <div className="flex items-center gap-1 font-bold text-indigo-800">
-                            <span>투입 {vehicles.reduce((sum, v) => sum + (Number(v.count) || 0), 0) || 1}대 총 왕복 톨비:</span>
-                            <span className="text-sm font-black text-indigo-900 bg-white px-2 py-0.5 rounded border border-indigo-200">
-                              {(roundTollFare * (vehicles.reduce((sum, v) => sum + (Number(v.count) || 0), 0) || 1)).toLocaleString()}원
-                            </span>
-                            <span className="text-[11px] text-indigo-600 font-normal">(원가/비용 산출 연동)</span>
+                            <span>투입 {vehicles.reduce((sum, v) => sum + (Number(v.count) || 0), 0) || 1}대 기준:</span>
+                            <span className="text-[11px] text-indigo-600 font-normal">(원가산출 시 차종별·용차편도 자동 계산)</span>
                           </div>
                         </div>
                       )}
@@ -4205,7 +4247,9 @@ export function EstimateForm({
             distanceKm={distance}
             tollFare={tollFare}
             roundTollFare={roundTollFare}
+            tollFareByClass={tollFareByClass}
             movingType={movingType}
+            movingDate={movingDate}
             menCount={menCount}
             womenCount={womenCount}
             menUnitPrice={menUnitPrice}

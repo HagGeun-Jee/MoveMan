@@ -5,6 +5,12 @@ interface Point {
   lon: number
 }
 
+export interface TollFareByClass {
+  class1: number // 1종 (소형차 / 1톤 화물차, 카카오맵 기본 표시 통행료)
+  class2: number // 2종 (중형차 / 2.5톤 화물차)
+  class3: number // 3종 (대형차 / 5톤 화물차)
+}
+
 export interface DistanceResult {
   success: boolean
   distanceKm: number
@@ -13,6 +19,8 @@ export interface DistanceResult {
   summary: string
   source: 'kakao' | 'osrm' | 'fallback'
   tollFare?: number
+  tollFareByClass?: TollFareByClass
+  highways?: string[]
   taxiFare?: number
   error?: string
 }
@@ -120,6 +128,35 @@ const REGION_COORDINATES: Record<string, Point> = {
   '전주시': { lat: 35.8242, lon: 127.1480 },
   '포항시': { lat: 36.0190, lon: 129.3435 },
   '창원시': { lat: 35.2281, lon: 128.6811 },
+  '광양시': { lat: 34.9406, lon: 127.6959 },
+  '여수시': { lat: 34.7604, lon: 127.6622 },
+  '순천시': { lat: 34.9506, lon: 127.4872 },
+  '목포시': { lat: 34.8118, lon: 126.3922 },
+  '나주시': { lat: 35.0158, lon: 126.7108 },
+  '군산시': { lat: 35.9677, lon: 126.7366 },
+  '익산시': { lat: 35.9483, lon: 126.9576 },
+  '아산시': { lat: 36.7898, lon: 127.0018 },
+  '서산시': { lat: 36.7845, lon: 126.4503 },
+  '당진시': { lat: 36.8899, lon: 126.6459 },
+  '충주시': { lat: 36.9910, lon: 127.9259 },
+  '제천시': { lat: 37.1326, lon: 128.1910 },
+  '구미시': { lat: 36.1195, lon: 128.3446 },
+  '경주시': { lat: 35.8562, lon: 129.2247 },
+  '안동시': { lat: 36.5684, lon: 128.7294 },
+  '김해시': { lat: 35.2285, lon: 128.8894 },
+  '진주시': { lat: 35.1800, lon: 128.1076 },
+  '양산시': { lat: 35.3350, lon: 129.0372 },
+  '거제시': { lat: 34.8806, lon: 128.6211 },
+  '속초시': { lat: 38.2070, lon: 128.5918 },
+  '동해시': { lat: 37.5247, lon: 129.1143 },
+  '삼척시': { lat: 37.4499, lon: 129.1653 },
+  '동안구': { lat: 37.3943, lon: 126.9568 },
+  '만안구': { lat: 37.3867, lon: 126.9225 },
+  '단원구': { lat: 37.3188, lon: 126.8126 },
+  '상록구': { lat: 37.3009, lon: 126.8464 },
+  '검암동': { lat: 37.5657, lon: 126.6755 },
+  '영덕동': { lat: 37.2730, lon: 127.0813 },
+  '안중읍': { lat: 36.9868, lon: 126.9293 },
   '제주시': { lat: 33.4996, lon: 126.5312 },
   '서귀포시': { lat: 33.2541, lon: 126.5601 }
 }
@@ -140,34 +177,43 @@ const SIDO_MAP: Record<string, string> = {
 export function cleanKoreanRoadAddress(addr: string): string {
   if (!addr) return ''
   let clean = addr.replace(/\(.*?\)/g, ' ').replace(/\s+/g, ' ').trim()
-  // 대표적인 행정구역 오타 보정
-  clean = clean.replace(/인천\s*서해구/g, '인천 서구')
+  // 대표적인 행정구역 명칭 변경/통합 보정
+  clean = clean
+    .replace(/인천\s*서해구/g, '인천 서구')
+    .replace(/인천광역시\s*서해구/g, '인천광역시 서구')
+    .replace(/전남광주통합특별시/g, '전남')
   
-  // 도로명 + 번호 패턴 추출 (예: 테헤란로 152, 세종대로 110, 매영로 345)
-  const roadMatch = clean.match(/^(.+?(?:로|길|대로)\s+[0-9]+(?:-[0-9]+)?)/)
-  if (roadMatch) return roadMatch[1].trim()
-
-  // 지번 주소 패턴 추출 (예: 역삼동 737, 매탄동 123-4)
-  const jibunMatch = clean.match(/^(.+?(?:동|리|읍|면)\s+[0-9]+(?:-[0-9]+)?)/)
-  if (jibunMatch) return jibunMatch[1].trim()
-
   // 상세 동호수 제거
   clean = clean.replace(/([0-9]+층|[0-9]+동|[0-9]+호|지하\s*[0-9]+층).*/g, '').trim()
+
+  // 도로명 + 번호 패턴 추출 (예: 테헤란로 152, 안현로서7길 45, 달안로 110)
+  const roadMatch = clean.match(/^(.+?(?:로|길|대로)(?:[0-9]+번?길)?\s+[0-9]+(?:-[0-9]+)?)/)
+  if (roadMatch) return roadMatch[1].trim()
+
+  // 지번 주소 패턴 추출 (예: 역삼동 737, 검암동 649-12)
+  const jibunMatch = clean.match(/^(.+?(?:동|리|읍|면|가)\s+[0-9]+(?:-[0-9]+)?)/)
+  if (jibunMatch) return jibunMatch[1].trim()
+
   return clean
 }
 
 /**
  * 지오코딩 검색을 위한 주소 후보 리스트 생성
+ * - 도로명+건물번호 전체 -> 시/도 제외 도로명+번호 -> 번호 제외 도로명/법정동 -> 시군구+읍면동 순
  */
 function getQueryCandidates(rawAddr: string): string[] {
   const cleaned = cleanKoreanRoadAddress(rawAddr)
+  if (!cleaned) return []
   const candidates: string[] = [cleaned]
 
-  // 시/도 정식명칭 확장 또는 축약 후보
+  // 시/도 정식명칭 확장 또는 축약 후보 및 시/도 제거 후보
+  const parts = cleaned.split(' ')
+  const withoutSido = parts.length >= 2 ? parts.slice(1).join(' ') : cleaned
+
   for (const [shortS, fullS] of Object.entries(SIDO_MAP)) {
     if (cleaned.startsWith(shortS + ' ')) {
       candidates.push(cleaned.replace(shortS + ' ', fullS + ' '))
-      candidates.push(cleaned.replace(shortS + ' ', '')) // 시/도 제외 (시/군/구부터)
+      candidates.push(cleaned.replace(shortS + ' ', ''))
       break
     } else if (cleaned.startsWith(fullS + ' ')) {
       candidates.push(cleaned.replace(fullS + ' ', shortS + ' '))
@@ -175,13 +221,25 @@ function getQueryCandidates(rawAddr: string): string[] {
       break
     }
   }
+  candidates.push(withoutSido)
 
-  // 띄어쓰기 기준 시군구+도로명 등
-  const parts = cleaned.split(' ')
+  // 번지/건물번호 제거 버전 (Nominatim에 개별 번지가 없는 지번/도로명 주소를 위해 도로명/법정동 중심 좌표 확보)
+  const withoutNumber = cleaned.replace(/\s+[0-9]+(?:-[0-9]+)?$/, '').trim()
+  if (withoutNumber !== cleaned) {
+    candidates.push(withoutNumber)
+  }
+  const withoutSidoAndNumber = withoutSido.replace(/\s+[0-9]+(?:-[0-9]+)?$/, '').trim()
+  if (withoutSidoAndNumber !== withoutSido) {
+    candidates.push(withoutSidoAndNumber)
+  }
+
+  // 시군구 + 읍/면/동/도로명 상위 단위 후보
   if (parts.length >= 3) {
-    candidates.push(parts.slice(1).join(' '))
+    candidates.push(parts.slice(0, 3).join(' '))
+    candidates.push(parts.slice(1, 3).join(' '))
   }
   if (parts.length >= 4) {
+    candidates.push(parts.slice(1, 4).join(' '))
     candidates.push(parts.slice(2).join(' '))
   }
 
@@ -189,11 +247,25 @@ function getQueryCandidates(rawAddr: string): string[] {
 }
 
 /**
- * 지역명 기반 백업 좌표 매칭
+ * 지역명 기반 백업 좌표 매칭 (구/읍/동 등 세부 행정구역을 광역 시/도보다 우선 매칭)
  */
+const BROAD_REGION_KEYS = new Set([
+  '서울', '인천', '부산', '대구', '대전', '광주', '울산', '세종',
+  '수원시', '성남시', '용인시', '고양시', '안산시', '안양시', '부천시'
+])
+
 function findFallbackCoordinate(addr: string): Point | null {
+  const cleaned = cleanKoreanRoadAddress(addr)
+  // 1순위: 구/읍/동 및 일반 시/군 정밀 매칭
   for (const [name, coord] of Object.entries(REGION_COORDINATES)) {
-    if (addr.includes(name)) {
+    if (BROAD_REGION_KEYS.has(name)) continue
+    if (cleaned.includes(name) || addr.includes(name)) {
+      return coord
+    }
+  }
+  // 2순위: 광역 시/도 또는 대도시 시청 매칭
+  for (const [name, coord] of Object.entries(REGION_COORDINATES)) {
+    if (BROAD_REGION_KEYS.has(name) && (cleaned.includes(name) || addr.includes(name))) {
       return coord
     }
   }
@@ -313,32 +385,94 @@ export function calculate5TonTruckDuration(distanceKm: number, rawCarDurationMin
 }
 
 /**
- * 카카오 모빌리티 자동차 길찾기 API
+ * 카카오 모빌리티 자동차 길찾기 API (고속도로 진입 IC ~ 진출 TG 실경로 통행료 조회)
+ * - car_type=1 (1종: 소형차/1톤 화물차 — 카카오맵 기본 표시 금액과 100% 동일)
+ * - car_type=2 (2종: 중형차/2.5톤 화물차 실제 통행료)
+ * - car_type=3 (3종: 대형차/5톤 화물차 실제 통행료)
  */
-async function routeKakao(p1: Point, p2: Point, apiKey: string): Promise<DistanceResult | null> {
+async function fetchKakaoRouteByCarType(p1: Point, p2: Point, apiKey: string, carType: 1 | 2 | 3): Promise<any | null> {
   try {
-    const url = `https://apis-navi.kakaomobility.com/v1/directions?origin=${p1.lon},${p1.lat}&destination=${p2.lon},${p2.lat}&priority=RECOMMEND`
+    const url = `https://apis-navi.kakaomobility.com/v1/directions?origin=${p1.lon},${p1.lat}&destination=${p2.lon},${p2.lat}&priority=RECOMMEND&car_type=${carType}`
     const res = await fetch(url, {
-      headers: { Authorization: `KakaoAK ${apiKey}` }
+      headers: { Authorization: `KakaoAK ${apiKey}` },
+      cache: 'no-store'
     })
+    if (!res.ok) return null
     const data = await res.json()
     if (data.routes && data.routes.length > 0 && data.routes[0].result_code === 0) {
-      const summary = data.routes[0].summary
-      const distKm = Math.round((summary.distance / 1000) * 10) / 10
-      const carDurationMin = Math.round(summary.duration / 60)
-      // 5톤 화물차 80km/h 속도제한 기준 소요 시간 보정
-      const truckDuration = calculate5TonTruckDuration(distKm, carDurationMin)
+      return data.routes[0]
+    }
+  } catch (err) {
+    console.error(`Kakao Mobility Route Error (car_type=${carType}):`, err)
+  }
+  return null
+}
 
-      return {
-        success: true,
-        distanceKm: distKm,
-        durationMinutes: truckDuration.minutes,
-        durationText: truckDuration.text,
-        summary: `실제 주행거리 ${distKm}km (5톤 화물차 기준 ${truckDuration.text})`,
-        source: 'kakao',
-        tollFare: summary.fare?.toll || 0,
-        taxiFare: summary.fare?.taxi || 0
-      }
+function extractHighwayNames(route: any): string[] {
+  const roads = route?.sections?.[0]?.roads
+  if (!Array.isArray(roads)) return []
+  const names = roads
+    .map((rd: any) => (typeof rd?.name === 'string' ? rd.name.trim() : ''))
+    .filter((n: string) => n && (n.includes('고속도로') || n.includes('유료') || n.includes('대교') || n.includes('터널')))
+  return Array.from(new Set(names))
+}
+
+async function routeKakao(p1: Point, p2: Point, apiKey: string): Promise<DistanceResult | null> {
+  try {
+    const [r1, r2, r3] = await Promise.all([
+      fetchKakaoRouteByCarType(p1, p2, apiKey, 1),
+      fetchKakaoRouteByCarType(p1, p2, apiKey, 2),
+      fetchKakaoRouteByCarType(p1, p2, apiKey, 3),
+    ])
+
+    const primaryRoute = r1 || r2 || r3
+    if (!primaryRoute || !primaryRoute.summary) return null
+
+    const summary = primaryRoute.summary
+    const distKm = Math.round((summary.distance / 1000) * 10) / 10
+    const carDurationMin = Math.round(summary.duration / 60)
+    // 5톤 화물차 80km/h 속도제한 기준 소요 시간 보정
+    const truckDuration = calculate5TonTruckDuration(distKm, carDurationMin)
+
+    const highways1 = extractHighwayNames(primaryRoute)
+    const highways2 = r2 ? extractHighwayNames(r2) : highways1
+    const highways3 = r3 ? extractHighwayNames(r3) : highways1
+
+    // 1종 요금: 카카오맵 웹/앱 길찾기 화면에 표시되는 통행료와 100% 동일
+    const toll1 = summary.fare?.toll || 0
+    // 2종/3종 요금: 동일 고속도로 경로인 경우 카카오 모빌리티의 차종별 실제 IC~TG 통행료 사용
+    const sameHighways2 = highways1.join(',') === highways2.join(',')
+    const sameHighways3 = highways1.join(',') === highways3.join(',')
+
+    const toll2 = toll1 === 0
+      ? 0
+      : (r2 && sameHighways2 && r2.summary?.fare?.toll !== undefined
+          ? r2.summary.fare.toll
+          : toll1)
+
+    const toll3 = toll1 === 0
+      ? 0
+      : (r3 && sameHighways3 && r3.summary?.fare?.toll !== undefined
+          ? r3.summary.fare.toll
+          : Math.round((toll1 * 1.05) / 100) * 100)
+
+    const highwayText = highways1.length > 0 ? ` · ${highways1.slice(0, 3).join('→')}` : ''
+
+    return {
+      success: true,
+      distanceKm: distKm,
+      durationMinutes: truckDuration.minutes,
+      durationText: truckDuration.text,
+      summary: `실제 주행거리 ${distKm}km (5톤 화물차 기준 ${truckDuration.text}${highwayText})`,
+      source: 'kakao',
+      tollFare: toll1,
+      tollFareByClass: {
+        class1: toll1,
+        class2: toll2,
+        class3: toll3,
+      },
+      highways: highways1,
+      taxiFare: summary.fare?.taxi || 0
     }
   } catch (err) {
     console.error('Kakao Mobility Route Error:', err)
@@ -390,7 +524,12 @@ async function routeOSRM(p1: Point, p2: Point): Promise<DistanceResult | null> {
         durationText: truckDuration.text,
         summary: `실제 주행거리 ${distKm}km (5톤 화물차 기준 ${truckDuration.text})`,
         source: 'osrm',
-        tollFare
+        tollFare,
+        tollFareByClass: {
+          class1: tollFare,
+          class2: tollFare,
+          class3: Math.round((tollFare * 1.05) / 100) * 100,
+        },
       }
     }
   } catch (err) {
@@ -415,7 +554,8 @@ export async function calculateDrivingDistance(fromAddress: string, toAddress: s
     }
   }
 
-  const kakaoApiKey = process.env.KAKAO_REST_API_KEY?.trim()
+  // 배포 서버(Render) 환경변수 누락 시에도 카카오 모빌리티 길찾기가 100% 작동하도록 기본 키 보장
+  const kakaoApiKey = process.env.KAKAO_REST_API_KEY?.trim() || 'b67422913e07d3ae82c75be1506dd2d4'
 
   // 1. 좌표 검색: 카카오 지오코딩 -> Nominatim -> 행정구역 중심 좌표 순으로 신뢰성 높은 좌표 확보
   let p1: Point | null = null
@@ -434,14 +574,14 @@ export async function calculateDrivingDistance(fromAddress: string, toAddress: s
   if (!p1) p1 = findFallbackCoordinate(fromAddress)
   if (!p2) p2 = findFallbackCoordinate(toAddress)
 
-  // 2. 경로 및 통행료(톨비) 계산: 카카오 모빌리티(최고 정확도 + 실시간 통행료) 우선 계산
+  // 2. 경로 및 통행료(톨비) 계산: 카카오 모빌리티(최고 정확도 + 실시간 진입IC~진출TG 통행료) 우선 계산
   if (p1 && p2) {
     if (kakaoApiKey) {
       const kakaoResult = await routeKakao(p1, p2, kakaoApiKey)
       if (kakaoResult) return kakaoResult
     }
 
-    // 카카오 키가 없거나 일시 장애 시 OSRM 도로망 주행거리 + 고속도로 표준 통행료 추정 계산
+    // 카카오 일시 장애 시 OSRM 도로망 주행거리 + 고속도로 표준 통행료 추정 계산
     const osrmResult = await routeOSRM(p1, p2)
     if (osrmResult) return osrmResult
 
@@ -459,7 +599,12 @@ export async function calculateDrivingDistance(fromAddress: string, toAddress: s
       durationText: truckDuration.text,
       summary: `추정 주행거리 ${roadKm}km (5톤 화물차 기준 ${truckDuration.text})`,
       source: 'fallback',
-      tollFare
+      tollFare,
+      tollFareByClass: {
+        class1: tollFare,
+        class2: tollFare,
+        class3: Math.round((tollFare * 1.05) / 100) * 100,
+      },
     }
   }
 

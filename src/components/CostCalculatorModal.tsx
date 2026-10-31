@@ -20,8 +20,11 @@ import {
   CloudRain,
   Navigation,
   Plus,
-  Trash2
+  Trash2,
+  Calendar as CalendarIcon,
+  Sparkles
 } from 'lucide-react'
+import KoreanLunarCalendar from 'korean-lunar-calendar'
 import { CostStandardData } from '@/app/actions/costStandards'
 import { getCharteredTruckFares } from '@/app/actions/charteredTruck'
 import type { CharteredTruckFareItem } from '@/types/charteredTruck'
@@ -37,9 +40,11 @@ interface CostCalculatorModalProps {
   onClose: () => void
   onApply: (calculatedCost: number) => void
   distanceKm: number
-  tollFare: number // 카카오 편도 톨비
+  tollFare: number // 카카오 편도 톨비 (1종 기본)
   roundTollFare?: number // 대당 왕복 톨게이트비
+  tollFareByClass?: { class1: number; class2: number; class3: number } | null // 카카오 모빌리티 차종별(1종/2종/3종) 진입IC~진출TG 실경로 편도 통행료
   movingType: string
+  movingDate?: Date | null
   menCount: number
   womenCount: number
   menUnitPrice?: number // 남성 일당 (기본 190,000)
@@ -108,7 +113,9 @@ export function CostCalculatorModal({
   distanceKm,
   tollFare,
   roundTollFare: initialRoundTollFare,
+  tollFareByClass = null,
   movingType,
+  movingDate = null,
   menCount,
   womenCount,
   menUnitPrice = 190000,
@@ -122,6 +129,51 @@ export function CostCalculatorModal({
   const perTruckRoundToll = initialRoundTollFare !== undefined && initialRoundTollFare > 0 
     ? initialRoundTollFare 
     : (tollFare * 2)
+  const passedOneWayToll = Math.round(perTruckRoundToll / 2)
+
+  // 사용자가 견적서에서 톨비를 수동으로 수정했는지 여부 (카카오 차종별 요금과 일치하면 차종별 실요금 테이블 사용)
+  const hasMatchingKakaoClassToll = Boolean(
+    tollFareByClass &&
+      tollFareByClass.class1 > 0 &&
+      (passedOneWayToll === tollFareByClass.class1 ||
+        passedOneWayToll === tollFareByClass.class2 ||
+        passedOneWayToll === tollFareByClass.class3)
+  )
+
+  // 차량 톤수별 한국도로공사 차종(종수) 라벨 반환
+  const getVehicleClassLabel = (ton: 5 | 2.5 | 1): string => {
+    if (ton === 5) return '3종(대형)'
+    if (ton === 2.5) return '2종(중형)'
+    return '1종(소형)'
+  }
+
+  // 차량 톤수(차종 종수)별 편도 고속도로 통행료 계산 (카카오 모빌리티 진입IC~진출TG 차종별 실경로 요금 우선 적용)
+  // - 1톤 (1종 소형화물): 카카오맵 1종 통행료 (car_type=1)
+  // - 2.5톤 (2종 중형화물): 카카오내비 2종 통행료 (car_type=2)
+  // - 5톤 (3종 대형화물): 카카오내비 3종 통행료 (car_type=3)
+  const getOneWayTollByTonnage = (ton: 5 | 2.5 | 1): number => {
+    if (passedOneWayToll <= 0) return 0
+    if (hasMatchingKakaoClassToll && tollFareByClass) {
+      if (ton === 5) return tollFareByClass.class3
+      if (ton === 2.5) return tollFareByClass.class2
+      return tollFareByClass.class1
+    }
+    if (ton === 5) {
+      return Math.round((passedOneWayToll * 1.05) / 100) * 100
+    }
+    return passedOneWayToll
+  }
+
+  // 개별 배차 차량의 톨비 계산: 자사운행('OWN')은 왕복(×2), 외주용차('CARGO'/'TOP')는 편도(×1)
+  const calcSingleTruckToll = (truck: { tonnage: 5 | 2.5 | 1; operationType: 'OWN' | 'CARGO' | 'TOP' }): number => {
+    const oneWay = getOneWayTollByTonnage(truck.tonnage)
+    return truck.operationType === 'OWN' ? oneWay * 2 : oneWay
+  }
+
+  // 전체 배차 차량 리스트의 총 통행료 합산
+  const calcTotalTollForTrucks = (truckList: { tonnage: 5 | 2.5 | 1; operationType: 'OWN' | 'CARGO' | 'TOP' }[]): number => {
+    return truckList.reduce((sum, t) => sum + calcSingleTruckToll(t), 0)
+  }
 
   // 기준값 (DB 마스터값 또는 기본 fallback)
   const standards: CostStandardData = useMemo(() => {
@@ -198,7 +250,8 @@ export function CostCalculatorModal({
   }
 
   // 견적서의 투입 차량 배열(vehicles)로부터 초기 개별 배차 차량 리스트 생성
-  const buildInitialTruckList = (): DispatchedTruckItem[] => {
+  // 1호차는 자사 운행('OWN'), 2호차부터는 카고 용차('CARGO')를 기본 선택으로 세팅
+  const buildInitialTruckList = (fareObj?: CharteredTruckFareItem | null): DispatchedTruckItem[] => {
     const list: DispatchedTruckItem[] = []
     let idx = 1
 
@@ -217,12 +270,14 @@ export function CostCalculatorModal({
       }
 
       for (let i = 0; i < count; i++) {
+        const isFirstTruck = list.length === 0
+        const opType: 'OWN' | 'CARGO' = isFirstTruck ? 'OWN' : 'CARGO'
         list.push({
           id: `truck_${idx++}_${Date.now()}`,
           tonnage: ton,
-          operationType: 'OWN',
-          fuelCost: getDefaultFuelForTonnage(ton),
-          charteredCost: 0
+          operationType: opType,
+          fuelCost: opType === 'OWN' ? getDefaultFuelForTonnage(ton) : 0,
+          charteredCost: opType === 'OWN' ? 0 : getDefaultCharteredCostForTonnage(ton, opType, fareObj)
         })
       }
     })
@@ -395,16 +450,57 @@ export function CostCalculatorModal({
   const [includeLadderCost, setIncludeLadderCost] = useState<boolean>(false)
   const [ladderCost, setLadderCost] = useState<number>(ladderTotalCost || 0)
 
-  // 5. 목표 마진율 (%)
+  // 5. 캘린더 및 이사일정 할증 상태 (손 없는 날, 주말, 금요일, 월말, 공휴일)
+  const [isSonEobNeunNal, setIsSonEobNeunNal] = useState<boolean>(false)
+  const [isWeekend, setIsWeekend] = useState<boolean>(false)
+  const [isFriday, setIsFriday] = useState<boolean>(false)
+  const [isMonthEnd, setIsMonthEnd] = useState<boolean>(false)
+
+  const [applySonEobNeunNal, setApplySonEobNeunNal] = useState<boolean>(false)
+  const [sonEobNeunNalCost, setSonEobNeunNalCost] = useState<number>(150000)
+
+  const [applyWeekend, setApplyWeekend] = useState<boolean>(false)
+  const [weekendCost, setWeekendCost] = useState<number>(100000)
+
+  const [applyFriday, setApplyFriday] = useState<boolean>(false)
+  const [fridayCost, setFridayCost] = useState<number>(50000)
+
+  const [applyMonthEnd, setApplyMonthEnd] = useState<boolean>(false)
+  const [monthEndCost, setMonthEndCost] = useState<number>(50000)
+
+  const [applyHoliday, setApplyHoliday] = useState<boolean>(false)
+  const [holidayCost, setHolidayCost] = useState<number>(100000)
+
+  // 6. 목표 마진율 (%)
   const [marginRate, setMarginRate] = useState<number>(standards.defaultMarginRate || 20.0)
   const [roundToTenThousand, setRoundToTenThousand] = useState<boolean>(true) // 만원 단위 올림 여부
 
-  // 용차 기준정보 로드
+  // 용차 기준정보 로드 및 기존 배차 차량의 용차비 자동 동기화
   useEffect(() => {
     if (isOpen) {
-      getCharteredTruckFares().then(data => setCharteredFares(data)).catch(() => {})
+      getCharteredTruckFares()
+        .then(data => {
+          setCharteredFares(data)
+          const matched =
+            data.find(f => distanceKm >= f.minDistanceKm && distanceKm <= f.maxDistanceKm) ||
+            data[data.length - 1] ||
+            null
+          if (matched) {
+            setDispatchedTrucks(prev =>
+              prev.map(t =>
+                t.operationType === 'OWN'
+                  ? t
+                  : {
+                      ...t,
+                      charteredCost: getDefaultCharteredCostForTonnage(t.tonnage, t.operationType, matched),
+                    }
+              )
+            )
+          }
+        })
+        .catch(() => {})
     }
-  }, [isOpen])
+  }, [isOpen, distanceKm])
 
   // 배차 차량 리스트가 변경될 때 연관된 인건비(운전자수, 톤수수당), 차량기본료/할증, 톨비, 테이프 롤수 동기화
   const syncDependentStatesWithTrucks = (nextTrucks: DispatchedTruckItem[]) => {
@@ -448,20 +544,22 @@ export function CostCalculatorModal({
     })
     setStdUltraLongCost(nextFullCalc.ultraLongSurcharge)
 
-    // 4) 왕복 톨게이트비 & 테이프 롤수 갱신
-    setRoundTollFare(Math.round(perTruckRoundToll * totalCnt))
+    // 4) 고속도로 통행료(자사 왕복 / 용차 편도 / 차종 종수별) & 테이프 롤수 갱신
+    setRoundTollFare(calcTotalTollForTrucks(nextTrucks))
     const rolls = c5 * standards.tapeRolls5Ton + c25 * standards.tapeRolls2_5Ton + c1 * standards.tapeRolls1Ton
     setTapeRolls(rolls > 0 ? rolls : 3)
   }
 
-  // 개별 차량 추가 (1톤 / 2.5톤 / 5톤)
-  const handleAddTruck = (ton: 5 | 2.5 | 1, opType: 'OWN' | 'CARGO' | 'TOP' = 'OWN') => {
+  // 개별 차량 추가 (1톤 / 2.5톤 / 5톤) — 1호차는 자사운행('OWN'), 2호차부터는 카고용차('CARGO') 기본 선택
+  const handleAddTruck = (ton: 5 | 2.5 | 1, opType?: 'OWN' | 'CARGO' | 'TOP') => {
+    const resolvedOpType: 'OWN' | 'CARGO' | 'TOP' =
+      opType ?? (dispatchedTrucks.length >= 1 ? 'CARGO' : 'OWN')
     const newTruck: DispatchedTruckItem = {
       id: `truck_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       tonnage: ton,
-      operationType: opType,
-      fuelCost: opType === 'OWN' ? getDefaultFuelForTonnage(ton) : 0,
-      charteredCost: opType === 'OWN' ? 0 : getDefaultCharteredCostForTonnage(ton, opType),
+      operationType: resolvedOpType,
+      fuelCost: resolvedOpType === 'OWN' ? getDefaultFuelForTonnage(ton) : 0,
+      charteredCost: resolvedOpType === 'OWN' ? 0 : getDefaultCharteredCostForTonnage(ton, resolvedOpType),
     }
     syncDependentStatesWithTrucks([...dispatchedTrucks, newTruck])
   }
@@ -504,14 +602,18 @@ export function CostCalculatorModal({
   }
 
   // 빠른 배차 프리셋 적용 (1톤, 2.5톤, 5톤, 6톤[5+1], 7.5톤[5+2.5], 10톤[5+5])
+  // 1호차(idx===0)는 자사운행('OWN'), 2호차부터(idx>=1)는 카고용차('CARGO')로 자동 지정
   const handleApplyTruckPreset = (tons: (5 | 2.5 | 1)[]) => {
-    const next: DispatchedTruckItem[] = tons.map((ton, idx) => ({
-      id: `preset_${idx}_${Date.now()}`,
-      tonnage: ton,
-      operationType: 'OWN',
-      fuelCost: getDefaultFuelForTonnage(ton),
-      charteredCost: 0,
-    }))
+    const next: DispatchedTruckItem[] = tons.map((ton, idx) => {
+      const opType: 'OWN' | 'CARGO' = idx === 0 ? 'OWN' : 'CARGO'
+      return {
+        id: `preset_${idx}_${Date.now()}`,
+        tonnage: ton,
+        operationType: opType,
+        fuelCost: opType === 'OWN' ? getDefaultFuelForTonnage(ton) : 0,
+        charteredCost: opType === 'OWN' ? 0 : getDefaultCharteredCostForTonnage(ton, opType),
+      }
+    })
     syncDependentStatesWithTrucks(next)
   }
 
@@ -529,11 +631,53 @@ export function CostCalculatorModal({
     const c25 = initialTrucks.filter(t => t.tonnage === 2.5).length
     const c1 = initialTrucks.filter(t => t.tonnage === 1).length
     const totalCnt = initialTrucks.length
+    const ownCnt = initialTrucks.filter(t => t.operationType === 'OWN').length
     const totalTon = c5 * 5 + c25 * 2.5 + c1 * 1
 
-    setDriverCount(totalCnt)
+    setDriverCount(ownCnt)
     setDriverRate(standards.driverAllowance)
     setTonnageRate(getTonnageAllowanceForTon(totalTon))
+
+    // 이사일자 기반 캘린더 할증 해당 여부 판정 (명목별 기본 금액은 항상 표시하고, 체크 시 소계/제안가에 적용)
+    setSonEobNeunNalCost(150000)
+    setWeekendCost(100000)
+    setFridayCost(50000)
+    setMonthEndCost(50000)
+    setHolidayCost(100000)
+
+    if (movingDate) {
+      const d = new Date(movingDate)
+      const dayOfWeek = d.getDay() // 0: 일, 5: 금, 6: 토
+      const dateNum = d.getDate()
+
+      try {
+        const korCal = new KoreanLunarCalendar()
+        korCal.setSolarDate(d.getFullYear(), d.getMonth() + 1, d.getDate())
+        const korLunar = korCal.getLunarCalendar()
+        const isSon = korLunar.day % 10 === 9 || korLunar.day % 10 === 0
+        setIsSonEobNeunNal(isSon)
+      } catch {
+        setIsSonEobNeunNal(false)
+      }
+
+      const isWk = dayOfWeek === 0 || dayOfWeek === 6
+      const isFri = dayOfWeek === 5
+      setIsWeekend(isWk)
+      setIsFriday(isFri)
+
+      const isEnd = dateNum >= 25
+      setIsMonthEnd(isEnd)
+    } else {
+      setIsSonEobNeunNal(false)
+      setIsWeekend(false)
+      setIsFriday(false)
+      setIsMonthEnd(false)
+    }
+    setApplySonEobNeunNal(false)
+    setApplyWeekend(false)
+    setApplyFriday(false)
+    setApplyMonthEnd(false)
+    setApplyHoliday(false)
 
     setDistanceSteps(defaultDistanceStepCount)
     setDistanceRatePerPerson(standards.distanceAllowancePerPerson)
@@ -557,8 +701,8 @@ export function CostCalculatorModal({
     setIncludeWaypointFee(waypointCount > 0)
     setWaypointFeeCost(waypointCount > 0 ? 70000 : 0)
 
-    // 왕복 톨비 (대당 왕복 톨비 x 차량대수)
-    const toll = Math.round(perTruckRoundToll * totalCnt)
+    // 고속도로 통행료 (자사운행 왕복 + 외주용차 편도, 차종 종수별 자동 합산)
+    const toll = calcTotalTollForTrucks(initialTrucks)
     setRoundTollFare(toll)
 
     // OPP 테이프 롤수
@@ -579,7 +723,7 @@ export function CostCalculatorModal({
     if (isOpen) {
       resetToRecommended()
     }
-  }, [isOpen, distanceKm, tollFare, perTruckRoundToll, vehicles, standards, menCount, womenCount, menUnitPrice, womenUnitPrice, ladderTotalCost, waypointCount])
+  }, [isOpen, distanceKm, tollFare, perTruckRoundToll, tollFareByClass, vehicles, standards, menCount, womenCount, menUnitPrice, womenUnitPrice, ladderTotalCost, waypointCount, movingDate])
 
   // 총 인원 수
   const totalWorkers = menNum + womenNum
@@ -614,12 +758,20 @@ export function CostCalculatorModal({
   // 4. 장비비 (사다리차 전용 — 외주 용차비는 2번 차량비로 완전 통합)
   const totalEquipmentCost = includeLadderCost ? ladderCost : 0
 
-  // 5. 총 원가 (소요비용 합계)
+  // 5. 캘린더 및 이사일정 할증 합계 계산 (손 없는 날, 주말, 금요일, 월말, 공휴일)
+  const totalCalendarSurcharge =
+    (applySonEobNeunNal ? sonEobNeunNalCost : 0) +
+    (applyWeekend ? weekendCost : 0) +
+    (applyFriday ? fridayCost : 0) +
+    (applyMonthEnd ? monthEndCost : 0) +
+    (applyHoliday ? holidayCost : 0)
+
+  // 6. 총 원가 (소요비용 합계)
   const totalCost = totalLaborCost + totalVehicleCost + totalMaterialCost + totalEquipmentCost
 
-  // 6. 마진액 및 최종 제안 판매가
+  // 7. 마진액 및 일정 할증 포함 최종 제안 판매가
   const marginAmount = Math.round(totalCost * (marginRate / 100))
-  let rawSellingPrice = totalCost + marginAmount
+  const rawSellingPrice = totalCost + marginAmount + totalCalendarSurcharge
 
   // 만원 단위 올림 처리
   const finalSellingPrice = roundToTenThousand 
@@ -690,13 +842,13 @@ export function CostCalculatorModal({
               </p>
             </div>
             <div>
-              <span className="text-[11px] text-gray-500">고속도로 톨게이트비:</span>
+              <span className="text-[11px] text-gray-500">고속도로 톨게이트비 (종수·편/왕복):</span>
               <p className="font-bold text-gray-900 text-sm">
-                {perTruckRoundToll > 0 ? (
+                {roundTollFare > 0 ? (
                   <>
-                    대당 왕복 {perTruckRoundToll.toLocaleString()}원{' '}
+                    총 {roundTollFare.toLocaleString()}원{' '}
                     <span className="text-[11px] font-semibold text-blue-600">
-                      ({vehicleStats.totalCount}대 총 {(perTruckRoundToll * vehicleStats.totalCount).toLocaleString()}원)
+                      (자사 {vehicleStats.ownCount}대 왕복 · 용차 {vehicleStats.charteredCount}대 편도)
                     </span>
                   </>
                 ) : (
@@ -1144,15 +1296,16 @@ export function CostCalculatorModal({
                     )}
                   </div>
 
-                  {/* 차량 추가 버튼 (1톤 / 2.5톤 / 5톤 자유 추가) */}
+                  {/* 차량 추가 버튼 (1톤 / 2.5톤 / 5톤 자유 추가 — 2호차부터는 카고용차 기본 선택) */}
                   <div className="flex items-center gap-1 flex-wrap">
                     <span className="text-[11px] text-gray-500 font-semibold mr-0.5">차량 추가:</span>
                     {([1, 2.5, 5] as const).map(ton => (
                       <button
                         key={ton}
                         type="button"
-                        onClick={() => handleAddTruck(ton, 'OWN')}
-                        className="px-2 py-0.5 rounded-md bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-300 text-[11px] font-extrabold flex items-center gap-0.5 shadow-2xs transition-colors"
+                        onClick={() => handleAddTruck(ton)}
+                        className="px-2 py-0.5 rounded-md bg-white hover:bg-blue-50 text-blue-700 border border-blue-300 text-[11px] font-extrabold flex items-center gap-0.5 shadow-2xs transition-colors"
+                        title="2호차부터는 카고 용차가 기본 선택으로 추가됩니다"
                       >
                         <Plus className="w-3 h-3" />
                         {ton}톤 추가
@@ -1325,32 +1478,42 @@ export function CostCalculatorModal({
 
                       {/* 금액 입력 영역: 자사 운행 시 유류비 / 용차 시 외주 용차비 직접 수정 (차량비 소계에 즉시 합산) */}
                       {isOwn ? (
-                        vehicleFareMode === 'STANDARD_TABLE' ? (
-                          <div className="text-[10px] text-gray-500 bg-white/80 px-2 py-1 rounded border border-gray-200 flex items-center justify-between">
-                            <span>상단 [① 차량 고정기본료·② 거리할증]에 반영됨</span>
-                            <span className="font-semibold text-gray-400">유류비 미합산</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-between text-[11px] text-gray-600 pt-0.5">
-                            <span className="font-medium">
-                              왕복 {distanceKm * 2}km × {kmFuelUnit}원:
-                            </span>
-                            <div className="flex items-center gap-0.5">
-                              <FormattedModalNumberInput
-                                value={truck.fuelCost}
-                                onChange={val => {
-                                  setDispatchedTrucks(prev =>
-                                    prev.map(item =>
-                                      item.id === truck.id ? { ...item, fuelCost: val } : item
-                                    )
-                                  )
-                                }}
-                                className="w-22 px-1.5 py-0.5 text-right font-bold bg-white border border-emerald-400 text-emerald-950 rounded text-xs"
-                              />
-                              <span className="text-[10px] text-gray-500">원</span>
+                        <div className="space-y-1 pt-0.5">
+                          {vehicleFareMode === 'STANDARD_TABLE' ? (
+                            <div className="text-[10px] text-gray-500 bg-white/80 px-2 py-1 rounded border border-gray-200 flex items-center justify-between">
+                              <span>상단 [① 차량 고정기본료·② 거리할증]에 반영됨</span>
+                              <span className="font-semibold text-gray-400">유류비 미합산</span>
                             </div>
-                          </div>
-                        )
+                          ) : (
+                            <div className="flex items-center justify-between text-[11px] text-gray-600">
+                              <span className="font-medium">
+                                왕복 {distanceKm * 2}km × {kmFuelUnit}원:
+                              </span>
+                              <div className="flex items-center gap-0.5">
+                                <FormattedModalNumberInput
+                                  value={truck.fuelCost}
+                                  onChange={val => {
+                                    setDispatchedTrucks(prev =>
+                                      prev.map(item =>
+                                        item.id === truck.id ? { ...item, fuelCost: val } : item
+                                      )
+                                    )
+                                  }}
+                                  className="w-22 px-1.5 py-0.5 text-right font-bold bg-white border border-emerald-400 text-emerald-950 rounded text-xs"
+                                />
+                                <span className="text-[10px] text-gray-500">원</span>
+                              </div>
+                            </div>
+                          )}
+                          {passedOneWayToll > 0 && (
+                            <div className="text-[10px] text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded flex items-center justify-between border border-emerald-200">
+                              <span>고속도로 톨비 ({getVehicleClassLabel(truck.tonnage)} · 자사 왕복)</span>
+                              <span className="font-extrabold text-emerald-950">
+                                {calcSingleTruckToll(truck).toLocaleString()}원
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       ) : (
                         <div className="space-y-1 pt-0.5">
                           <div className="flex items-center justify-between text-[11px] text-blue-900">
@@ -1373,7 +1536,11 @@ export function CostCalculatorModal({
                             </div>
                           </div>
                           <div className="text-[10px] text-blue-800 bg-blue-100/80 px-2 py-0.5 rounded flex items-center justify-between border border-blue-200">
-                            <span>유류비·고정기본료·운전자수당 제외</span>
+                            <span>
+                              {passedOneWayToll > 0
+                                ? `톨비(${getVehicleClassLabel(truck.tonnage)}·용차편도 ${calcSingleTruckToll(truck).toLocaleString()}원)`
+                                : '유류비·고정기본료·운전자수당 제외'}
+                            </span>
                             <span className="font-bold text-blue-950">소계 합산됨</span>
                           </div>
                         </div>
@@ -1393,7 +1560,7 @@ export function CostCalculatorModal({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
                       <CreditCard className={`w-4 h-4 shrink-0 ${roundTollFare > 0 ? 'text-emerald-600' : 'text-gray-400'}`} />
-                      <span className="font-bold text-gray-800">왕복 고속도로 통행료 (톨게이트비)</span>
+                      <span className="font-bold text-gray-800">고속도로 통행료 (자사 왕복 · 용차 편도 · 차종별)</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <FormattedModalNumberInput
@@ -1404,22 +1571,28 @@ export function CostCalculatorModal({
                       <span className="text-gray-600 font-semibold">원</span>
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center justify-between gap-1 text-[10px] text-gray-500">
+                  <div className="flex flex-wrap items-center justify-between gap-1 text-[10px] text-gray-600">
                     <span>
-                      대당 왕복 {perTruckRoundToll.toLocaleString()}원 × {vehicleStats.totalCount}대
+                      {passedOneWayToll > 0
+                        ? dispatchedTrucks
+                            .map(
+                              (t, idx) =>
+                                `${idx + 1}호차(${t.tonnage}t·${getVehicleClassLabel(t.tonnage)} ${
+                                  t.operationType === 'OWN' ? '왕복' : '용차편도'
+                                } ${calcSingleTruckToll(t).toLocaleString()}원)`
+                            )
+                            .join(' + ')
+                        : '고속도로 통행료 없음 (0원)'}
                     </span>
                     <div className="flex items-center gap-1">
-                      {tollFare > 0 && (
+                      {passedOneWayToll > 0 && (
                         <button
                           type="button"
-                          onClick={() => {
-                            const heavyOneWay = adjustTollForHeavyTruck(tollFare, true)
-                            setRoundTollFare(heavyOneWay * 2 * vehicleStats.totalCount)
-                          }}
-                          className="px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold hover:bg-indigo-100"
-                          title="한국도로공사 3종 대형화물차(5톤) 기준 승용차 대비 1.45배 요금 적용"
+                          onClick={() => setRoundTollFare(calcTotalTollForTrucks(dispatchedTrucks))}
+                          className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold hover:bg-emerald-200"
+                          title="배차 차량별 종수(1종/2종/3종) 및 운행방식(자사 왕복 / 용차 편도) 기준 자동 재계산"
                         >
-                          3종 화물차(×1.45)
+                          종수·편/왕복 재계산
                         </button>
                       )}
                       {distanceKm <= 30 && roundTollFare > 0 && (
@@ -1586,7 +1759,241 @@ export function CostCalculatorModal({
             </div>
           </div>
 
-          {/* 4. 마진율 설정 및 총 원가 종합 카드 */}
+          {/* 5. 캘린더 및 이사일정 할증 (손 없는 날, 주말, 금요일, 월말, 공휴일 — 체크되어 소계에 합산될 때만 프레임 강조) */}
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-2xs">
+            <div className="px-4 py-2.5 bg-indigo-50/70 border-b border-indigo-100 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <CalendarIcon className="w-4 h-4 text-indigo-600" />
+                <span className="font-bold text-indigo-900">5. 캘린더 및 이사일정 할증 (손 없는 날 · 주말 · 금요일 · 월말)</span>
+                <span className="text-[11px] font-semibold text-indigo-700 bg-white/90 px-2 py-0.5 rounded-full border border-indigo-200">
+                  이사일: {movingDate ? new Date(movingDate).toISOString().slice(0, 10) : '미지정'}
+                </span>
+              </div>
+              <span className="font-extrabold text-indigo-700 text-sm">
+                소계: +{totalCalendarSurcharge.toLocaleString()} 원
+              </span>
+            </div>
+
+            <div className="p-3.5 space-y-3">
+              {/* 이사일 캘린더 자동 판정 알림 배너 */}
+              {movingDate && (
+                <div
+                  className={`p-2.5 rounded-lg border text-xs flex flex-wrap items-center justify-between gap-2 ${
+                    isSonEobNeunNal
+                      ? 'bg-amber-50/90 border-amber-300 text-amber-900'
+                      : 'bg-gray-50 border-gray-200 text-gray-600'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles
+                      className={`w-4 h-4 shrink-0 ${
+                        isSonEobNeunNal ? 'text-amber-600' : 'text-gray-400'
+                      }`}
+                    />
+                    <span>
+                      {isSonEobNeunNal ? (
+                        <strong>
+                          ★ 선택하신 이사일({new Date(movingDate).toISOString().slice(0, 10)})은 민속 손 없는 날입니다!
+                        </strong>
+                      ) : (
+                        <span>선택하신 이사일은 손 없는 날이 아닙니다.</span>
+                      )}
+                      {isWeekend ? ' (주말 일정)' : isFriday ? ' (금요일 일정)' : ''}
+                      {isMonthEnd ? ' (월말 일정)' : ''}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-indigo-700 font-bold bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                    항목 체크 시 할증 금액이 적용됩니다
+                  </span>
+                </div>
+              )}
+
+              {/* 할증 체크박스 카드 그리드 (명목별 금액은 항상 표시하고, 체크 시 소계 합산 및 프레임 강조) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 text-xs">
+                {/* 1) 손 없는 날 할증 */}
+                <div
+                  className={`p-2.5 rounded-lg flex items-center justify-between gap-2 transition-all ${
+                    applySonEobNeunNal && sonEobNeunNalCost > 0
+                      ? 'border-2 border-amber-500 bg-amber-50/60 ring-2 ring-amber-500/15 shadow-2xs'
+                      : 'border border-dashed border-gray-200 bg-gray-50/50 opacity-80'
+                  }`}
+                >
+                  <label className="flex items-center gap-1.5 cursor-pointer font-bold text-gray-800">
+                    <input
+                      type="checkbox"
+                      checked={applySonEobNeunNal}
+                      onChange={e => setApplySonEobNeunNal(e.target.checked)}
+                      className="w-3.5 h-3.5 text-amber-600 rounded focus:ring-amber-500"
+                    />
+                    <span>손 없는 날</span>
+                    {isSonEobNeunNal && (
+                      <span className="bg-amber-100 text-amber-800 text-[10px] px-1.5 py-0.2 rounded font-extrabold">
+                        해당일
+                      </span>
+                    )}
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <span className={applySonEobNeunNal ? 'text-amber-700 font-bold' : 'text-gray-400'}>+</span>
+                    <FormattedModalNumberInput
+                      value={sonEobNeunNalCost}
+                      onChange={val => setSonEobNeunNalCost(val)}
+                      className={`w-20 px-1.5 py-0.5 text-right font-bold bg-white border rounded text-xs ${
+                        applySonEobNeunNal
+                          ? 'border-amber-400 text-amber-900 font-extrabold'
+                          : 'border-gray-300 text-gray-700'
+                      }`}
+                    />
+                    <span className="text-gray-600">원</span>
+                  </div>
+                </div>
+
+                {/* 2) 주말(토/일) 할증 */}
+                <div
+                  className={`p-2.5 rounded-lg flex items-center justify-between gap-2 transition-all ${
+                    applyWeekend && weekendCost > 0
+                      ? 'border-2 border-indigo-500 bg-indigo-50/60 ring-2 ring-indigo-500/15 shadow-2xs'
+                      : 'border border-dashed border-gray-200 bg-gray-50/50 opacity-80'
+                  }`}
+                >
+                  <label className="flex items-center gap-1.5 cursor-pointer font-bold text-gray-800">
+                    <input
+                      type="checkbox"
+                      checked={applyWeekend}
+                      onChange={e => setApplyWeekend(e.target.checked)}
+                      className="w-3.5 h-3.5 text-indigo-600 rounded focus:ring-indigo-500"
+                    />
+                    <span>주말(토/일)</span>
+                    {isWeekend && (
+                      <span className="bg-indigo-100 text-indigo-800 text-[10px] px-1.5 py-0.2 rounded font-extrabold">
+                        해당일
+                      </span>
+                    )}
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <span className={applyWeekend ? 'text-indigo-700 font-bold' : 'text-gray-400'}>+</span>
+                    <FormattedModalNumberInput
+                      value={weekendCost}
+                      onChange={val => setWeekendCost(val)}
+                      className={`w-20 px-1.5 py-0.5 text-right font-bold bg-white border rounded text-xs ${
+                        applyWeekend
+                          ? 'border-indigo-400 text-indigo-900 font-extrabold'
+                          : 'border-gray-300 text-gray-700'
+                      }`}
+                    />
+                    <span className="text-gray-600">원</span>
+                  </div>
+                </div>
+
+                {/* 3) 금요일 선호 할증 */}
+                <div
+                  className={`p-2.5 rounded-lg flex items-center justify-between gap-2 transition-all ${
+                    applyFriday && fridayCost > 0
+                      ? 'border-2 border-blue-500 bg-blue-50/60 ring-2 ring-blue-500/15 shadow-2xs'
+                      : 'border border-dashed border-gray-200 bg-gray-50/50 opacity-80'
+                  }`}
+                >
+                  <label className="flex items-center gap-1.5 cursor-pointer font-bold text-gray-800">
+                    <input
+                      type="checkbox"
+                      checked={applyFriday}
+                      onChange={e => setApplyFriday(e.target.checked)}
+                      className="w-3.5 h-3.5 text-blue-600 rounded focus:ring-blue-500"
+                    />
+                    <span>금요일 선호</span>
+                    {isFriday && (
+                      <span className="bg-blue-100 text-blue-800 text-[10px] px-1.5 py-0.2 rounded font-extrabold">
+                        해당일
+                      </span>
+                    )}
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <span className={applyFriday ? 'text-blue-700 font-bold' : 'text-gray-400'}>+</span>
+                    <FormattedModalNumberInput
+                      value={fridayCost}
+                      onChange={val => setFridayCost(val)}
+                      className={`w-20 px-1.5 py-0.5 text-right font-bold bg-white border rounded text-xs ${
+                        applyFriday
+                          ? 'border-blue-400 text-blue-900 font-extrabold'
+                          : 'border-gray-300 text-gray-700'
+                      }`}
+                    />
+                    <span className="text-gray-600">원</span>
+                  </div>
+                </div>
+
+                {/* 4) 월말(25일~말일) 할증 */}
+                <div
+                  className={`p-2.5 rounded-lg flex items-center justify-between gap-2 transition-all ${
+                    applyMonthEnd && monthEndCost > 0
+                      ? 'border-2 border-purple-500 bg-purple-50/60 ring-2 ring-purple-500/15 shadow-2xs'
+                      : 'border border-dashed border-gray-200 bg-gray-50/50 opacity-80'
+                  }`}
+                >
+                  <label className="flex items-center gap-1.5 cursor-pointer font-bold text-gray-800">
+                    <input
+                      type="checkbox"
+                      checked={applyMonthEnd}
+                      onChange={e => setApplyMonthEnd(e.target.checked)}
+                      className="w-3.5 h-3.5 text-purple-600 rounded focus:ring-purple-500"
+                    />
+                    <span>월말(25일~)</span>
+                    {isMonthEnd && (
+                      <span className="bg-purple-100 text-purple-800 text-[10px] px-1.5 py-0.2 rounded font-extrabold">
+                        해당일
+                      </span>
+                    )}
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <span className={applyMonthEnd ? 'text-purple-700 font-bold' : 'text-gray-400'}>+</span>
+                    <FormattedModalNumberInput
+                      value={monthEndCost}
+                      onChange={val => setMonthEndCost(val)}
+                      className={`w-20 px-1.5 py-0.5 text-right font-bold bg-white border rounded text-xs ${
+                        applyMonthEnd
+                          ? 'border-purple-400 text-purple-900 font-extrabold'
+                          : 'border-gray-300 text-gray-700'
+                      }`}
+                    />
+                    <span className="text-gray-600">원</span>
+                  </div>
+                </div>
+
+                {/* 5) 공휴일 / 성수기 수동 할증 */}
+                <div
+                  className={`p-2.5 rounded-lg flex items-center justify-between gap-2 transition-all ${
+                    applyHoliday && holidayCost > 0
+                      ? 'border-2 border-rose-500 bg-rose-50/60 ring-2 ring-rose-500/15 shadow-2xs'
+                      : 'border border-dashed border-gray-200 bg-gray-50/50 opacity-80'
+                  }`}
+                >
+                  <label className="flex items-center gap-1.5 cursor-pointer font-bold text-gray-800">
+                    <input
+                      type="checkbox"
+                      checked={applyHoliday}
+                      onChange={e => setApplyHoliday(e.target.checked)}
+                      className="w-3.5 h-3.5 text-rose-600 rounded focus:ring-rose-500"
+                    />
+                    <span>공휴일/성수기</span>
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <span className={applyHoliday ? 'text-rose-700 font-bold' : 'text-gray-400'}>+</span>
+                    <FormattedModalNumberInput
+                      value={holidayCost}
+                      onChange={val => setHolidayCost(val)}
+                      className={`w-20 px-1.5 py-0.5 text-right font-bold bg-white border rounded text-xs ${
+                        applyHoliday
+                          ? 'border-rose-400 text-rose-900 font-extrabold'
+                          : 'border-gray-300 text-gray-700'
+                      }`}
+                    />
+                    <span className="text-gray-600">원</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 6. 마진율 설정 및 총 원가 종합 카드 */}
           <div className="bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100/60 p-4 rounded-2xl border-2 border-amber-300/80 shadow-xs space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200/80 pb-2.5">
               <div>
@@ -1596,6 +2003,11 @@ export function CostCalculatorModal({
                 </span>
                 <p className="text-[11px] text-amber-800">
                   총 원가: <strong className="font-bold">{totalCost.toLocaleString()}원</strong> (인건비 {totalLaborCost.toLocaleString()} + 차량·용차·거리 {totalVehicleCost.toLocaleString()} + 자재비 {totalMaterialCost.toLocaleString()}{totalEquipmentCost > 0 ? ` + 장비비 ${totalEquipmentCost.toLocaleString()}` : ''})
+                  {totalCalendarSurcharge > 0 && (
+                    <span className="text-indigo-800 font-bold ml-1">
+                      | 일정할증 +{totalCalendarSurcharge.toLocaleString()}원
+                    </span>
+                  )}
                 </p>
               </div>
 
@@ -1630,7 +2042,7 @@ export function CostCalculatorModal({
             </div>
 
             {/* 최종 산출 금액 요약 */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center pt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 items-center pt-1">
               <div className="bg-white/80 p-2.5 rounded-xl border border-amber-200">
                 <span className="text-[11px] text-gray-500 font-medium">총 소요 원가</span>
                 <p className="text-base font-extrabold text-gray-800">
@@ -1642,6 +2054,13 @@ export function CostCalculatorModal({
                 <span className="text-[11px] text-gray-500 font-medium">회사 마진액 ({marginRate}%)</span>
                 <p className="text-base font-extrabold text-emerald-700">
                   +{marginAmount.toLocaleString()} <span className="text-xs font-normal">원</span>
+                </p>
+              </div>
+
+              <div className="bg-white/80 p-2.5 rounded-xl border border-indigo-200">
+                <span className="text-[11px] text-gray-500 font-medium">캘린더·일정 할증</span>
+                <p className="text-base font-extrabold text-indigo-700">
+                  +{totalCalendarSurcharge.toLocaleString()} <span className="text-xs font-normal">원</span>
                 </p>
               </div>
 
