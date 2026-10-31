@@ -158,16 +158,16 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
       }} />
 
       {/* 상단 액션 바 (태블릿 및 모바일 한 줄 최적화, 인쇄 시 숨김) */}
-      <div className="flex items-center justify-between gap-2 bg-white px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl border border-gray-200/80 shadow-xs print:hidden">
-        <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
-          <h1 className="text-base sm:text-lg md:text-xl font-black text-gray-900 whitespace-nowrap">
-            견적·계약서 상세
+      <div className="flex items-center justify-between gap-1.5 sm:gap-2 bg-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl border border-gray-200/80 shadow-xs print:hidden">
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 shrink-0">
+          <h1 className="text-sm sm:text-base md:text-lg font-black text-gray-900 whitespace-nowrap">
+            견적·계약 상세
           </h1>
-          <span className="text-xs sm:text-sm font-mono font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200 shrink-0">
+          <span className="text-[11px] sm:text-xs font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 shrink-0 whitespace-nowrap">
             {estimate.id}
           </span>
         </div>
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           <CustomerPreMoveSmsTrigger
             variant="header"
             estimateId={estimate.id}
@@ -188,15 +188,15 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
           <PrintButton />
           <Link 
             href="/estimates" 
-            className="px-2.5 sm:px-3 py-1.5 sm:py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs sm:text-sm font-bold transition-all border border-gray-300 shadow-xs shrink-0 whitespace-nowrap"
+            className="px-2 sm:px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-all border border-gray-300 shadow-xs shrink-0 whitespace-nowrap"
           >
-            목록으로
+            목록
           </Link>
           <Link 
             href={`/estimates/${estimate.id}/edit`} 
-            className="px-2.5 sm:px-3 py-1.5 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-xs shrink-0 whitespace-nowrap"
+            className="px-2 sm:px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs shrink-0 whitespace-nowrap"
           >
-            수정하기
+            수정
           </Link>
         </div>
       </div>

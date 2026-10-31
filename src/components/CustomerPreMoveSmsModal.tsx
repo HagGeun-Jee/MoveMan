@@ -1084,16 +1084,17 @@ export function CustomerPreMoveSmsTrigger({
       <button
         type="button"
         onClick={() => setOpen(true)}
+        title="이사 전 고객 당부사항 및 처리구분 사전표기 문자/발송예약"
         className={
           variant === 'header'
-            ? 'px-2.5 sm:px-3 py-1.5 sm:py-2 bg-indigo-600 border border-indigo-600 rounded-lg text-xs sm:text-sm font-bold text-white hover:bg-indigo-700 shadow-xs transition-all flex items-center gap-1.5 whitespace-nowrap print:hidden'
+            ? 'px-2 sm:px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1 shrink-0 whitespace-nowrap print:hidden'
             : 'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold transition-colors print:hidden'
         }
       >
-        <MessageSquareText size={15} />
-        <span>사전안내 문자/예약</span>
+        <MessageSquareText size={13} className="shrink-0" />
+        <span>{variant === 'header' ? '안내문자' : '사전안내 문자/예약'}</span>
         {reservedCount > 0 && (
-          <span className="px-1.5 py-0.2 bg-amber-300 text-amber-950 rounded-full text-[10px] font-extrabold">
+          <span className="px-1.5 py-0.2 bg-amber-300 text-amber-950 rounded-full text-[10px] font-extrabold leading-none">
             {reservedCount}
           </span>
         )}
