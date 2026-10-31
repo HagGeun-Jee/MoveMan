@@ -54,6 +54,9 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
 
   const envObj = safeJsonParse(estimate.environment, {})
   const specialNotes = typeof envObj.specialNotes === 'string' ? envObj.specialNotes.trim() : ''
+  const installRequestItems: string[] = Array.isArray(envObj.installRequestItems)
+    ? envObj.installRequestItems.filter(Boolean)
+    : []
   const payPlanObj = safeJsonParse(estimate.paymentPlan, {})
   const rawItems = safeJsonParse(estimate.cbmItems, [])
   const items = Array.isArray(rawItems)
@@ -389,6 +392,31 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                     )}
                   </td>
                 </tr>
+                {installRequestItems.length > 0 && (
+                  <tr>
+                    <th className="border border-gray-300 bg-indigo-50/70 print:bg-gray-100 px-2.5 py-1.5 print:px-2 print:py-1 text-left font-bold text-gray-900 whitespace-nowrap align-middle">
+                      업체 설치 의뢰
+                    </th>
+                    <td colSpan={3} className="border border-gray-300 px-2.5 py-1.5 print:px-2 print:py-1 font-semibold text-gray-900">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {installRequestItems.map((itemName: string, idx: number) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-800 border border-indigo-200 text-xs print:text-[10.5px] font-bold print:bg-transparent print:border-gray-500 print:text-black print:px-1.5 print:py-0"
+                            >
+                              <span className="text-indigo-600 print:text-black font-black">☑</span>
+                              <span>{itemName}</span>
+                            </span>
+                          ))}
+                        </div>
+                        <span className="text-xs print:text-[10.5px] font-bold text-rose-600 print:text-black whitespace-nowrap">
+                          ※ 위 품목은 운반작업만 진행합니다.
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                )}
                 {specialNotes && (
                   <tr>
                     <th className="border border-gray-300 bg-amber-50/80 print:bg-gray-100 px-2.5 py-1.5 print:px-2 print:py-1 text-left font-bold text-gray-900 whitespace-nowrap align-top">특기사항</th>

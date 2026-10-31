@@ -112,6 +112,12 @@ export async function createEstimate(formData: FormData) {
     ladderFromCost: parseInt((formData.get('ladderFromCost') as string) || parsedEnv.ladderFromCost || '0', 10),
     ladderToCost: parseInt((formData.get('ladderToCost') as string) || parsedEnv.ladderToCost || '0', 10),
     ladderTotalCost: parseInt((formData.get('ladderTotalCost') as string) || parsedEnv.ladderTotalCost || '0', 10),
+    deadSpaceRatio: formData.get('deadSpaceRatio') !== null
+      ? Number(formData.get('deadSpaceRatio'))
+      : (parsedEnv.deadSpaceRatio !== undefined ? Number(parsedEnv.deadSpaceRatio) : 0),
+    installRequestItems: formData.get('installRequestItems')
+      ? JSON.parse(formData.get('installRequestItems') as string)
+      : (Array.isArray(parsedEnv.installRequestItems) ? parsedEnv.installRequestItems : []),
     specialNotes: String(formData.get('specialNotes') ?? parsedEnv.specialNotes ?? '').trim(),
   }
   const environment = JSON.stringify(environmentObj)
@@ -241,6 +247,12 @@ export async function updateEstimate(formData: FormData) {
     ladderFromCost: parseInt((formData.get('ladderFromCost') as string) || parsedEnv.ladderFromCost || '0', 10),
     ladderToCost: parseInt((formData.get('ladderToCost') as string) || parsedEnv.ladderToCost || '0', 10),
     ladderTotalCost: parseInt((formData.get('ladderTotalCost') as string) || parsedEnv.ladderTotalCost || '0', 10),
+    deadSpaceRatio: formData.get('deadSpaceRatio') !== null
+      ? Number(formData.get('deadSpaceRatio'))
+      : (parsedEnv.deadSpaceRatio !== undefined ? Number(parsedEnv.deadSpaceRatio) : 0),
+    installRequestItems: formData.get('installRequestItems')
+      ? JSON.parse(formData.get('installRequestItems') as string)
+      : (Array.isArray(parsedEnv.installRequestItems) ? parsedEnv.installRequestItems : []),
     specialNotes: String(formData.get('specialNotes') ?? parsedEnv.specialNotes ?? '').trim(),
   }
   const environment = JSON.stringify(environmentObj)

@@ -10,7 +10,7 @@ import { getDistance } from '@/app/actions/distance'
 import { getLadderFares } from '@/app/actions/ladder'
 import type { LadderFareItem } from '@/types/ladder'
 import DaumPostcodeEmbed from 'react-daum-postcode'
-import { MapPin, Search, ChevronDown, ChevronUp, Navigation, RefreshCw, Car, AlertCircle, CheckCircle2, Calculator, Truck, Plus, FileText, Sparkles, Zap, Smartphone, Table, Trash2, Coins, CreditCard, PackagePlus, X } from 'lucide-react'
+import { MapPin, Search, ChevronDown, ChevronUp, Navigation, RefreshCw, Car, AlertCircle, CheckCircle2, Calculator, Truck, Plus, FileText, Sparkles, Zap, Smartphone, Table, Trash2, Coins, CreditCard, PackagePlus, X, Wrench } from 'lucide-react'
 import { CustomDatePicker } from '@/components/CustomDatePicker'
 import { format } from 'date-fns'
 import { formatPhoneNumber, handlePhoneInputChange, handleSelectAllOnFocus } from '@/lib/format'
@@ -426,6 +426,80 @@ export function EstimateForm({
   const handleRoundTollFareChange = (val: number) => {
     setRoundTollFare(val)
     setTollFare(Math.round(val / 2))
+  }
+
+  // 업체 설치 의뢰 품목 (체크박스 선택 + 사용자 추가 항목)
+  const DEFAULT_INSTALL_REQUEST_OPTIONS = [
+    'TV 벽걸이',
+    '에어컨',
+    '정수기',
+    '비데',
+    '식기세척기',
+    '붙박이장',
+    '시스템행거',
+    '워시타워/건조기',
+    '가스/인덕션',
+    '커튼/블라인드',
+    '도어락',
+    '조명/샹들리에',
+  ]
+  const [installRequestItems, setInstallRequestItems] = useState<string[]>(
+    Array.isArray(envObj.installRequestItems) ? envObj.installRequestItems : []
+  )
+  const [customInstallOptions, setCustomInstallOptions] = useState<string[]>([])
+  const [newInstallOptionInput, setNewInstallOptionInput] = useState<string>('')
+
+  useEffect(() => {
+    try {
+      const savedCustom = localStorage.getItem('meman_custom_install_options')
+      if (savedCustom) {
+        const parsed = JSON.parse(savedCustom)
+        if (Array.isArray(parsed)) {
+          setCustomInstallOptions(parsed)
+        }
+      }
+    } catch {}
+  }, [])
+
+  const allInstallOptions = useMemo(() => {
+    return Array.from(
+      new Set([
+        ...DEFAULT_INSTALL_REQUEST_OPTIONS,
+        ...customInstallOptions,
+        ...installRequestItems,
+      ])
+    )
+  }, [customInstallOptions, installRequestItems])
+
+  const handleToggleInstallItem = (item: string) => {
+    setInstallRequestItems(prev =>
+      prev.includes(item) ? prev.filter(i => i !== item) : [...prev, item]
+    )
+  }
+
+  const handleAddCustomInstallOption = () => {
+    const trimmed = newInstallOptionInput.trim()
+    if (!trimmed) return
+    if (!DEFAULT_INSTALL_REQUEST_OPTIONS.includes(trimmed) && !customInstallOptions.includes(trimmed)) {
+      const nextCustom = [...customInstallOptions, trimmed]
+      setCustomInstallOptions(nextCustom)
+      try {
+        localStorage.setItem('meman_custom_install_options', JSON.stringify(nextCustom))
+      } catch {}
+    }
+    if (!installRequestItems.includes(trimmed)) {
+      setInstallRequestItems(prev => [...prev, trimmed])
+    }
+    setNewInstallOptionInput('')
+  }
+
+  const handleRemoveCustomInstallOption = (item: string) => {
+    const nextCustom = customInstallOptions.filter(i => i !== item)
+    setCustomInstallOptions(nextCustom)
+    setInstallRequestItems(prev => prev.filter(i => i !== item))
+    try {
+      localStorage.setItem('meman_custom_install_options', JSON.stringify(nextCustom))
+    } catch {}
   }
 
   // 특기사항 (내용이 없으면 조회/출력 시 숨김)
@@ -853,7 +927,11 @@ export function EstimateForm({
   const [cbmWidth, setCbmWidth] = useState<number | ''>('')
   const [cbmHeight, setCbmHeight] = useState<number | ''>('')
 
-  const [deadSpaceRatio, setDeadSpaceRatio] = useState(20)
+  const [deadSpaceRatio, setDeadSpaceRatio] = useState<number>(
+    envObj.deadSpaceRatio !== undefined && !isNaN(Number(envObj.deadSpaceRatio))
+      ? Number(envObj.deadSpaceRatio)
+      : 0
+  )
   const totalCbm = items.reduce((acc, item) => acc + getItemEffectiveCbm(item), 0)
   const requiredCbm = totalCbm * (1 + deadSpaceRatio / 100)
 
@@ -923,22 +1001,27 @@ export function EstimateForm({
     alert(`AI가 분석한 ${aiItems.length}개 품목이 견적서에 성공적으로 반영되었습니다!`)
   }
 
+  const [vehicleRecommendationReason, setVehicleRecommendationReason] = useState<string>('')
+
   const handleRecommendVehicles = () => {
-    // 5톤, 2.5톤, 1톤 3종 차량을 우선 조합 대상으로 필터링
+    // 5톤, 2.5톤, 1톤 3종 차량을 우선 조합 대상으로 필터링 (부족한 톤수가 있으면 표준 스펙 자동 보완)
     let valid = standardVehicles.filter(v => 
       (v.name.includes('5톤') || v.name.includes('2.5톤') || v.name.includes('1톤')) && (v.maxCbm || 0) > 0
     )
-    if (valid.length === 0) {
-      valid = standardVehicles.filter(v => (v.maxCbm || 0) > 0)
+    if (!valid.some(v => v.name.includes('5톤'))) {
+      valid.push({ id: 'std_vehicle_5t', name: '5톤 탑차', defaultCost: 400000, maxCbm: 31, tonnage: 5 } as any)
     }
-    if (valid.length === 0) {
-      alert("차량 기초정보에 5톤, 2.5톤, 1톤 차량이 없습니다. 차량정보 관리에서 먼저 설정해주세요.")
-      return
+    if (!valid.some(v => v.name.includes('2.5톤'))) {
+      valid.push({ id: 'std_vehicle_2_5t', name: '2.5톤 탑차', defaultCost: 250000, maxCbm: 15, tonnage: 2.5 } as any)
+    }
+    if (!valid.some(v => v.name.includes('1톤') && !v.name.includes('11톤'))) {
+      valid.push({ id: 'std_vehicle_1t', name: '1톤 탑차', defaultCost: 150000, maxCbm: 7, tonnage: 1 } as any)
     }
     
     const target = Math.ceil(requiredCbm * 100)
     if (target <= 0) {
       setVehicles([])
+      setVehicleRecommendationReason('필요 적재 CBM이 0이므로 투입 차량이 초기화되었습니다.')
       return
     }
     
@@ -1007,8 +1090,15 @@ export function EstimateForm({
       recommendationMap[v.id].count += 1
       curr -= Math.ceil(v.maxCbm * 100)
     }
-    
-    setVehicles(Object.values(recommendationMap))
+
+    const recommendedList = Object.values(recommendationMap).sort((a: any, b: any) => (b.maxCbm || 0) - (a.maxCbm || 0))
+    setVehicles(recommendedList)
+
+    const totalProvidedCbm = recommendedList.reduce((acc: number, v: any) => acc + (v.maxCbm || 0) * (v.count || 1), 0)
+    const summaryDesc = recommendedList.map((v: any) => `${v.name} ${v.count}대(${(v.maxCbm || 0) * v.count} CBM)`).join(' + ')
+    setVehicleRecommendationReason(
+      `필요 적재량 ${requiredCbm.toFixed(2)} CBM (데드스페이스 ${deadSpaceRatio}%) → ${summaryDesc} [총 적재용량 ${totalProvidedCbm} CBM] 최적 배차 추천 완료`
+    )
   }
 
   const [laborRecommendationReason, setLaborRecommendationReason] = useState<string>('')
@@ -1019,46 +1109,46 @@ export function EstimateForm({
       return
     }
 
-    // 인원 산출 기준: 적재 대상 순수 물품 CBM (totalCbm)
-    const cbm = totalCbm
+    // 인원 산출 기준: 필요 적재 CBM (데드스페이스 기본 0% 적용 시 순수 물품 CBM과 동일)
+    const cbm = requiredCbm
     if (cbm <= 0) {
       setLabors([])
       setLaborRecommendationReason('적재 물품 CBM이 0이므로 작업 인원이 초기화되었습니다.')
       return
     }
 
-    // 1. 기본 인원 산출 (적재 CBM 및 이사종류 기준 표준 매칭)
+    // 1. 기본 인원 산출 (데드스페이스 0% 기준 차량 톤수별 최대 적재 CBM과 매칭)
     const isPacking = movingType === 'P' || (movingType === 'K' && organizeStatus === '정리')
     let baseMale = 0
     let baseFemale = 0
 
-    if (cbm < 6.0) {
-      // 1톤 1대 (원룸 / 소형)
+    if (cbm <= 7.0) {
+      // 1톤 1대 (원룸 / 소형, ~7 CBM)
       baseMale = 1
       baseFemale = 0
-    } else if (cbm < 14.0) {
-      // 2.5톤 1대 (투룸 / 신혼)
+    } else if (cbm <= 15.0) {
+      // 2.5톤 1대 (투룸 / 신혼, ~15 CBM)
       baseMale = 2
       baseFemale = isPacking ? 1 : 0
-    } else if (cbm < 26.0) {
-      // 5톤 1대 (20~28평형 표준 가정)
+    } else if (cbm <= 31.0) {
+      // 5톤 1대 (20~30평형 표준 가정, ~31 CBM)
       baseMale = 3
       baseFemale = isPacking ? 1 : 0
-    } else if (cbm < 32.0) {
-      // 5톤 1대 + 1톤 1대 (32~34평형)
+    } else if (cbm <= 38.0) {
+      // 5톤 1대 + 1톤 1대 [6톤] (32~34평형, ~38 CBM)
       baseMale = 4
       baseFemale = isPacking ? 1 : 0
-    } else if (cbm < 40.0) {
-      // 5톤 1대 + 2.5톤 1대 (34평 짐 많음 / 40평형)
+    } else if (cbm <= 46.0) {
+      // 5톤 1대 + 2.5톤 1대 [7.5톤] (34평 짐 많음 / 40평형, ~46 CBM)
       baseMale = 4
       baseFemale = isPacking ? 1 : 0
-    } else if (cbm < 52.0) {
-      // 5톤 2대 (40평형 이상 대형)
+    } else if (cbm <= 62.0) {
+      // 5톤 2대 [10톤] (45평형 이상 대형, ~62 CBM)
       baseMale = 5
       baseFemale = isPacking ? 2 : 1
     } else {
-      // 5톤 2대 초과 초대형
-      baseMale = 5 + Math.ceil((cbm - 52.0) / 15)
+      // 5톤 2대 초과 초대형 (62 CBM 초과)
+      baseMale = 5 + Math.ceil((cbm - 62.0) / 15)
       baseFemale = isPacking ? 2 : 1
     }
 
@@ -1224,6 +1314,8 @@ export function EstimateForm({
           else if (envObj.roundTollFare !== undefined) setRoundTollFare(Number(envObj.roundTollFare))
           else if (draft.tollFare) setRoundTollFare(draft.tollFare * 2)
           if (typeof draft.specialNotes === 'string') setSpecialNotes(draft.specialNotes)
+          if (Array.isArray(draft.installRequestItems)) setInstallRequestItems(draft.installRequestItems)
+          else if (Array.isArray(envObj.installRequestItems)) setInstallRequestItems(envObj.installRequestItems)
           
           if (draft.ladderTonnage) setLadderTonnage(draft.ladderTonnage)
           else if (envObj.ladderTonnage) setLadderTonnage(envObj.ladderTonnage)
@@ -1241,7 +1333,13 @@ export function EstimateForm({
           if (draft.items && draft.items.length > 0) {
             setItems(draft.items.map((i: any) => ensureItemUid({ ...i, treatment: i.treatment || '이동' })))
           }
-          if (draft.deadSpaceRatio !== undefined) setDeadSpaceRatio(draft.deadSpaceRatio)
+          if (envObj.deadSpaceRatio !== undefined) {
+            setDeadSpaceRatio(Number(envObj.deadSpaceRatio))
+          } else if (draft.deadSpaceRatio !== undefined && Number(draft.deadSpaceRatio) !== 20) {
+            setDeadSpaceRatio(Number(draft.deadSpaceRatio))
+          } else {
+            setDeadSpaceRatio(0)
+          }
 
           if (draft.movingCost !== undefined) setMovingCost(draft.movingCost)
           if (draft.additionalCost !== undefined) setAdditionalCost(draft.additionalCost)
@@ -1294,7 +1392,18 @@ export function EstimateForm({
         return (a.spec || '').localeCompare(b.spec || '', 'ko')
       })
       setStandardItems(sortedStandardItems)
-      setStandardVehicles(vehiclesRes)
+      // 차량 기준정보에 5톤, 2.5톤, 1톤 표준 차량이 누락된 경우 기본 옵션 보완
+      const augmentedVehicles: any[] = [...vehiclesRes]
+      if (!augmentedVehicles.some((v: any) => v.name?.includes('5톤'))) {
+        augmentedVehicles.push({ id: 'std_vehicle_5t', name: '5톤 탑차', defaultCost: 400000, maxCbm: 31, tonnage: 5 })
+      }
+      if (!augmentedVehicles.some((v: any) => v.name?.includes('2.5톤'))) {
+        augmentedVehicles.push({ id: 'std_vehicle_2_5t', name: '2.5톤 탑차', defaultCost: 250000, maxCbm: 15, tonnage: 2.5 })
+      }
+      if (!augmentedVehicles.some((v: any) => v.name?.includes('1톤') && !v.name?.includes('11톤'))) {
+        augmentedVehicles.push({ id: 'std_vehicle_1t', name: '1톤 탑차', defaultCost: 150000, maxCbm: 7, tonnage: 1 })
+      }
+      setStandardVehicles(augmentedVehicles)
       setStandardLabors(laborsRes)
       setCategories(catsRes)
       if (costStandardsRes) {
@@ -1412,6 +1521,7 @@ export function EstimateForm({
       movingCost > 0 || 
       additionalCost > 0 ||
       specialNotes.trim() ||
+      installRequestItems.length > 0 ||
       (items && items.some(i => (i.quantity || 0) > 0))
     )
     if (!hasContent) return
@@ -1441,6 +1551,7 @@ export function EstimateForm({
           ratePerKm,
           tollFare,
           roundTollFare,
+          installRequestItems,
           specialNotes,
           ladderTonnage,
           appliedLadderCost,
@@ -1496,6 +1607,7 @@ export function EstimateForm({
     ratePerKm,
     tollFare,
     roundTollFare,
+    installRequestItems,
     specialNotes,
     ladderTonnage,
     appliedLadderCost,
@@ -1558,6 +1670,8 @@ export function EstimateForm({
     ladderFromCost: fromLadderCalc.cost,
     ladderToCost: toLadderCalc.cost,
     ladderTotalCost: totalLadderCost,
+    deadSpaceRatio,
+    installRequestItems,
     specialNotes: specialNotes.trim(),
   }
   const currentEnvironmentStr = JSON.stringify(currentEnvironmentObj)
@@ -2516,6 +2630,113 @@ export function EstimateForm({
                   </td>
                 </tr>
 
+                {/* 업체 설치 의뢰 품목 (체크박스 선택 및 직접 추가) */}
+                <tr>
+                  <th className="whitespace-nowrap bg-indigo-50/80 border border-gray-200 px-2 sm:px-3 py-2 text-left font-bold text-indigo-950 align-top w-20 sm:w-24 md:w-28">
+                    <div className="flex items-center gap-1.5">
+                      <Wrench size={15} className="text-indigo-600" />
+                      <span>업체 설치 의뢰</span>
+                    </div>
+                    <span className="block text-[10px] sm:text-[11px] font-normal text-indigo-700 mt-0.5">
+                      전문업체 설치품목
+                    </span>
+                  </th>
+                  <td colSpan={3} className="border border-gray-200 p-2.5 sm:p-3 space-y-2.5">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                      {allInstallOptions.map(option => {
+                        const isChecked = installRequestItems.includes(option)
+                        const isCustom = !DEFAULT_INSTALL_REQUEST_OPTIONS.includes(option)
+                        return (
+                          <div key={option} className="inline-flex items-center">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleInstallItem(option)}
+                              className={`px-2.5 py-1 rounded-lg text-xs sm:text-sm font-medium border transition-all flex items-center gap-1.5 shadow-2xs whitespace-nowrap ${
+                                isChecked
+                                  ? 'bg-indigo-600 border-indigo-600 text-white font-bold ring-1 ring-indigo-300'
+                                  : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100'
+                              }`}
+                            >
+                              <span
+                                className={`w-3.5 h-3.5 rounded flex items-center justify-center text-[10px] font-bold ${
+                                  isChecked ? 'bg-white text-indigo-600' : 'border border-gray-400 bg-gray-50'
+                                }`}
+                              >
+                                {isChecked ? '✓' : ''}
+                              </span>
+                              <span>{option}</span>
+                            </button>
+                            {isCustom && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveCustomInstallOption(option)}
+                                title="사용자 추가 항목 삭제"
+                                className="-ml-1 px-1 py-1 text-gray-400 hover:text-red-500 text-xs"
+                              >
+                                <X size={12} />
+                              </button>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+
+                    {/* 직접 추가 입력 바 */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-dashed border-gray-200">
+                      <div className="flex items-center gap-1.5 flex-1 min-w-[220px] max-w-sm">
+                        <input
+                          type="text"
+                          lang="ko"
+                          inputMode="text"
+                          style={{ imeMode: 'active' } as React.CSSProperties}
+                          value={newInstallOptionInput}
+                          onChange={e => setNewInstallOptionInput(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              handleAddCustomInstallOption()
+                            }
+                          }}
+                          placeholder="기타 설치 의뢰 품목 직접 추가 (예: 천장형 건조대)"
+                          className="flex-1 rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-xs sm:text-sm text-gray-800 outline-none focus:border-indigo-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddCustomInstallOption}
+                          disabled={!newInstallOptionInput.trim()}
+                          className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 disabled:bg-gray-100 text-indigo-700 disabled:text-gray-400 border border-indigo-200 disabled:border-gray-200 text-xs font-bold whitespace-nowrap transition-colors flex items-center gap-1"
+                        >
+                          <Plus size={12} />
+                          <span>목록 추가</span>
+                        </button>
+                      </div>
+
+                      {installRequestItems.length > 0 && (
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <span className="text-indigo-800 font-bold">
+                            선택됨 ({installRequestItems.length}건):
+                          </span>
+                          <span className="text-gray-700 font-medium">
+                            {installRequestItems.join(', ')}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setInstallRequestItems([])}
+                            className="text-[11px] text-gray-400 hover:text-red-500 underline ml-1"
+                          >
+                            초기화
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-rose-600 bg-rose-50/70 px-2.5 py-1.5 rounded-lg border border-rose-200/80">
+                      <AlertCircle size={13} className="text-rose-600 shrink-0" />
+                      <span>위 품목은 운반작업만 진행합니다.</span>
+                    </div>
+                  </td>
+                </tr>
+
                 {/* 특기사항 (선택 입력, 내용 없으면 조회/출력 시 미표시) */}
                 <tr>
                   <th className="whitespace-nowrap bg-amber-50/80 border border-gray-200 px-2 sm:px-3 py-2 text-left font-bold text-amber-950 align-top w-20 sm:w-24 md:w-28">
@@ -2562,6 +2783,8 @@ export function EstimateForm({
           <input type="hidden" name="ladderTotalCost" value={totalLadderCost} />
           <input type="hidden" name="tollFare" value={tollFare} />
           <input type="hidden" name="roundTollFare" value={roundTollFare} />
+          <input type="hidden" name="deadSpaceRatio" value={deadSpaceRatio} />
+          <input type="hidden" name="installRequestItems" value={JSON.stringify(installRequestItems)} />
           <input type="hidden" name="environment" value={currentEnvironmentStr} />
         </div>
 
@@ -3415,6 +3638,11 @@ export function EstimateForm({
                     최적 차량 추천
                   </button>
                 </div>
+                {vehicleRecommendationReason && (
+                  <div className="text-[11px] text-blue-800 bg-white/80 p-1.5 rounded border border-blue-200 leading-tight font-medium">
+                    💡 {vehicleRecommendationReason}
+                  </div>
+                )}
               </div>
 
               {vehicles.length > 0 && (
@@ -3463,7 +3691,7 @@ export function EstimateForm({
                   if(!e.target.value) return;
                   const item = standardVehicles.find(i => i.id === e.target.value)
                   if(item && !vehicles.find(v => v.id === item.id)) {
-                    setVehicles([...vehicles, { id: item.id, name: item.name, cost: item.defaultCost, count: 1 }])
+                    setVehicles([...vehicles, { id: item.id, name: item.name, cost: item.defaultCost, count: 1, maxCbm: item.maxCbm }])
                   }
                   e.target.value = ''
                 }}
