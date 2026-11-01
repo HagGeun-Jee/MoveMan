@@ -10,6 +10,14 @@ import { useState, useEffect } from 'react'
 export default function LoginPage() {
   const [state, formAction, isPending] = useActionState(login, null)
   const [installedAppVersion, setInstalledAppVersion] = useState<string | null>(null)
+  const [isForceDisabledLogout, setIsForceDisabledLogout] = useState(false)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.search.includes('disabled=1')) {
+      setIsForceDisabledLogout(true)
+      window.alert('[로그인 불가 알림]\n\n해당 계정이 사용중지(사용불가) 처리되어 로그아웃되었습니다. 관리자에게 문의해주세요.')
+    }
+  }, [])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -68,6 +76,12 @@ export default function LoginPage() {
       return () => clearInterval(timer)
     }
   }, [])
+
+  useEffect(() => {
+    if (state?.isDisabled && state?.error) {
+      window.alert(`[로그인 불가 알림]\n\n${state.error}`)
+    }
+  }, [state?.attemptAt, state?.isDisabled, state?.error])
 
   const isUpToDate = installedAppVersion 
     ? installedAppVersion.replace(/^v/, '').trim() === APP_RELEASE_INFO.version.replace(/^v/, '').trim()
@@ -128,8 +142,20 @@ export default function LoginPage() {
             />
           </div>
           
-          {state?.error && (
-            <p className="text-sm text-red-600">{state.error}</p>
+          {(state?.error || isForceDisabledLogout) && (
+            (state?.isDisabled || isForceDisabledLogout) ? (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3.5 text-left shadow-2xs">
+                <div className="flex items-center gap-1.5 text-red-700 font-bold text-xs mb-1">
+                  <span>🚫</span>
+                  <span>계정 사용불가 알림</span>
+                </div>
+                <p className="text-xs text-red-600 font-medium leading-relaxed">
+                  {state?.error || '해당 계정이 사용중지(사용불가) 처리되어 로그아웃되었습니다. 관리자에게 문의해주세요.'}
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-red-600 font-medium">{state?.error}</p>
+            )
           )}
 
           <button 

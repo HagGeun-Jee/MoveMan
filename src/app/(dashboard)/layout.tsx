@@ -11,11 +11,22 @@ import { SyncStatusBar } from '@/components/SyncStatusBar'
 import { GlobalBackExitHandler } from '@/components/GlobalBackExitHandler'
 
 import prisma from '@/lib/prisma'
+import { verifyActiveAdmin } from '@/lib/adminSchema'
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies()
   const cookie = cookieStore.get('session')?.value
   const session = await decrypt(cookie)
+
+  if (!session?.userId) {
+    redirect('/login')
+  }
+
+  const isActive = await verifyActiveAdmin(session.userId as string)
+  if (!isActive) {
+    redirect('/api/auth/logout?disabled=1')
+  }
+
   const permissions = await prisma.menuPermission.findMany()
 
   return (

@@ -1,26 +1,28 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { ensureStandLampItems } from '@/app/actions/item'
+import { verifyActiveAdmin } from '@/lib/adminSchema'
 import { cookies } from 'next/headers'
 import { decrypt } from '@/lib/session'
 
 export async function GET(request: Request) {
   try {
-    const syncToken = request.headers.get('x-sync-token')
     const cookieStore = await cookies()
     const sessionCookie = cookieStore.get('session')?.value
     const session = await decrypt(sessionCookie)
 
-    const isAppClient = syncToken === 'meman-sync-auth-token-2026'
-    if (!session?.userId && !isAppClient) {
+    if (!session?.userId) {
       return NextResponse.json(
         { error: '인증되지 않은 요청입니다. 로그인 상태를 확인해주세요.' }, 
-        { 
-          status: 401,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Headers': '*'
-          }
-        }
+        { status: 401 }
+      )
+    }
+
+    const isActive = await verifyActiveAdmin(session.userId as string)
+    if (!isActive) {
+      return NextResponse.json(
+        { error: '사용이 중지된 계정입니다. 동기화를 진행할 수 없습니다.' },
+        { status: 403 }
       )
     }
 
@@ -29,6 +31,7 @@ export async function GET(request: Request) {
     const sinceDate = sinceStr ? new Date(sinceStr) : null
 
     // 1. 기준정보 마스터 데이터 순차 조회 (DB 커넥션 풀 고갈 방지)
+    await ensureStandLampItems()
     const categories = await prisma.locationCategory.findMany({ orderBy: { order: 'asc' } })
     const standardItems = await prisma.standardItem.findMany({ include: { locations: true } })
     const vehicles = await prisma.vehicleMaster.findMany()

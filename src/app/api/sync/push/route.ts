@@ -1,27 +1,28 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { verifyActiveAdmin } from '@/lib/adminSchema'
 import { cookies } from 'next/headers'
 import { decrypt } from '@/lib/session'
 import { format } from 'date-fns'
 
 export async function POST(request: Request) {
   try {
-    const syncToken = request.headers.get('x-sync-token')
     const cookieStore = await cookies()
     const sessionCookie = cookieStore.get('session')?.value
     const session = await decrypt(sessionCookie)
 
-    const isAppClient = syncToken === 'meman-sync-auth-token-2026'
-    if (!session?.userId && !isAppClient) {
+    if (!session?.userId) {
       return NextResponse.json(
         { error: '인증되지 않은 요청입니다. 로그인 상태를 확인해주세요.' }, 
-        { 
-          status: 401,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Headers': '*'
-          }
-        }
+        { status: 401 }
+      )
+    }
+
+    const isActive = await verifyActiveAdmin(session.userId as string)
+    if (!isActive) {
+      return NextResponse.json(
+        { error: '사용이 중지된 계정입니다. 동기화를 진행할 수 없습니다.' },
+        { status: 403 }
       )
     }
 

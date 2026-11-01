@@ -76,7 +76,64 @@ export async function updateStandardItem(id: string, formData: FormData) {
   }
 }
 
+let isStandLampSeeded = false
+
+export async function ensureStandLampItems() {
+  if (isStandLampSeeded) return
+  try {
+    const existing = await prisma.standardItem.count({
+      where: { name: '스탠드등' }
+    })
+    if (existing >= 5) {
+      isStandLampSeeded = true
+      return
+    }
+
+    const allLocations = await prisma.locationCategory.findMany()
+    const targetLocNames = ['거실', '안방', '침실', '작은방', '서재']
+    const matchedLocs = allLocations.filter(loc =>
+      targetLocNames.some(t => loc.name.includes(t))
+    )
+
+    const standLamps = [
+      { name: '스탠드등', spec: '단스탠드(소형/협탁용)', defaultCbm: 0.1, defaultInnerCbm: 0 },
+      { name: '스탠드등', spec: '책상스탠드(자바라/LED)', defaultCbm: 0.1, defaultInnerCbm: 0 },
+      { name: '스탠드등', spec: '장스탠드(일반 일자형)', defaultCbm: 0.3, defaultInnerCbm: 0 },
+      { name: '스탠드등', spec: '장스탠드(선반형/다구형)', defaultCbm: 0.4, defaultInnerCbm: 0 },
+      { name: '스탠드등', spec: '장스탠드(아치형/대형)', defaultCbm: 0.5, defaultInnerCbm: 0 },
+    ]
+
+    for (const lamp of standLamps) {
+      await prisma.standardItem.upsert({
+        where: {
+          name_spec: {
+            name: lamp.name,
+            spec: lamp.spec,
+          }
+        },
+        update: {
+          defaultCbm: lamp.defaultCbm,
+          defaultInnerCbm: lamp.defaultInnerCbm,
+        },
+        create: {
+          name: lamp.name,
+          spec: lamp.spec,
+          defaultCbm: lamp.defaultCbm,
+          defaultInnerCbm: lamp.defaultInnerCbm,
+          locations: {
+            connect: matchedLocs.map(l => ({ id: l.id }))
+          }
+        }
+      })
+    }
+    isStandLampSeeded = true
+  } catch (err) {
+    console.warn('ensureStandLampItems warning:', err)
+  }
+}
+
 export async function getStandardItems() {
+  await ensureStandLampItems()
   return await prisma.standardItem.findMany({
     include: { locations: true },
     orderBy: [

@@ -12,8 +12,10 @@ model Admin {
   userId    String   @unique // 로그인 아이디
   password  String   // 암호화된 비밀번호
   name      String
+  phone     String   @default("") // 연락처
   role      String   @default("ADMIN")
   level     Int      @default(1) // 사용자 레벨 (숫자가 높을수록 높은 권한)
+  isActive  Boolean  @default(true) // 사용 가능 여부 (false: 사용중지/로그인불가)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

@@ -1,11 +1,11 @@
 import { cookies } from 'next/headers'
 import { decrypt } from '@/lib/session'
 import prisma from '@/lib/prisma'
-import { redirect } from 'next/navigation'
+import { ensureAdminColumns } from '@/lib/adminSchema'
 import { revalidatePath } from 'next/cache'
 
 import { UserRegisterForm } from './UserRegisterForm'
-import { ResetPasswordButton } from './ResetPasswordButton'
+import { AdminManageRow } from './AdminManageRow'
 
 export default async function UsersPage() {
   const cookieStore = await cookies()
@@ -22,9 +22,30 @@ export default async function UsersPage() {
     )
   }
 
-  const admins = await prisma.admin.findMany({
-    orderBy: { createdAt: 'desc' }
-  })
+  await ensureAdminColumns()
+
+  const admins = await prisma.$queryRaw<Array<{
+    id: string
+    userId: string
+    name: string
+    phone: string
+    role: string
+    level: number
+    isActive: boolean
+    createdAt: Date
+  }>>`
+    SELECT
+      "id",
+      "userId",
+      "name",
+      COALESCE("phone", '') AS "phone",
+      "role",
+      "level",
+      COALESCE("isActive", true) AS "isActive",
+      "createdAt"
+    FROM "Admin"
+    ORDER BY "createdAt" DESC
+  `
 
   const menuPermissions = await prisma.menuPermission.findMany()
 
@@ -41,17 +62,6 @@ export default async function UsersPage() {
     { path: '/chartered-trucks', name: '용차기준운임' },
     { path: '/inventory', name: '자재재고관리' },
   ]
-
-  async function updateAdminLevel(formData: FormData) {
-    'use server'
-    const id = formData.get('id') as string
-    const level = parseInt(formData.get('level') as string)
-    await prisma.admin.update({
-      where: { id },
-      data: { level }
-    })
-    revalidatePath('/users')
-  }
 
   async function updateMenuPermission(formData: FormData) {
     'use server'
@@ -74,49 +84,31 @@ export default async function UsersPage() {
       <UserRegisterForm />
 
       <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-        <h2 className="text-xl font-bold mb-4">관리자 권한 설정</h2>
-        <p className="text-sm text-gray-600 mb-6 font-medium">숫자가 높을수록 높은 권한입니다. (예: 9=최고관리자, 1=일반)</p>
+        <h2 className="text-xl font-bold mb-2">사용자 정보 및 권한 설정</h2>
+        <p className="text-sm text-gray-600 mb-6 font-medium">
+          연락처 및 접근 레벨(예: 9=최고관리자, 1=일반)을 수정한 후 <strong>[저장]</strong>을 눌러주세요. <strong>[사용중지]</strong> 처리된 계정은 로그인 시 사용불가 안내가 표시되며 접속이 차단됩니다.
+        </p>
         
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="bg-gray-100 text-gray-800 font-bold border-b border-gray-200">
+            <thead className="bg-gray-100 text-gray-800 font-bold border-b border-gray-200 whitespace-nowrap">
               <tr>
                 <th className="px-4 py-3 border-b">이름</th>
                 <th className="px-4 py-3 border-b">아이디</th>
+                <th className="px-4 py-3 border-b">연락처</th>
                 <th className="px-4 py-3 border-b">역할(Role)</th>
-                <th className="px-4 py-3 border-b">접근 레벨 설정</th>
+                <th className="px-4 py-3 border-b">접근 레벨 / 정보 저장</th>
+                <th className="px-4 py-3 border-b">계정 상태 (사용중지)</th>
                 <th className="px-4 py-3 border-b">비밀번호 관리</th>
               </tr>
             </thead>
             <tbody>
               {admins.map(admin => (
-                <tr key={admin.id} className="border-b hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 font-bold text-gray-900">{admin.name}</td>
-                  <td className="px-4 py-3 font-medium text-gray-900">{admin.userId}</td>
-                  <td className="px-4 py-3 font-semibold text-blue-700">{admin.role}</td>
-                  <td className="px-4 py-3">
-                    <form action={updateAdminLevel} className="flex gap-2 items-center">
-                      <input type="hidden" name="id" value={admin.id} />
-                      <input 
-                        type="number" 
-                        name="level" 
-                        defaultValue={admin.level} 
-                        className="border rounded px-2 py-1 w-20 text-center font-bold text-gray-900"
-                        min="1" max="99"
-                      />
-                      <button className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-xs font-semibold">
-                        저장
-                      </button>
-                    </form>
-                  </td>
-                  <td className="px-4 py-3">
-                    <ResetPasswordButton 
-                      adminId={admin.id}
-                      userName={admin.name}
-                      userId={admin.userId}
-                    />
-                  </td>
-                </tr>
+                <AdminManageRow
+                  key={admin.id}
+                  admin={admin}
+                  currentSessionUserId={session.userId as string}
+                />
               ))}
             </tbody>
           </table>

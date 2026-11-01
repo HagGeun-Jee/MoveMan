@@ -1,6 +1,26 @@
 import { NextResponse } from 'next/server'
 import { deleteSession } from '@/lib/session'
 
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const isDisabled = searchParams.get('disabled') === '1'
+  await deleteSession()
+
+  const targetUrl = new URL(isDisabled ? '/login?disabled=1' : '/login', request.url)
+  const response = NextResponse.redirect(targetUrl)
+  response.cookies.set({
+    name: 'session',
+    value: '',
+    path: '/',
+    expires: new Date(0),
+    maxAge: 0,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+  })
+  return response
+}
+
 export async function POST() {
   try {
     await deleteSession()
