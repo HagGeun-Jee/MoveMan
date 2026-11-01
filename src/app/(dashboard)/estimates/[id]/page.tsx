@@ -54,6 +54,11 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
   }
 
   const envObj = safeJsonParse(estimate.environment, {})
+  const adminHistoryArr = safeJsonParse(estimate.adminHistory, [])
+  const historyCreator = Array.isArray(adminHistoryArr)
+    ? (adminHistoryArr.find((h: any) => h?.action === 'CREATE')?.by || adminHistoryArr[adminHistoryArr.length - 1]?.by || '')
+    : ''
+  const estimatorName = String(envObj.estimatorName || historyCreator || '').trim()
   const specialNotes = typeof envObj.specialNotes === 'string' ? envObj.specialNotes.trim() : ''
   const installRequestItems: string[] = Array.isArray(envObj.installRequestItems)
     ? envObj.installRequestItems.filter(Boolean)
@@ -648,7 +653,7 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
           </div>
         </section>
 
-        {/* 4. 계약 유의사항 및 고객 서명란 (인쇄 시 A4 하단 고정 어울림) */}
+        {/* 4. 계약 유의사항, 견적원명 및 고객 서명란 (인쇄 시 A4 하단 고정 어울림) */}
         <section className="pt-2 border-t border-gray-200 flex flex-col sm:flex-row print:flex-row items-stretch sm:items-end print:items-end justify-between gap-3 print:break-inside-avoid">
           <div className="text-[11px] print:text-[10px] text-gray-500 space-y-0.5 leading-snug flex-1">
             <p className="font-bold text-gray-700">※ 이사 견적 및 계약 안내사항</p>
@@ -657,17 +662,28 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
             <p>3. 위 견적 및 계약 내용을 확인하고 이에 동의합니다.</p>
           </div>
 
-          <div className="w-full sm:w-48 print:w-44 border border-gray-300 rounded-lg print:rounded-none p-2 print:p-1.5 text-center shrink-0 bg-gray-50/40 print:bg-transparent">
-            <div className="text-xs print:text-[11px] font-bold text-gray-800 border-b border-gray-300 pb-1 mb-1">
-              고객 확인 및 서명
-            </div>
-            {estimate.signature ? (
-              <img src={estimate.signature} alt="고객 서명" className="w-full h-14 print:h-12 object-contain mx-auto" />
-            ) : (
-              <div className="h-14 print:h-12 flex items-center justify-center text-xs text-gray-400">
-                (서명 / 날인)
+          <div className="flex items-stretch gap-2 w-full sm:w-auto print:w-auto shrink-0">
+            <div className="w-28 sm:w-32 print:w-28 border border-gray-300 rounded-lg print:rounded-none p-2 print:p-1.5 text-center shrink-0 bg-gray-50/40 print:bg-transparent flex flex-col">
+              <div className="text-xs print:text-[11px] font-bold text-gray-800 border-b border-gray-300 pb-1 mb-1">
+                견적원명
               </div>
-            )}
+              <div className="h-14 print:h-12 flex items-center justify-center text-sm print:text-xs font-extrabold text-gray-900">
+                {estimatorName || '-'}
+              </div>
+            </div>
+
+            <div className="flex-1 sm:w-48 print:w-44 border border-gray-300 rounded-lg print:rounded-none p-2 print:p-1.5 text-center shrink-0 bg-gray-50/40 print:bg-transparent flex flex-col">
+              <div className="text-xs print:text-[11px] font-bold text-gray-800 border-b border-gray-300 pb-1 mb-1">
+                고객 확인 및 서명
+              </div>
+              {estimate.signature ? (
+                <img src={estimate.signature} alt="고객 서명" className="w-full h-14 print:h-12 object-contain mx-auto" />
+              ) : (
+                <div className="h-14 print:h-12 flex items-center justify-center text-xs text-gray-400">
+                  (서명 / 날인)
+                </div>
+              )}
+            </div>
           </div>
         </section>
 

@@ -121,12 +121,13 @@ export async function createEstimate(formData: FormData) {
       : (Array.isArray(parsedEnv.installRequestItems) ? parsedEnv.installRequestItems : []),
     scheduledMessages: Array.isArray(parsedEnv.scheduledMessages) ? parsedEnv.scheduledMessages : [],
     specialNotes: String(formData.get('specialNotes') ?? parsedEnv.specialNotes ?? '').trim(),
+    estimatorName: String(formData.get('estimatorName') || parsedEnv.estimatorName || session.name || '').trim(),
   }
   const environment = JSON.stringify(environmentObj)
   
   // 이력 저장
   const adminHistory = JSON.stringify([
-    { action: 'CREATE', by: session.name, at: new Date().toISOString() }
+    { action: 'CREATE', by: environmentObj.estimatorName || session.name, at: new Date().toISOString() }
   ])
 
   await prisma.estimate.create({
@@ -259,11 +260,18 @@ export async function updateEstimate(formData: FormData) {
       ? parsedEnv.scheduledMessages
       : (Array.isArray(existingEnv.scheduledMessages) ? existingEnv.scheduledMessages : []),
     specialNotes: String(formData.get('specialNotes') ?? parsedEnv.specialNotes ?? '').trim(),
+    estimatorName: String(
+      formData.get('estimatorName') ||
+      parsedEnv.estimatorName ||
+      existingEnv.estimatorName ||
+      session.name ||
+      ''
+    ).trim(),
   }
   const environment = JSON.stringify(environmentObj)
   
   const adminHistoryArray = existingEstimate?.adminHistory ? JSON.parse(existingEstimate.adminHistory) : []
-  adminHistoryArray.push({ action: 'UPDATE', by: session.name, at: new Date().toISOString() })
+  adminHistoryArray.push({ action: 'UPDATE', by: environmentObj.estimatorName || session.name, at: new Date().toISOString() })
   const adminHistory = JSON.stringify(adminHistoryArray)
 
   await prisma.estimate.update({

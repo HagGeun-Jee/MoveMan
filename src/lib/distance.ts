@@ -354,26 +354,26 @@ function calculateHaversineKm(p1: Point, p2: Point): number {
 }
 
 /**
- * 5톤 화물차(최고속도 80km/h 속도제한 및 적재 중량 가감속) 기준 주행 시간 보정
- * - 도로교통법상 화물차 최고속도 80~90km/h 제한 장치 및 고속도로 주행 속도 감안
- * - 승용차 내비게이션 대비 약 25% 추가 소요
+ * 5톤 화물차(최고속도 90km/h 속도제한 및 적재 중량 가감속) 기준 주행 시간 보정
+ * - 도로교통법상 화물차 최고속도 90km/h 제한 장치 및 고속도로 주행 속도 감안
+ * - 승용차 내비게이션 대비 약 15% 추가 소요
  */
 export function calculate5TonTruckDuration(distanceKm: number, rawCarDurationMin?: number): { minutes: number; text: string } {
   if (distanceKm <= 0) return { minutes: 0, text: '-' }
 
   let minutes: number
   if (rawCarDurationMin && rawCarDurationMin > 0) {
-    // 승용차 기준 시간 대비 25% 보정 (최고속도 80km/h 상한 및 가감속 지연)
-    const adjustedFromNavi = Math.round(rawCarDurationMin * 1.25)
-    // 5톤 화물차 속도제한 80km/h에 따른 물리적 최소 소요 시간 (평균 시속 75km/h 기준)
-    const physicalMinLimit = Math.round((distanceKm / 75) * 60)
+    // 승용차 기준 시간 대비 15% 보정 (최고속도 90km/h 상한 및 가감속 지연)
+    const adjustedFromNavi = Math.round(rawCarDurationMin * 1.15)
+    // 5톤 화물차 속도제한 90km/h에 따른 물리적 최소 소요 시간 (평균 시속 85km/h 기준)
+    const physicalMinLimit = Math.round((distanceKm / 85) * 60)
     minutes = Math.max(10, Math.max(adjustedFromNavi, physicalMinLimit))
   } else {
-    // 내비 시간 부재 시 거리 기반 화물차 실주행 추정:
+    // 내비 시간 부재 시 거리 기반 화물차(90km/h 제한) 실주행 추정:
     if (distanceKm <= 20) {
-      minutes = Math.max(10, Math.round((distanceKm / 35) * 60))
+      minutes = Math.max(10, Math.round((distanceKm / 40) * 60))
     } else {
-      minutes = Math.round(15 + (distanceKm / 70) * 60)
+      minutes = Math.round(12 + (distanceKm / 80) * 60)
     }
   }
 
@@ -431,7 +431,7 @@ async function routeKakao(p1: Point, p2: Point, apiKey: string): Promise<Distanc
     const summary = primaryRoute.summary
     const distKm = Math.round((summary.distance / 1000) * 10) / 10
     const carDurationMin = Math.round(summary.duration / 60)
-    // 5톤 화물차 80km/h 속도제한 기준 소요 시간 보정
+    // 5톤 화물차 90km/h 속도제한 기준 소요 시간 보정
     const truckDuration = calculate5TonTruckDuration(distKm, carDurationMin)
 
     const highways1 = extractHighwayNames(primaryRoute)
@@ -512,7 +512,7 @@ async function routeOSRM(p1: Point, p2: Point): Promise<DistanceResult | null> {
       const route = data.routes[0]
       const distKm = Math.round((route.distance / 1000) * 10) / 10
       const carDurationMin = Math.round((route.duration || 0) / 60)
-      // 5톤 화물차 80km/h 속도제한 기준 소요 시간 보정
+      // 5톤 화물차 90km/h 속도제한 기준 소요 시간 보정
       const truckDuration = calculate5TonTruckDuration(distKm, carDurationMin)
       // 한국 고속도로 통행료 추정 계산 (카카오 키 부재 시 백업)
       const tollFare = estimateKoreanHighwayToll(distKm)

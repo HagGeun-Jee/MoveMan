@@ -145,15 +145,21 @@ export function EstimateForm({
   initialData, 
   action, 
   title = "새 견적 작성",
-  costStandards: initialCostStandards
+  costStandards: initialCostStandards,
+  currentUserName = ''
 }: { 
   initialData?: any, 
   action: (formData: FormData) => Promise<void>,
   title?: string,
-  costStandards?: CostStandardData
+  costStandards?: CostStandardData,
+  currentUserName?: string
 }) {
   const envObj = safeJsonParse(initialData?.environment, {})
   const payPlanObj = safeJsonParse(initialData?.paymentPlan, {})
+  const adminHistoryArr = safeJsonParse(initialData?.adminHistory, [])
+  const initialCreator = Array.isArray(adminHistoryArr)
+    ? (adminHistoryArr.find((h: any) => h?.action === 'CREATE')?.by || adminHistoryArr[adminHistoryArr.length - 1]?.by || '')
+    : ''
 
   // 임시 저장 키 (신규 견적 작성 또는 특정 견적 수정 구분)
   const storageKey = initialData?.id 
@@ -238,6 +244,9 @@ export function EstimateForm({
   const [movingType, setMovingType] = useState(initialData?.movingType || 'P')
   const [customerName, setCustomerName] = useState(initialData?.customerName || '')
   const [contact, setContact] = useState(formatPhoneNumber(initialData?.contact || ''))
+  const [estimatorName, setEstimatorName] = useState<string>(
+    (envObj.estimatorName || initialCreator || currentUserName || '').trim()
+  )
   const [organizeStatus, setOrganizeStatus] = useState<string>(envObj.organizeStatus || '')
   const [fromFloor, setFromFloor] = useState<string>(envObj.fromFloor || '')
   const [fromWorkTypes, setFromWorkTypes] = useState<string[]>(Array.isArray(envObj.fromWorkTypes) ? envObj.fromWorkTypes : [])
@@ -1286,6 +1295,9 @@ export function EstimateForm({
         if (hasContent) {
           if (draft.customerName !== undefined) setCustomerName(draft.customerName)
           if (draft.contact !== undefined) setContact(draft.contact)
+          if (draft.estimatorName !== undefined && String(draft.estimatorName).trim() !== '') {
+            setEstimatorName(String(draft.estimatorName).trim())
+          }
           if (draft.movingType !== undefined) setMovingType(draft.movingType)
           if (draft.estimateDate) setEstimateDate(new Date(draft.estimateDate))
           if (draft.visitDate) setVisitDate(new Date(draft.visitDate))
@@ -1549,6 +1561,7 @@ export function EstimateForm({
           savedAt: new Date().toISOString(),
           customerName,
           contact,
+          estimatorName,
           movingType,
           estimateDate: estimateDate ? estimateDate.toISOString() : null,
           visitDate: visitDate ? visitDate.toISOString() : null,
@@ -1607,6 +1620,7 @@ export function EstimateForm({
     storageKey,
     customerName,
     contact,
+    estimatorName,
     movingType,
     estimateDate,
     visitDate,
@@ -1695,6 +1709,7 @@ export function EstimateForm({
     installRequestItems,
     specialNotes: specialNotes.trim(),
     scheduledMessages,
+    estimatorName: estimatorName.trim(),
   }
   const currentEnvironmentStr = JSON.stringify(currentEnvironmentObj)
 
@@ -2363,6 +2378,7 @@ export function EstimateForm({
                                 onChange={e => {
                                   const val = parseFloat(e.target.value) || 0
                                   setDistance(val)
+                                  setDistanceDuration(val > 0 ? calculate5TonTruckDuration(val).text : '')
                                 }} 
                                 onFocus={handleSelectAllOnFocus}
                                 placeholder="0.0" 
@@ -2373,13 +2389,13 @@ export function EstimateForm({
                           </div>
 
                           {/* 5톤 화물차 기준 예상시간 */}
-                          <div className="flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded-lg border border-gray-200" title="5톤 화물차 법정 속도제한(80km/h) 및 적재 중량 가감속을 반영한 현실적인 주행 소요 시간">
+                          <div className="flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded-lg border border-gray-200" title="5톤 화물차 법정 속도제한(90km/h) 및 적재 중량 가감속을 반영한 현실적인 주행 소요 시간">
                             <span className="font-medium text-gray-700">화물차 주행시간:</span>
                             <span className="font-extrabold text-blue-900">
                               {distanceDuration || (distance > 0 ? calculate5TonTruckDuration(distance).text : '-')}
                             </span>
                             <span className="text-[10px] text-gray-500 font-normal bg-gray-200/60 px-1 py-0.5 rounded">
-                              80km/h 제한
+                              90km/h 제한
                             </span>
                           </div>
 
@@ -4130,29 +4146,52 @@ export function EstimateForm({
           <input type="hidden" name="paymentPlan" value={JSON.stringify({ targetType: paymentTarget, targetAmount, downPayment, downPaymentDate: downPaymentDate ? format(downPaymentDate, 'yyyy-MM-dd') : '', downPaymentPaid, intermediatePayment, intermediateDate: intermediateDate ? format(intermediateDate, 'yyyy-MM-dd') : '', intermediatePaymentPaid, balance, balanceDate: balanceDate ? format(balanceDate, 'yyyy-MM-dd') : '', balancePaid, remainingAmount })} />
         </div>
 
-        {/* 고객 서명 */}
-        <div className="bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-gray-100 space-y-2">
-          <div className="flex justify-between items-center border-b pb-1.5">
-            <h2 className="text-base sm:text-lg font-bold text-blue-600">고객 서명</h2>
-            {!isSigning && signature ? (
-              <button type="button" onClick={() => { setIsSigning(true); setSignature(''); }} className="text-xs text-red-600 hover:text-red-800 font-medium px-2.5 py-1 bg-red-50 rounded-lg">서명 다시하기</button>
-            ) : (
-              <button type="button" onClick={() => { sigCanvas.current?.clear(); setSignature(''); }} className="text-xs text-gray-600 hover:text-gray-800 font-medium px-2.5 py-1 bg-gray-100 rounded-lg">초기화</button>
-            )}
+        {/* 견적원명 및 고객 서명 (하단 칸 배치) */}
+        <div className="bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-gray-100">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-stretch">
+            {/* 견적원명 칸 */}
+            <div className="border border-gray-200 rounded-xl p-3 bg-gray-50/50 flex flex-col justify-between">
+              <div className="border-b border-gray-200 pb-1.5 mb-2 flex items-center justify-between">
+                <h2 className="text-sm sm:text-base font-bold text-blue-600">견적원명</h2>
+                <span className="text-[11px] text-gray-400 font-medium">담당 견적작업자</span>
+              </div>
+              <div className="flex-1 flex items-center justify-center">
+                <input
+                  type="text"
+                  name="estimatorName"
+                  value={estimatorName}
+                  onChange={e => setEstimatorName(e.target.value)}
+                  className="w-full text-center rounded-lg border border-gray-300 bg-white px-3 py-2.5 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-sm sm:text-base font-extrabold text-gray-900 shadow-2xs"
+                  placeholder="견적원 성명 입력"
+                />
+              </div>
+            </div>
+
+            {/* 고객 서명 칸 */}
+            <div className="sm:col-span-2 border border-gray-200 rounded-xl p-3 bg-gray-50/30 flex flex-col space-y-2">
+              <div className="flex justify-between items-center border-b border-gray-200 pb-1.5">
+                <h2 className="text-sm sm:text-base font-bold text-blue-600">고객 서명</h2>
+                {!isSigning && signature ? (
+                  <button type="button" onClick={() => { setIsSigning(true); setSignature(''); }} className="text-xs text-red-600 hover:text-red-800 font-medium px-2.5 py-1 bg-red-50 rounded-lg">서명 다시하기</button>
+                ) : (
+                  <button type="button" onClick={() => { sigCanvas.current?.clear(); setSignature(''); }} className="text-xs text-gray-600 hover:text-gray-800 font-medium px-2.5 py-1 bg-gray-100 rounded-lg">초기화</button>
+                )}
+              </div>
+              
+              <div className="border border-gray-300 rounded-lg overflow-hidden bg-white h-24 sm:h-28 relative touch-none">
+                {isSigning ? (
+                  <SignatureCanvas 
+                    ref={sigCanvas}
+                    canvasProps={{ className: 'w-full h-full touch-none cursor-crosshair' }}
+                    onEnd={() => setSignature(sigCanvas.current?.getTrimmedCanvas().toDataURL('image/png'))}
+                  />
+                ) : (
+                  signature && <img src={signature} alt="고객 서명" className="h-full max-w-full object-contain mx-auto p-2" />
+                )}
+              </div>
+              <input type="hidden" name="signature" value={signature} />
+            </div>
           </div>
-          
-          <div className="border border-gray-300 rounded-lg overflow-hidden bg-gray-50 h-24 sm:h-28 relative touch-none">
-            {isSigning ? (
-              <SignatureCanvas 
-                ref={sigCanvas}
-                canvasProps={{ className: 'w-full h-full touch-none cursor-crosshair' }}
-                onEnd={() => setSignature(sigCanvas.current?.getTrimmedCanvas().toDataURL('image/png'))}
-              />
-            ) : (
-              signature && <img src={signature} alt="고객 서명" className="h-full max-w-full object-contain mx-auto p-2" />
-            )}
-          </div>
-          <input type="hidden" name="signature" value={signature} />
         </div>
 
         <div className="fixed bottom-0 left-0 right-0 lg:left-64 bg-white border-t p-2.5 sm:p-3 shadow-lg flex justify-end gap-2.5 sm:gap-3 z-20">

@@ -25,8 +25,6 @@ import { ChangePasswordModal } from './ChangePasswordModal'
 import { APP_RELEASE_INFO } from '@/lib/appRelease'
 import { AppDownloadButton } from './AppDownloadButton'
 
-
-
 export function Sidebar({ 
   sessionName, 
   userLevel,
@@ -226,7 +224,7 @@ export function Sidebar({
                     <p className="text-xs font-bold text-gray-800">MOVEMAN</p>
                     <span className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded ${
                       installedAppVersion 
-                        ? (installedAppVersion === APP_RELEASE_INFO.version 
+                        ? (isUpToDate 
                             ? 'text-emerald-700 bg-emerald-50 border border-emerald-200' 
                             : 'text-amber-800 bg-amber-50 border border-amber-300')
                         : 'text-blue-700 bg-blue-50 border border-blue-200'
@@ -329,19 +327,17 @@ export function Sidebar({
                   </Link>
                 )}
               </div>
-
             </nav>
 
-            {/* 드로어 하단 사용자 정보 및 로그아웃 */}
-            <div className="p-4 border-t border-gray-100 bg-gray-50/80">
-              {/* 모바일 앱 다운로드 */}
-              <div className="mb-3">
-                <AppDownloadButton variant="sidebar" />
+            {/* 드로어 하단: 사용자 정보 -> 비번변경/로그아웃 -> 앱 다운로드(최하단) */}
+            <div className="p-4 border-t border-gray-100 bg-gray-50/80 space-y-2.5">
+              <div className="flex items-center justify-between px-1">
+                <div className="text-sm text-gray-700">
+                  <span className="font-bold text-blue-600">{sessionName}</span> 관리자님
+                </div>
+                <span className="text-[11px] text-gray-500 font-medium">Lv.{userLevel}</span>
               </div>
 
-              <div className="text-sm text-gray-700 mb-3 px-1">
-                <span className="font-bold text-blue-600">{sessionName}</span> 관리자님
-              </div>
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -355,7 +351,6 @@ export function Sidebar({
                   <span>비번변경</span>
                 </button>
                 <form action={logoutAction} className="flex-1">
-
                   <button
                     type="submit"
                     className="w-full py-2 px-2 text-xs font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-1"
@@ -365,38 +360,10 @@ export function Sidebar({
                   </button>
                 </form>
               </div>
-              <div className="mt-2.5 pt-2 border-t border-gray-200/60 text-center">
-                {installedAppVersion ? (
-                  <div className="text-[11px] font-mono bg-white p-2.5 rounded-lg border border-gray-200 shadow-2xs space-y-1.5 text-left">
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-500 font-sans">현재 사용 중인 버전:</span>
-                      <strong className="text-gray-900 bg-gray-100 px-1.5 py-0.5 rounded">{installedAppVersion}</strong>
-                    </div>
-                    {installedAppVersion !== APP_RELEASE_INFO.version ? (
-                      <>
-                        <div className="flex items-center justify-between text-blue-700 font-bold">
-                          <span className="font-sans">설치해야 할 새 버전:</span>
-                          <strong className="text-white bg-blue-600 px-1.5 py-0.5 rounded shadow-2xs">{APP_RELEASE_INFO.version}</strong>
-                        </div>
-                        <a
-                          href="/api/download/apk"
-                          download="moveman.apk"
-                          className="mt-1 block w-full py-1.5 text-center bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 text-white rounded font-sans font-bold text-xs shadow-xs"
-                        >
-                          새 버전({APP_RELEASE_INFO.version}) 다운로드 및 설치
-                        </a>
-                      </>
-                    ) : (
-                      <div className="text-emerald-700 text-[10px] font-sans font-bold text-center bg-emerald-50 py-1 rounded border border-emerald-200">
-                        ✓ 최신 버전을 정상 사용 중입니다
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-[10px] font-mono text-gray-400 text-center">
-                    웹 브라우저 접속 ({APP_RELEASE_INFO.version})
-                  </div>
-                )}
+
+              {/* 모바일 앱 다운로드 (가장 아래로 배치) */}
+              <div className="pt-2 border-t border-gray-200/60">
+                <AppDownloadButton variant="sidebar" />
               </div>
             </div>
           </aside>
@@ -429,7 +396,7 @@ export function Sidebar({
                 <img src="/image.png" alt="Logo" className="h-9 object-contain" />
                 <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md ${
                   installedAppVersion 
-                    ? (installedAppVersion === APP_RELEASE_INFO.version 
+                    ? (isUpToDate 
                         ? 'text-emerald-700 bg-emerald-50 border border-emerald-200' 
                         : 'text-amber-800 bg-amber-50 border border-amber-300')
                     : 'text-blue-700 bg-blue-50 border border-blue-200'
@@ -532,7 +499,6 @@ export function Sidebar({
               </li>
             )}
           </ul>
-
         </nav>
 
         <div className={`p-3 border-t border-gray-100 ${collapsed ? 'flex flex-col items-center gap-1 px-2' : ''}`}>
@@ -550,14 +516,6 @@ export function Sidebar({
 
           {collapsed ? (
             <>
-              <a
-                href="/api/download/apk"
-                download="moveman.apk"
-                className="w-full p-2.5 rounded-xl text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center mb-1"
-                title={`모바일 앱(APK) 다운로드 (릴리즈: ${APP_RELEASE_INFO.releaseDate})`}
-              >
-                <Smartphone size={18} />
-              </a>
               <button
                 type="button"
                 onClick={() => setPasswordModalOpen(true)}
@@ -575,12 +533,17 @@ export function Sidebar({
                   <LogOut size={18} />
                 </button>
               </form>
+              <a
+                href="/api/download/apk"
+                download="moveman.apk"
+                className="w-full p-2.5 rounded-xl text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center mt-1 border-t border-gray-100 pt-2.5"
+                title={`모바일 앱(APK) 다운로드 (릴리즈: ${APP_RELEASE_INFO.releaseDate})`}
+              >
+                <Smartphone size={18} />
+              </a>
             </>
           ) : (
             <div className="space-y-1">
-              <div className="mb-2">
-                <AppDownloadButton variant="sidebar" />
-              </div>
               <button
                 type="button"
                 onClick={() => setPasswordModalOpen(true)}
@@ -598,6 +561,10 @@ export function Sidebar({
                   <span>로그아웃</span>
                 </button>
               </form>
+              {/* 모바일 앱 다운로드 (가장 아래로 배치) */}
+              <div className="pt-2 mt-1 border-t border-gray-100">
+                <AppDownloadButton variant="sidebar" />
+              </div>
             </div>
           )}
         </div>
@@ -611,4 +578,3 @@ export function Sidebar({
     </>
   )
 }
-

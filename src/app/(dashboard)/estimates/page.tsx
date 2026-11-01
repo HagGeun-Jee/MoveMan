@@ -48,6 +48,7 @@ export default async function EstimatesPage() {
                 <th className="p-4 font-bold whitespace-nowrap">고객명</th>
                 <th className="p-4 font-bold whitespace-nowrap">연락처</th>
                 <th className="p-4 font-bold whitespace-nowrap">이사종류</th>
+                <th className="p-4 font-bold whitespace-nowrap">견적작업자</th>
                 <th className="p-4 font-bold whitespace-nowrap">접수일자</th>
                 <th className="p-4 font-bold whitespace-nowrap">이사예정일</th>
                 <th className="p-4 font-bold whitespace-nowrap">결제상태</th>
@@ -57,7 +58,7 @@ export default async function EstimatesPage() {
             <tbody>
               {estimates.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-gray-600 font-medium">
+                  <td colSpan={9} className="p-8 text-center text-gray-600 font-medium">
                     등록된 견적이 없습니다.
                   </td>
                 </tr>
@@ -79,6 +80,16 @@ export default async function EstimatesPage() {
                   }
 
                   const envObj = est.environment ? JSON.parse(est.environment) : {}
+                  let historyCreator = ''
+                  if (est.adminHistory) {
+                    try {
+                      const hist = JSON.parse(est.adminHistory)
+                      if (Array.isArray(hist)) {
+                        historyCreator = hist.find((h: any) => h?.action === 'CREATE')?.by || hist[hist.length - 1]?.by || ''
+                      }
+                    } catch {}
+                  }
+                  const estimatorName = (envObj.estimatorName || historyCreator || '').trim()
                   const estDistance = envObj.distance
 
                   return (
@@ -97,6 +108,9 @@ export default async function EstimatesPage() {
                             </span>
                           ) : null}
                         </div>
+                      </td>
+                      <td className="p-4 font-semibold text-gray-800 whitespace-nowrap">
+                        {estimatorName || '-'}
                       </td>
                       <td className="p-4 font-medium text-gray-900">{format(new Date(est.estimateDate), 'yyyy-MM-dd', { locale: ko })}</td>
                       <td className="p-4 font-medium text-gray-900">{est.movingDate ? format(new Date(est.movingDate), 'yyyy-MM-dd', { locale: ko }) : '-'}</td>
