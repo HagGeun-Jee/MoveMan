@@ -97,6 +97,9 @@ export default function CostStandardsForm({ initialData }: Props) {
     fd.append('maleLaborCost', formData.maleLaborCost.toString())
     fd.append('femaleLaborCost', formData.femaleLaborCost.toString())
     fd.append('driverAllowance', formData.driverAllowance.toString())
+    fd.append('driverBaseDistanceKm', (formData.driverBaseDistanceKm ?? 40).toString())
+    fd.append('driverDistanceStepKm', (formData.driverDistanceStepKm ?? 40).toString())
+    fd.append('driverDistanceAllowance', (formData.driverDistanceAllowance ?? 10000).toString())
     fd.append('tonnageAllowance6Ton', formData.tonnageAllowance6Ton.toString())
     fd.append('tonnageAllowance7_5Ton', formData.tonnageAllowance7_5Ton.toString())
     fd.append('tonnageAllowance10Ton', formData.tonnageAllowance10Ton.toString())
@@ -135,6 +138,9 @@ export default function CostStandardsForm({ initialData }: Props) {
         maleLaborCost: 190000,
         femaleLaborCost: 170000,
         driverAllowance: 20000,
+        driverBaseDistanceKm: 40,
+        driverDistanceStepKm: 40,
+        driverDistanceAllowance: 10000,
         tonnageAllowance6Ton: 10000,
         tonnageAllowance7_5Ton: 20000,
         tonnageAllowance10Ton: 30000,
@@ -223,7 +229,7 @@ export default function CostStandardsForm({ initialData }: Props) {
         </div>
       </div>
 
-      {/* 2. 인건비 추가 수당 및 식비 기준 (4열 배치) */}
+      {/* 2. 인건비 추가 수당 및 식비 기준 */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-xs overflow-hidden">
         <div className="px-3.5 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -232,27 +238,85 @@ export default function CostStandardsForm({ initialData }: Props) {
             </div>
             <h2 className="text-xs sm:text-sm font-bold text-gray-900">2. 인건비 추가 수당 및 식비 기준</h2>
           </div>
-          <span className="text-[11px] text-gray-500 hidden sm:inline">물량·운전자·장거리 수당 및 식비</span>
+          <span className="text-[11px] text-gray-500 hidden sm:inline">운전자·물량·장거리 수당 및 식비</span>
         </div>
 
-        <div className="p-2.5 sm:p-3 space-y-2">
-          {/* 행 1: 물량(톤수) 및 운전자 추가 수당 4종 */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {/* 운전자 추가 수당 */}
-            <div className="p-2 rounded-lg bg-gray-50/70 border border-gray-200">
-              <label className="block mb-1">
-                <span className="inline-block px-1.5 py-0.5 rounded bg-slate-100 text-slate-800 font-bold text-[11px]">
-                  운전자 수당
+        <div className="p-2.5 sm:p-3 space-y-2.5">
+          {/* 행 1: 운전자 수당 및 거리 초과 추가 수당 기준 (편도 40km 기준, 초과 40km마다 10,000원) */}
+          <div className="p-2.5 rounded-xl bg-amber-50/50 border border-amber-200/80 space-y-2">
+            <div className="flex items-center justify-between flex-wrap gap-1">
+              <span className="text-xs font-extrabold text-amber-950 flex items-center gap-1.5">
+                <span className="px-1.5 py-0.5 rounded bg-amber-300 text-slate-950 text-[11px] font-black">
+                  운전자 수당 기준 (편도)
                 </span>
-              </label>
-              <FormattedNumberInput
-                value={formData.driverAllowance}
-                onChange={(val) => handleChange('driverAllowance', val)}
-                suffix="원"
-                className="w-full px-2 py-1.5 bg-white border border-gray-300 rounded text-xs font-semibold text-right pr-6 focus:border-blue-500 outline-none"
-              />
+                <span>
+                  편도 기본 {(formData.driverBaseDistanceKm ?? 40)}km 이내 {(formData.driverAllowance ?? 20000).toLocaleString()}원 · 편도 초과 {(formData.driverDistanceStepKm ?? 40)}km마다 +{(formData.driverDistanceAllowance ?? 10000).toLocaleString()}원 추가
+                </span>
+              </span>
+              <span className="text-[10px] font-semibold text-amber-800">자사운행 차량 운전자 1인당 편도 주행거리 기준 적용</span>
             </div>
 
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {/* 운전자 기본 수당 */}
+              <div className="p-2 rounded-lg bg-white border border-amber-200">
+                <label className="text-[11px] font-bold text-gray-800 flex items-center justify-between mb-1">
+                  <span>운전자 기본 수당</span>
+                  <span className="text-[10px] text-amber-700 font-bold">편도 {(formData.driverBaseDistanceKm ?? 40)}km 이내</span>
+                </label>
+                <FormattedNumberInput
+                  value={formData.driverAllowance}
+                  onChange={(val) => handleChange('driverAllowance', val)}
+                  suffix="원"
+                  className="w-full px-2 py-1.5 bg-white border border-gray-300 rounded text-xs font-bold text-right pr-6 focus:border-amber-500 outline-none"
+                />
+              </div>
+
+              {/* 운전자 수당 기준거리 (40km) */}
+              <div className="p-2 rounded-lg bg-white border border-amber-200">
+                <label className="text-[11px] font-bold text-gray-800 flex items-center justify-between mb-1">
+                  <span>운전자 기준거리(편도)</span>
+                  <span className="text-[10px] text-amber-700 font-bold">기본한도</span>
+                </label>
+                <FormattedNumberInput
+                  value={formData.driverBaseDistanceKm ?? 40}
+                  onChange={(val) => handleChange('driverBaseDistanceKm', val)}
+                  suffix="km"
+                  className="w-full px-2 py-1.5 bg-white border border-gray-300 rounded text-xs font-bold text-right pr-7 focus:border-amber-500 outline-none"
+                />
+              </div>
+
+              {/* 운전자 초과 단위거리 (40km마다) */}
+              <div className="p-2 rounded-lg bg-white border border-amber-200">
+                <label className="text-[11px] font-bold text-gray-800 flex items-center justify-between mb-1">
+                  <span>편도 초과 단위거리</span>
+                  <span className="text-[10px] text-amber-700 font-bold">할증주기</span>
+                </label>
+                <FormattedNumberInput
+                  value={formData.driverDistanceStepKm ?? 40}
+                  onChange={(val) => handleChange('driverDistanceStepKm', val)}
+                  suffix="km마다"
+                  className="w-full px-2 py-1.5 bg-white border border-gray-300 rounded text-xs font-bold text-right pr-12 focus:border-amber-500 outline-none"
+                />
+              </div>
+
+              {/* 운전자 초과 구간당 추가 수당 (10,000원) */}
+              <div className="p-2 rounded-lg bg-white border border-amber-200">
+                <label className="text-[11px] font-bold text-gray-800 flex items-center justify-between mb-1">
+                  <span>초과 추가 수당</span>
+                  <span className="text-[10px] text-amber-700 font-bold">구간당</span>
+                </label>
+                <FormattedNumberInput
+                  value={formData.driverDistanceAllowance ?? 10000}
+                  onChange={(val) => handleChange('driverDistanceAllowance', val)}
+                  suffix="원"
+                  className="w-full px-2 py-1.5 bg-white border border-gray-300 rounded text-xs font-bold text-right pr-6 focus:border-amber-500 outline-none"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 행 2: 물량(톤수) 초과 수당 및 작업원 식대 4종 */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {/* 6톤 초과 수당 */}
             <div className="p-2 rounded-lg bg-blue-50/40 border border-blue-100">
               <label className="block mb-1">
@@ -297,14 +361,28 @@ export default function CostStandardsForm({ initialData }: Props) {
                 className="w-full px-2 py-1.5 bg-white border border-gray-300 rounded text-xs font-semibold text-right pr-6 focus:border-purple-500 outline-none"
               />
             </div>
+
+            {/* 작업원 식대 */}
+            <div className="p-2 rounded-lg bg-gray-50/70 border border-gray-200">
+              <label className="text-[11px] font-semibold text-gray-700 flex items-center justify-between mb-1">
+                <span>작업원 식대</span>
+                <span className="text-[10px] text-blue-600 font-medium">1인 점심</span>
+              </label>
+              <FormattedNumberInput
+                value={formData.mealCostPerPerson}
+                onChange={(val) => handleChange('mealCostPerPerson', val)}
+                suffix="원"
+                className="w-full px-2 py-1.5 bg-white border border-gray-300 rounded text-xs font-semibold text-right pr-6 focus:border-blue-500 outline-none"
+              />
+            </div>
           </div>
 
-          {/* 행 2: 장거리 및 식비 4종 */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {/* 행 3: 작업원 장거리 추가 수당 3종 */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {/* 장거리 기준거리 */}
             <div className="p-2 rounded-lg bg-gray-50/70 border border-gray-200">
               <label className="text-[11px] font-semibold text-gray-700 flex items-center justify-between mb-1">
-                <span>장거리 기준거리</span>
+                <span>작업원 장거리 기준거리</span>
                 <span className="text-[10px] text-blue-600 font-medium">기본한도</span>
               </label>
               <FormattedNumberInput
@@ -318,7 +396,7 @@ export default function CostStandardsForm({ initialData }: Props) {
             {/* 초과 단위거리 */}
             <div className="p-2 rounded-lg bg-gray-50/70 border border-gray-200">
               <label className="text-[11px] font-semibold text-gray-700 flex items-center justify-between mb-1">
-                <span>초과 단위거리</span>
+                <span>작업원 초과 단위거리</span>
                 <span className="text-[10px] text-blue-600 font-medium">할증주기</span>
               </label>
               <FormattedNumberInput
@@ -332,26 +410,12 @@ export default function CostStandardsForm({ initialData }: Props) {
             {/* 초과 구간당 1인 수당 */}
             <div className="p-2 rounded-lg bg-gray-50/70 border border-gray-200">
               <label className="text-[11px] font-semibold text-gray-700 flex items-center justify-between mb-1">
-                <span>초과 구간 수당</span>
+                <span>작업원 초과 구간 수당</span>
                 <span className="text-[10px] text-blue-600 font-medium">인당</span>
               </label>
               <FormattedNumberInput
                 value={formData.distanceAllowancePerPerson}
                 onChange={(val) => handleChange('distanceAllowancePerPerson', val)}
-                suffix="원"
-                className="w-full px-2 py-1.5 bg-white border border-gray-300 rounded text-xs font-semibold text-right pr-6 focus:border-blue-500 outline-none"
-              />
-            </div>
-
-            {/* 작업원 식대 */}
-            <div className="p-2 rounded-lg bg-gray-50/70 border border-gray-200">
-              <label className="text-[11px] font-semibold text-gray-700 flex items-center justify-between mb-1">
-                <span>작업원 식대</span>
-                <span className="text-[10px] text-blue-600 font-medium">1인 점심</span>
-              </label>
-              <FormattedNumberInput
-                value={formData.mealCostPerPerson}
-                onChange={(val) => handleChange('mealCostPerPerson', val)}
                 suffix="원"
                 className="w-full px-2 py-1.5 bg-white border border-gray-300 rounded text-xs font-semibold text-right pr-6 focus:border-blue-500 outline-none"
               />

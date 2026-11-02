@@ -2837,6 +2837,20 @@ export function EstimateForm({
                                 경유 (+{distanceFareResult.waypointFee.toLocaleString()}원)
                               </span>
                             )}
+                            {(() => {
+                              const dBase = costStandardsData?.driverBaseDistanceKm ?? 40
+                              const dStep = costStandardsData?.driverDistanceStepKm ?? 40
+                              const dRate = costStandardsData?.driverDistanceAllowance ?? 10000
+                              if (distance > dBase) {
+                                const steps = Math.ceil((distance - dBase) / dStep)
+                                return (
+                                  <span className="text-[11px] bg-amber-50 text-amber-900 px-1.5 py-0.5 rounded border border-amber-300 font-semibold" title="원가산출 시뮬레이터에서 편도거리 기준 운전자 거리초과 수당으로 자동 반영됩니다">
+                                    운전자 편도{dBase}km초과 +{steps}구간 (1인당 +{(steps * dRate).toLocaleString()}원)
+                                  </span>
+                                )
+                              }
+                              return null
+                            })()}
                             <span className="text-gray-300">|</span>
                             <span>합계:</span>
                             <span className="font-extrabold text-blue-700 text-xs sm:text-sm">+{calculatedExtraCost.toLocaleString()} 원</span>
@@ -4432,6 +4446,7 @@ export function EstimateForm({
           roundTollFare={roundTollFare}
           vehicleCount={vehicles.reduce((sum, v) => sum + (Number(v.count) || 0), 0) || 1}
           waypointCount={waypointCount}
+          costStandards={costStandardsData}
           onApply={(calculatedCost) => {
             setMovingCost(calculatedCost)
             setIsCostEdited(true)

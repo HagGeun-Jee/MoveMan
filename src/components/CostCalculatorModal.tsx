@@ -182,6 +182,9 @@ export function CostCalculatorModal({
       maleLaborCost: 190000,
       femaleLaborCost: 170000,
       driverAllowance: 20000,
+      driverBaseDistanceKm: 40,
+      driverDistanceStepKm: 40,
+      driverDistanceAllowance: 10000,
       tonnageAllowance6Ton: 10000,
       tonnageAllowance7_5Ton: 20000,
       tonnageAllowance10Ton: 30000,
@@ -209,19 +212,23 @@ export function CostCalculatorModal({
     charteredCost: number
   }
 
+  // 시뮬레이션 주행거리 상태 (견적서 실제 주행거리를 기본값으로 세팅하되 모달 내에서 자유롭게 변경·시뮬레이션 가능)
+  const [simDistanceKm, setSimDistanceKm] = useState<number>(distanceKm)
+
   // 외주 용차 운임 시세 목록
   const [charteredFares, setCharteredFares] = useState<CharteredTruckFareItem[]>([])
 
   // 현재 거리에 해당하는 용차 기준 요금 매칭
   const currentMatchedFare = useMemo(() => {
     if (charteredFares.length === 0) return null
-    return charteredFares.find(f => distanceKm >= f.minDistanceKm && distanceKm <= f.maxDistanceKm)
+    return charteredFares.find(f => simDistanceKm >= f.minDistanceKm && simDistanceKm <= f.maxDistanceKm)
       || charteredFares[charteredFares.length - 1]
-  }, [charteredFares, distanceKm])
+  }, [charteredFares, simDistanceKm])
 
   // 차종별 1대당 기본 왕복 유류비 계산
-  const getDefaultFuelForTonnage = (ton: 5 | 2.5 | 1) => {
-    const roundKm = distanceKm * 2
+  const getDefaultFuelForTonnage = (ton: 5 | 2.5 | 1, distOverride?: number) => {
+    const targetDist = distOverride !== undefined ? distOverride : simDistanceKm
+    const roundKm = targetDist * 2
     if (ton === 5) return Math.round(roundKm * standards.fuelCostPerKm5Ton)
     if (ton === 2.5) return Math.round(roundKm * standards.fuelCostPerKm2_5Ton)
     return Math.round(roundKm * standards.fuelCostPerKm1Ton)
@@ -231,9 +238,15 @@ export function CostCalculatorModal({
   const getDefaultCharteredCostForTonnage = (
     ton: 5 | 2.5 | 1,
     opType: 'CARGO' | 'TOP',
-    fareObj?: CharteredTruckFareItem | null
+    fareObj?: CharteredTruckFareItem | null,
+    distOverride?: number
   ) => {
-    const matched = fareObj !== undefined ? fareObj : currentMatchedFare
+    const targetDist = distOverride !== undefined ? distOverride : simDistanceKm
+    const matched = fareObj !== undefined
+      ? fareObj
+      : (charteredFares.find(f => targetDist >= f.minDistanceKm && targetDist <= f.maxDistanceKm)
+          || charteredFares[charteredFares.length - 1]
+          || currentMatchedFare)
     if (ton === 1) {
       return opType === 'CARGO' ? (matched?.cost1TonCargo ?? 70000) : (matched?.cost1TonTop ?? 90000)
     }
@@ -241,7 +254,7 @@ export function CostCalculatorModal({
       return opType === 'CARGO' ? (matched?.cost2_5TonCargo ?? 130000) : (matched?.cost2_5TonTop ?? 160000)
     }
     // 5톤 외주 용차: 기본운임(35만) + 거리할증 또는 2.5톤 시세의 약 1.8배 중 현실적 기준 적용
-    const std5Calc = calculateTonnageDistanceFare({ tierKey: '5', distanceKm })
+    const std5Calc = calculateTonnageDistanceFare({ tierKey: '5', distanceKm: targetDist })
     const std5Total = std5Calc.rule.vehicleBaseFee + std5Calc.pureDistanceExtraCost
     if (opType === 'CARGO') {
       return Math.max(250000, Math.round((std5Total - 50000) / 10000) * 10000)
@@ -251,7 +264,7 @@ export function CostCalculatorModal({
 
   // 견적서의 투입 차량 배열(vehicles)로부터 초기 개별 배차 차량 리스트 생성
   // 1호차는 자사 운행('OWN'), 2호차부터는 카고 용차('CARGO')를 기본 선택으로 세팅
-  const buildInitialTruckList = (fareObj?: CharteredTruckFareItem | null): DispatchedTruckItem[] => {
+  const buildInitialTruckList = (fareObj?: CharteredTruckFareItem | null, distOverride?: number): DispatchedTruckItem[] => {
     const list: DispatchedTruckItem[] = []
     let idx = 1
 
@@ -276,8 +289,8 @@ export function CostCalculatorModal({
           id: `truck_${idx++}_${Date.now()}`,
           tonnage: ton,
           operationType: opType,
-          fuelCost: opType === 'OWN' ? getDefaultFuelForTonnage(ton) : 0,
-          charteredCost: opType === 'OWN' ? 0 : getDefaultCharteredCostForTonnage(ton, opType, fareObj)
+          fuelCost: opType === 'OWN' ? getDefaultFuelForTonnage(ton, distOverride) : 0,
+          charteredCost: opType === 'OWN' ? 0 : getDefaultCharteredCostForTonnage(ton, opType, fareObj, distOverride)
         })
       }
     })
@@ -287,7 +300,7 @@ export function CostCalculatorModal({
         id: `truck_1_${Date.now()}`,
         tonnage: 5,
         operationType: 'OWN',
-        fuelCost: getDefaultFuelForTonnage(5),
+        fuelCost: getDefaultFuelForTonnage(5, distOverride),
         charteredCost: 0
       })
     }
@@ -296,7 +309,7 @@ export function CostCalculatorModal({
   }
 
   // 동적 배차 차량 리스트 상태
-  const [dispatchedTrucks, setDispatchedTrucks] = useState<DispatchedTruckItem[]>(() => buildInitialTruckList())
+  const [dispatchedTrucks, setDispatchedTrucks] = useState<DispatchedTruckItem[]>(() => buildInitialTruckList(undefined, distanceKm))
 
   // 현재 배차 차량 리스트로부터 대수·톤수·자사/용차 실시간 집계
   const vehicleStats = useMemo(() => {
@@ -345,16 +358,17 @@ export function CostCalculatorModal({
   const standardTableCalc = useMemo(() => {
     return calculateTonnageDistanceFare({
       tierKey: matchedTierKey,
-      distanceKm,
+      distanceKm: simDistanceKm,
       includeUltraLongSurcharge: true,
       includeWaypointFee,
       waypointCount,
       customWaypointFee: waypointFeeCost
     })
-  }, [matchedTierKey, distanceKm, includeWaypointFee, waypointCount, waypointFeeCost])
+  }, [matchedTierKey, simDistanceKm, includeWaypointFee, waypointCount, waypointFeeCost])
 
   // 자사 운행 차량만의 고정 기본료 및 초과거리 할증 계산 (용차 선택 차량은 고정기본료에서 자동 제외)
-  const calcOwnStandardFromList = (truckList: DispatchedTruckItem[]) => {
+  const calcOwnStandardFromList = (truckList: DispatchedTruckItem[], distOverride?: number) => {
+    const targetDist = distOverride !== undefined ? distOverride : simDistanceKm
     const ownTrucks = truckList.filter(t => t.operationType === 'OWN')
     const charteredTrucks = truckList.filter(t => t.operationType !== 'OWN')
 
@@ -380,7 +394,7 @@ export function CostCalculatorModal({
     )
     const ownCalc = calculateTonnageDistanceFare({
       tierKey: ownTierKey,
-      distanceKm,
+      distanceKm: targetDist,
       includeUltraLongSurcharge: true,
     })
 
@@ -396,8 +410,8 @@ export function CostCalculatorModal({
   }
 
   const currentOwnStdFare = useMemo(
-    () => calcOwnStandardFromList(dispatchedTrucks),
-    [dispatchedTrucks, distanceKm]
+    () => calcOwnStandardFromList(dispatchedTrucks, simDistanceKm),
+    [dispatchedTrucks, simDistanceKm]
   )
 
   // 톤수 초과 수당 기본값 계산 (6톤 1만, 7.5톤 2만, 10톤 3만)
@@ -416,8 +430,15 @@ export function CostCalculatorModal({
   // 장거리 초과 구간 계산 (기준거리 40km 초과 시 매 40km당 1구간)
   const baseDistance = standards.baseDistanceKm || 40
   const stepDistance = standards.distanceStepKm || 40
-  const extraDistance = Math.max(0, distanceKm - baseDistance)
+  const extraDistance = Math.max(0, simDistanceKm - baseDistance)
   const defaultDistanceStepCount = extraDistance > 0 ? Math.ceil(extraDistance / stepDistance) : 0
+
+  // 운전자 거리 초과 수당 계산 (편도 기준거리 40km 초과 시 매 40km마다 10,000원 추가)
+  const driverBaseDistance = standards.driverBaseDistanceKm || 40
+  const driverStepDistance = standards.driverDistanceStepKm || 40
+  const driverStepAllowance = standards.driverDistanceAllowance ?? 10000
+  const driverExtraDistance = Math.max(0, simDistanceKm - driverBaseDistance)
+  const defaultDriverDistanceSteps = driverExtraDistance > 0 ? Math.ceil(driverExtraDistance / driverStepDistance) : 0
 
   // 1. 인건비 항목 상태 (기본값 자동 세팅 + 수동 수정 가능)
   const [menNum, setMenNum] = useState<number>(menCount !== undefined ? menCount : 3)
@@ -425,9 +446,11 @@ export function CostCalculatorModal({
   const [womenNum, setWomenNum] = useState<number>(womenCount !== undefined ? womenCount : 1)
   const [womenRate, setWomenRate] = useState<number>(womenUnitPrice || standards.femaleLaborCost || 170000)
   
-  // 운전자 추가 수당 (자사운행 차량대수 x 20,000)
+  // 운전자 추가 수당 (자사운행 차량대수 x [기본수당 20,000 + 초과50km당 10,000])
   const [driverCount, setDriverCount] = useState<number>(vehicleStats.ownCount)
-  const [driverRate, setDriverRate] = useState<number>(standards.driverAllowance)
+  const [driverBaseRate, setDriverBaseRate] = useState<number>(standards.driverAllowance || 20000)
+  const [driverDistanceSteps, setDriverDistanceSteps] = useState<number>(defaultDriverDistanceSteps)
+  const [driverStepRate, setDriverStepRate] = useState<number>(driverStepAllowance)
 
   // 톤수 초과 추가 수당 (6톤 1만, 7.5톤 2만, 10톤 3만 x 인원수)
   const [tonnageRate, setTonnageRate] = useState<number>(defaultTonnageAllowanceRate)
@@ -482,7 +505,7 @@ export function CostCalculatorModal({
         .then(data => {
           setCharteredFares(data)
           const matched =
-            data.find(f => distanceKm >= f.minDistanceKm && distanceKm <= f.maxDistanceKm) ||
+            data.find(f => simDistanceKm >= f.minDistanceKm && simDistanceKm <= f.maxDistanceKm) ||
             data[data.length - 1] ||
             null
           if (matched) {
@@ -492,7 +515,7 @@ export function CostCalculatorModal({
                   ? t
                   : {
                       ...t,
-                      charteredCost: getDefaultCharteredCostForTonnage(t.tonnage, t.operationType, matched),
+                      charteredCost: getDefaultCharteredCostForTonnage(t.tonnage, t.operationType, matched, simDistanceKm),
                     }
               )
             )
@@ -500,7 +523,49 @@ export function CostCalculatorModal({
         })
         .catch(() => {})
     }
-  }, [isOpen, distanceKm])
+  }, [isOpen, simDistanceKm])
+
+  // 시뮬레이션 주행거리 변경 시 연관 항목(운전자 초과구간, 작업원 장거리구간, 유류비, 용차비, 표준 거리할증) 일괄 연동
+  const handleSimDistanceChange = (nextDist: number) => {
+    const validDist = Math.max(0, nextDist)
+    setSimDistanceKm(validDist)
+
+    // 1) 운전자 거리 초과 구간(편도 40km 기준 초과 매 40km당 1구간) 갱신
+    const nextDriverExtra = Math.max(0, validDist - driverBaseDistance)
+    const nextDriverSteps = nextDriverExtra > 0 ? Math.ceil(nextDriverExtra / driverStepDistance) : 0
+    setDriverDistanceSteps(nextDriverSteps)
+
+    // 2) 작업원 장거리 초과 구간(40km 기준 초과 매 40km당 1구간) 갱신
+    const nextWorkerExtra = Math.max(0, validDist - baseDistance)
+    const nextWorkerSteps = nextWorkerExtra > 0 ? Math.ceil(nextWorkerExtra / stepDistance) : 0
+    setDistanceSteps(nextWorkerSteps)
+
+    // 3) 개별 배차 차량의 왕복 유류비 및 외주 용차비 갱신
+    const updatedTrucks = dispatchedTrucks.map(t => ({
+      ...t,
+      fuelCost: t.operationType === 'OWN' ? getDefaultFuelForTonnage(t.tonnage, validDist) : 0,
+      charteredCost:
+        t.operationType === 'OWN'
+          ? 0
+          : getDefaultCharteredCostForTonnage(t.tonnage, t.operationType, undefined, validDist),
+    }))
+    setDispatchedTrucks(updatedTrucks)
+
+    // 4) 표준 차량 고정 기본료 & 초과거리 할증 갱신
+    const nextOwnStd = calcOwnStandardFromList(updatedTrucks, validDist)
+    setStdVehicleBaseFee(nextOwnStd.ownBaseFee)
+    setStdDistanceExtraCost(nextOwnStd.ownDistanceExtraCost)
+
+    const nextTierKey = resolveTonnageTierKey(
+      updatedTrucks.map(t => ({ name: `${t.tonnage}톤`, count: 1, tonnage: t.tonnage }))
+    )
+    const nextFullCalc = calculateTonnageDistanceFare({
+      tierKey: nextTierKey,
+      distanceKm: validDist,
+      includeUltraLongSurcharge: true,
+    })
+    setStdUltraLongCost(nextFullCalc.ultraLongSurcharge)
+  }
 
   // 배차 차량 리스트가 변경될 때 연관된 인건비(운전자수, 톤수수당), 차량기본료/할증, 톨비, 테이프 롤수 동기화
   const syncDependentStatesWithTrucks = (nextTrucks: DispatchedTruckItem[]) => {
@@ -520,17 +585,17 @@ export function CostCalculatorModal({
     const totalCnt = nextTrucks.length
     const totalTon = c5 * 5 + c25 * 2.5 + c1 * 1
 
-    // 1) 자사 운전자 수 갱신 (단가 20,000원 유지)
+    // 1) 자사 운전자 수 갱신
     setDriverCount(ownCnt)
-    if (driverRate === 0) {
-      setDriverRate(standards.driverAllowance)
+    if (driverBaseRate === 0) {
+      setDriverBaseRate(standards.driverAllowance || 20000)
     }
 
     // 2) 톤수 초과 인건비 단가 갱신
     setTonnageRate(getTonnageAllowanceForTon(totalTon))
 
     // 3) 표준 차량 고정 기본료 & 초과거리 할증 갱신 (자사차만 반영, 용차 제외)
-    const nextOwnStd = calcOwnStandardFromList(nextTrucks)
+    const nextOwnStd = calcOwnStandardFromList(nextTrucks, simDistanceKm)
     setStdVehicleBaseFee(nextOwnStd.ownBaseFee)
     setStdDistanceExtraCost(nextOwnStd.ownDistanceExtraCost)
 
@@ -539,7 +604,7 @@ export function CostCalculatorModal({
     )
     const nextFullCalc = calculateTonnageDistanceFare({
       tierKey: nextTierKey,
-      distanceKm,
+      distanceKm: simDistanceKm,
       includeUltraLongSurcharge: true,
     })
     setStdUltraLongCost(nextFullCalc.ultraLongSurcharge)
@@ -558,8 +623,8 @@ export function CostCalculatorModal({
       id: `truck_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       tonnage: ton,
       operationType: resolvedOpType,
-      fuelCost: resolvedOpType === 'OWN' ? getDefaultFuelForTonnage(ton) : 0,
-      charteredCost: resolvedOpType === 'OWN' ? 0 : getDefaultCharteredCostForTonnage(ton, resolvedOpType),
+      fuelCost: resolvedOpType === 'OWN' ? getDefaultFuelForTonnage(ton, simDistanceKm) : 0,
+      charteredCost: resolvedOpType === 'OWN' ? 0 : getDefaultCharteredCostForTonnage(ton, resolvedOpType, undefined, simDistanceKm),
     }
     syncDependentStatesWithTrucks([...dispatchedTrucks, newTruck])
   }
@@ -577,11 +642,11 @@ export function CostCalculatorModal({
       return {
         ...t,
         tonnage: newTon,
-        fuelCost: t.operationType === 'OWN' ? getDefaultFuelForTonnage(newTon) : 0,
+        fuelCost: t.operationType === 'OWN' ? getDefaultFuelForTonnage(newTon, simDistanceKm) : 0,
         charteredCost:
           t.operationType === 'OWN'
             ? 0
-            : getDefaultCharteredCostForTonnage(newTon, t.operationType),
+            : getDefaultCharteredCostForTonnage(newTon, t.operationType, undefined, simDistanceKm),
       }
     })
     syncDependentStatesWithTrucks(next)
@@ -594,8 +659,8 @@ export function CostCalculatorModal({
       return {
         ...t,
         operationType: opType,
-        fuelCost: opType === 'OWN' ? getDefaultFuelForTonnage(t.tonnage) : 0,
-        charteredCost: opType === 'OWN' ? 0 : getDefaultCharteredCostForTonnage(t.tonnage, opType),
+        fuelCost: opType === 'OWN' ? getDefaultFuelForTonnage(t.tonnage, simDistanceKm) : 0,
+        charteredCost: opType === 'OWN' ? 0 : getDefaultCharteredCostForTonnage(t.tonnage, opType, undefined, simDistanceKm),
       }
     })
     syncDependentStatesWithTrucks(next)
@@ -610,8 +675,8 @@ export function CostCalculatorModal({
         id: `preset_${idx}_${Date.now()}`,
         tonnage: ton,
         operationType: opType,
-        fuelCost: opType === 'OWN' ? getDefaultFuelForTonnage(ton) : 0,
-        charteredCost: opType === 'OWN' ? 0 : getDefaultCharteredCostForTonnage(ton, opType),
+        fuelCost: opType === 'OWN' ? getDefaultFuelForTonnage(ton, simDistanceKm) : 0,
+        charteredCost: opType === 'OWN' ? 0 : getDefaultCharteredCostForTonnage(ton, opType, undefined, simDistanceKm),
       }
     })
     syncDependentStatesWithTrucks(next)
@@ -619,12 +684,13 @@ export function CostCalculatorModal({
 
   // 초기 상태 자동 세팅
   const resetToRecommended = () => {
+    setSimDistanceKm(distanceKm)
     setMenNum(menCount !== undefined ? menCount : 3)
     setMenRate(menUnitPrice || standards.maleLaborCost || 190000)
     setWomenNum(womenCount !== undefined ? womenCount : 1)
     setWomenRate(womenUnitPrice || standards.femaleLaborCost || 170000)
 
-    const initialTrucks = buildInitialTruckList()
+    const initialTrucks = buildInitialTruckList(undefined, distanceKm)
     setDispatchedTrucks(initialTrucks)
 
     const c5 = initialTrucks.filter(t => t.tonnage === 5).length
@@ -634,8 +700,13 @@ export function CostCalculatorModal({
     const ownCnt = initialTrucks.filter(t => t.operationType === 'OWN').length
     const totalTon = c5 * 5 + c25 * 2.5 + c1 * 1
 
+    const initDriverExtra = Math.max(0, distanceKm - driverBaseDistance)
+    const initDriverSteps = initDriverExtra > 0 ? Math.ceil(initDriverExtra / driverStepDistance) : 0
+
     setDriverCount(ownCnt)
-    setDriverRate(standards.driverAllowance)
+    setDriverBaseRate(standards.driverAllowance || 20000)
+    setDriverDistanceSteps(initDriverSteps)
+    setDriverStepRate(driverStepAllowance)
     setTonnageRate(getTonnageAllowanceForTon(totalTon))
 
     // 이사일자 기반 캘린더 할증 해당 여부 판정 (명목별 기본 금액은 항상 표시하고, 체크 시 소계/제안가에 적용)
@@ -679,7 +750,9 @@ export function CostCalculatorModal({
     setApplyMonthEnd(false)
     setApplyHoliday(false)
 
-    setDistanceSteps(defaultDistanceStepCount)
+    const initWorkerExtra = Math.max(0, distanceKm - baseDistance)
+    const initWorkerSteps = initWorkerExtra > 0 ? Math.ceil(initWorkerExtra / stepDistance) : 0
+    setDistanceSteps(initWorkerSteps)
     setDistanceRatePerPerson(standards.distanceAllowancePerPerson)
     setMealRate(standards.mealCostPerPerson)
 
@@ -694,7 +767,7 @@ export function CostCalculatorModal({
       includeWaypointFee: waypointCount > 0,
       waypointCount
     })
-    const initOwnStd = calcOwnStandardFromList(initialTrucks)
+    const initOwnStd = calcOwnStandardFromList(initialTrucks, distanceKm)
     setStdVehicleBaseFee(initOwnStd.ownBaseFee)
     setStdDistanceExtraCost(initOwnStd.ownDistanceExtraCost)
     setStdUltraLongCost(stdCalc.ultraLongSurcharge)
@@ -730,7 +803,8 @@ export function CostCalculatorModal({
 
   // 1. 인건비 합계 계산
   const baseLaborCost = (menNum * menRate) + (womenNum * womenRate)
-  const totalDriverAllowance = driverCount * driverRate
+  const perDriverAllowance = driverBaseRate + (driverDistanceSteps * driverStepRate)
+  const totalDriverAllowance = driverCount * perDriverAllowance
   const totalTonnageAllowance = totalWorkers * tonnageRate
   // 표준 차량운임표 모드에서는 초과거리 단가 내에 이미 이동 대기 인건비가 포함되어 있으므로 중복 산입 제외
   const totalDistanceAllowance = vehicleFareMode === 'STANDARD_TABLE'
@@ -803,7 +877,7 @@ export function CostCalculatorModal({
                 </span>
               </h2>
               <p className="text-xs text-amber-100/90">
-                주행거리 {distanceKm}km, 차량 {vehicleStats.totalCount}대({standardTableCalc.rule.label}), 작업원 {totalWorkers}명 기준 자동 추천
+                주행거리 {simDistanceKm}km, 차량 {vehicleStats.totalCount}대({standardTableCalc.rule.label}), 작업원 {totalWorkers}명 기준 자동 추천
               </p>
             </div>
           </div>
@@ -833,13 +907,24 @@ export function CostCalculatorModal({
           {/* 주요 기준 현황 요약 배너 */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-amber-50/60 p-3 rounded-xl border border-amber-200/80">
             <div>
-              <span className="text-[11px] text-gray-500">실제 주행거리 / 시간:</span>
-              <p className="font-bold text-gray-900 text-sm">
-                {distanceKm} km{' '}
+              <span className="text-[11px] text-gray-500">주행거리 시뮬레이션 / 시간:</span>
+              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                <div className="flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-amber-300 shadow-2xs">
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={simDistanceKm === 0 ? '' : simDistanceKm}
+                    onChange={(e) => handleSimDistanceChange(parseFloat(e.target.value) || 0)}
+                    placeholder="0"
+                    className="w-14 text-right font-extrabold text-amber-900 text-xs sm:text-sm outline-none"
+                  />
+                  <span className="text-xs font-bold text-gray-700">km</span>
+                </div>
                 <span className="text-[11px] font-normal text-amber-800">
-                  (5톤 화물차 {calculate5TonTruckDuration(distanceKm).text})
+                  ({calculate5TonTruckDuration(simDistanceKm).text})
                 </span>
-              </p>
+              </div>
             </div>
             <div>
               <span className="text-[11px] text-gray-500">고속도로 톨게이트비 (종수·편/왕복):</span>
@@ -936,15 +1021,20 @@ export function CostCalculatorModal({
 
               {/* 추가 수당 4종 (소계에 합산되는 > 0원 항목만 프레임 강조) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
-                {/* 운전자 추가수당 */}
+                {/* 운전자 추가수당 (편도 기준거리 40km 이내 기본 + 초과 40km마다 10,000원 추가) */}
                 <div className={`p-2.5 rounded-lg space-y-1 transition-all ${
                   totalDriverAllowance > 0
                     ? 'border-2 border-blue-400 bg-blue-50/40 ring-2 ring-blue-400/15 shadow-2xs'
                     : 'border border-dashed border-gray-200 bg-gray-50/50 opacity-70'
                 }`}>
                   <div className="flex items-center justify-between font-bold text-gray-800">
-                    <span className="flex items-center gap-1">
+                    <span className="flex items-center gap-1 flex-wrap">
                       운전자 추가 수당
+                      {driverDistanceSteps > 0 && (
+                        <span className="text-[10px] bg-indigo-100 text-indigo-800 px-1.5 py-0.2 rounded font-bold">
+                          +{driverDistanceSteps}구간
+                        </span>
+                      )}
                       {excludedCharteredCount > 0 && (
                         <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded font-bold">
                           용차 제외
@@ -956,30 +1046,48 @@ export function CostCalculatorModal({
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-[11px] text-gray-600 pt-1">
-                    <span>운전자:</span>
+                    <span>기본({driverBaseDistance}km):</span>
                     <div className="flex items-center gap-1">
                       <input
                         type="number"
                         min="0"
                         value={driverCount}
                         onChange={(e) => setDriverCount(parseInt(e.target.value, 10) || 0)}
-                        className="w-10 px-1 py-0.5 text-center font-bold bg-white border border-gray-200 rounded text-gray-800"
+                        className="w-9 px-1 py-0.5 text-center font-bold bg-white border border-gray-200 rounded text-gray-800"
                       />
                       <span>명 ×</span>
                       <FormattedModalNumberInput
-                        value={driverRate}
-                        onChange={(val) => setDriverRate(val)}
-                        className="w-16 px-1 py-0.5 text-right font-bold bg-white border border-gray-200 rounded text-xs"
+                        value={driverBaseRate}
+                        onChange={(val) => setDriverBaseRate(val)}
+                        className="w-15 px-1 py-0.5 text-right font-bold bg-white border border-gray-200 rounded text-xs"
                       />
                       <span>원</span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between pt-0.5">
-                    <p className="text-[10px] text-gray-500">
-                      {excludedCharteredCount > 0
-                        ? `외주 용차(${excludedCharteredCount}대) 제외 · 자사 운전자 ${driverCount}명분만 반영`
-                        : `자사운행 차량 1대당 1명 지급`}
+                  <div className="flex items-center justify-between text-[11px] text-gray-600 pt-0.5">
+                    <span>초과({driverStepDistance}km당):</span>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        min="0"
+                        value={driverDistanceSteps}
+                        onChange={(e) => setDriverDistanceSteps(parseInt(e.target.value, 10) || 0)}
+                        className="w-9 px-1 py-0.5 text-center font-bold bg-white border border-gray-200 rounded text-indigo-800"
+                      />
+                      <span>구간 × {driverStepRate.toLocaleString()}원</span>
+                    </div>
+                  </div>
+                  <div className="space-y-0.5 pt-0.5">
+                    <p className="text-[10px] text-gray-500 font-medium">
+                      {driverDistanceSteps > 0
+                        ? `편도 ${simDistanceKm}km ➔ 1인당 ${perDriverAllowance.toLocaleString()}원 (기본 ${driverBaseRate.toLocaleString()} + 초과 ${(driverDistanceSteps * driverStepRate).toLocaleString()})`
+                        : `편도 ${driverBaseDistance}km 이내 기본 (초과 ${driverStepDistance}km마다 +${driverStepRate.toLocaleString()}원)`}
                     </p>
+                    {excludedCharteredCount > 0 && (
+                      <p className="text-[10px] text-amber-700">
+                        외주 용차({excludedCharteredCount}대) 제외 · 자사 운전자 {driverCount}명분만 반영
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -1138,7 +1246,7 @@ export function CostCalculatorModal({
               <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-[11px] text-slate-700">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-extrabold text-slate-900">
-                    [{standardTableCalc.rule.label} ({ distanceKm }km) 기준 비교]
+                    [{standardTableCalc.rule.label} ({ simDistanceKm }km) 기준 비교]
                   </span>
                   <span>
                     자사 왕복유류비: <strong className="text-emerald-700">{totalFuelCost.toLocaleString()}원</strong>
@@ -1487,7 +1595,7 @@ export function CostCalculatorModal({
                           ) : (
                             <div className="flex items-center justify-between text-[11px] text-gray-600">
                               <span className="font-medium">
-                                왕복 {distanceKm * 2}km × {kmFuelUnit}원:
+                                왕복 {simDistanceKm * 2}km × {kmFuelUnit}원:
                               </span>
                               <div className="flex items-center gap-0.5">
                                 <FormattedModalNumberInput
@@ -1595,7 +1703,7 @@ export function CostCalculatorModal({
                           종수·편/왕복 재계산
                         </button>
                       )}
-                      {distanceKm <= 30 && roundTollFare > 0 && (
+                      {simDistanceKm <= 30 && roundTollFare > 0 && (
                         <button
                           type="button"
                           onClick={() => setRoundTollFare(0)}

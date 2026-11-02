@@ -27,6 +27,7 @@ import {
   calculateTonnageDistanceFare,
   type TonnageTierKey
 } from '@/lib/distanceFare'
+import type { CostStandardData } from '@/app/actions/costStandards'
 
 // 1. CBM별 표준 가이드 구간 정의
 export interface CbmTierGuide {
@@ -176,6 +177,7 @@ interface MovingCostCalculatorModalProps {
   roundTollFare?: number
   vehicleCount?: number
   waypointCount?: number
+  costStandards?: CostStandardData
   onApply: (calculatedCost: number, details: {
     baseCost: number
     distanceSurcharge?: number
@@ -195,13 +197,14 @@ export function MovingCostCalculatorModal({
   roundTollFare = 0,
   vehicleCount = 1,
   waypointCount = 0,
+  costStandards,
   onApply
 }: MovingCostCalculatorModalProps) {
   // 1. 선택된 CBM 티어 및 기본운임
   const [selectedTierId, setSelectedTierId] = useState<string>('5ton')
   const [baseCost, setBaseCost] = useState<number>(1200000)
 
-  // 2. 차량 톤수별 초과 거리 할증 및 초장거리/톨비/경유 상태
+  // 2. 차량 톤수별 초과 거리 할증 및 초장거리/톨비/경유/운전자거리수당 상태
   const [includeDistanceInCalc, setIncludeDistanceInCalc] = useState<boolean>(false)
   const [simDistanceKm, setSimDistanceKm] = useState<number>(distanceKm)
   const [applyUltraLong, setApplyUltraLong] = useState<boolean>(true)
@@ -209,6 +212,7 @@ export function MovingCostCalculatorModal({
   const [includeTollOver30Km, setIncludeTollOver30Km] = useState<boolean>(distanceKm > 30)
   const [applyWaypointFee, setApplyWaypointFee] = useState<boolean>(waypointCount > 0)
   const [waypointFeeAmount, setWaypointFeeAmount] = useState<number>(70000)
+  const [applyDriverDistanceExtra, setApplyDriverDistanceExtra] = useState<boolean>(true)
   const [roundDistanceToTenThousand, setRoundDistanceToTenThousand] = useState<boolean>(true)
 
   // 3. 캘린더 할증 상태
@@ -322,12 +326,24 @@ export function MovingCostCalculatorModal({
     waypointFeeAmount
   ])
 
+  // 운전자 거리 초과 추가 수당 계산 (원가기준정보 연동: 편도 40km 초과 시 매 40km마다 10,000원 추가 × 차량대수)
+  const driverBaseDistKm = costStandards?.driverBaseDistanceKm ?? 40
+  const driverStepDistKm = costStandards?.driverDistanceStepKm ?? 40
+  const driverStepAllowance = costStandards?.driverDistanceAllowance ?? 10000
+  const driverExtraDistKm = Math.max(0, simDistanceKm - driverBaseDistKm)
+  const driverExtraSteps = driverExtraDistKm > 0 ? Math.ceil(driverExtraDistKm / driverStepDistKm) : 0
+  const driverDistanceExtraCost = applyDriverDistanceExtra
+    ? driverExtraSteps * driverStepAllowance * Math.max(1, vehicleCount)
+    : 0
+
+  const rawDistancePlusDriverCost = distanceCalc.totalExtraCost + driverDistanceExtraCost
+
   const finalDistanceSurcharge = useMemo(() => {
     if (!includeDistanceInCalc) return 0
-    const raw = distanceCalc.totalExtraCost
+    const raw = rawDistancePlusDriverCost
     if (raw <= 0) return 0
     return roundDistanceToTenThousand ? Math.round(raw / 10000) * 10000 : raw
-  }, [includeDistanceInCalc, distanceCalc.totalExtraCost, roundDistanceToTenThousand])
+  }, [includeDistanceInCalc, rawDistancePlusDriverCost, roundDistanceToTenThousand])
 
   // CBM 티어 변경 시
   const handleSelectTier = (tier: CbmTierGuide) => {
@@ -740,6 +756,31 @@ export function MovingCostCalculatorModal({
                 </div>
               </div>
 
+              {/* 운전자 장거리 초과 추가 수당 배너 (원가기준정보 연동: 편도 40km 초과 매 40km마다 10,000원 추가) */}
+              <div className={`px-3 py-2 rounded-lg border flex flex-wrap items-center justify-between gap-2 text-xs transition-all ${
+                driverExtraSteps > 0 && applyDriverDistanceExtra
+                  ? 'bg-amber-50/90 border-amber-300 text-amber-950'
+                  : 'bg-white border-gray-200 text-gray-600'
+              }`}>
+                <label className="flex items-center gap-1.5 cursor-pointer font-bold">
+                  <input
+                    type="checkbox"
+                    checked={applyDriverDistanceExtra}
+                    onChange={e => setApplyDriverDistanceExtra(e.target.checked)}
+                    className="w-3.5 h-3.5 text-amber-600 rounded"
+                  />
+                  <span>⑤ 운전자 거리 초과 수당 (편도 {driverBaseDistKm}km 초과 매 {driverStepDistKm}km마다 +{driverStepAllowance.toLocaleString()}원)</span>
+                  {driverExtraSteps > 0 && (
+                    <span className="text-[10px] bg-amber-200 text-amber-950 px-1.5 py-0.2 rounded font-extrabold">
+                      +{driverExtraSteps}구간 × 차량 {Math.max(1, vehicleCount)}대
+                    </span>
+                  )}
+                </label>
+                <span className={`font-extrabold ${driverDistanceExtraCost > 0 ? 'text-amber-800' : 'text-gray-400'}`}>
+                  +{driverDistanceExtraCost.toLocaleString()}원
+                </span>
+              </div>
+
               <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px] text-gray-600">
                 <span>
                   * 거리 할증 단가에는 이미 <strong>왕복 유류비 원가 + 이동 중 작업자 대기 인건비</strong>가 모두 포함되어 있습니다. (가산비용 항목에 이미 거리운임을 넣으셨다면 체크를 해제하세요)
@@ -751,7 +792,7 @@ export function MovingCostCalculatorModal({
                     onChange={e => setRoundDistanceToTenThousand(e.target.checked)}
                     className="w-3.5 h-3.5 text-sky-600 rounded"
                   />
-                  <span>1만 원 단위 반올림 ({distanceCalc.totalExtraCost.toLocaleString()}원 ➔ {finalDistanceSurcharge.toLocaleString()}원)</span>
+                  <span>1만 원 단위 반올림 ({rawDistancePlusDriverCost.toLocaleString()}원 ➔ {finalDistanceSurcharge.toLocaleString()}원)</span>
                 </label>
               </div>
             </div>
