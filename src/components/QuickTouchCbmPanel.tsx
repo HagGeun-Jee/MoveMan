@@ -618,9 +618,22 @@ export function QuickTouchCbmPanel({
             const qty = Number(item.quantity) || 0
             const hasQty = qty > 0
             const isBox = isBoxItem(item.name)
-            const availableSpecs = standardItems
+            const allSpecsForName = standardItems
               .filter(s => s.name === item.name)
               .sort((a, b) => (a.spec || '').localeCompare(b.spec || '', 'ko'))
+            const locSpecsForName = allSpecsForName.filter(s =>
+              activeCategoryId
+                ? s.locations?.some((l: any) => l.id === activeCategoryId)
+                : !s.locations || s.locations.length === 0
+            )
+            const availableSpecs =
+              isBox && locSpecsForName.length > 0
+                ? allSpecsForName.filter(
+                    s =>
+                      locSpecsForName.some(ls => ls.id === s.id) ||
+                      (item.spec && (s.spec || '기본') === item.spec)
+                  )
+                : allSpecsForName
             const effCbm = getItemEffectiveCbm(item)
             const treatment = item.treatment || '이동'
 
@@ -633,18 +646,54 @@ export function QuickTouchCbmPanel({
                     : 'border-gray-200/90 bg-white hover:border-gray-300 hover:bg-gray-50/50'
                 }`}
               >
-                {/* 상단: 품목명 & 처리옵션 */}
-                <div className="flex items-start justify-between gap-1">
-                  <div className="min-w-0 flex-1">
-                    <div className="font-bold text-xs sm:text-sm text-gray-900 truncate">{item.name}</div>
-                    {/* 규격 드롭다운 / 텍스트 */}
+                {/* 상단: 품목명 & 처리옵션 + 규격 박스 */}
+                <div>
+                  <div className="flex items-start justify-between gap-1">
+                    <div className="min-w-0 flex-1 font-extrabold text-xs sm:text-sm text-gray-900 truncate flex items-center gap-1">
+                      <span className="truncate">{item.name}</span>
+                      {isBox && item.spec && (
+                        <span className="px-1.5 py-0.5 rounded-md bg-amber-300 text-slate-950 border border-amber-400 text-[11px] font-black shrink-0 shadow-2xs">
+                          {item.spec}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* 처리 상태 배지 (클릭 시 순환 변경) */}
+                    <button
+                      type="button"
+                      onClick={() => handleCycleTreatment(item._uid)}
+                      title="클릭하여 처리 변경 (이동 -> 폐기 -> 내림 -> 경유 -> 존치)"
+                      className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold transition-all border ${
+                        treatment === '폐기'
+                          ? 'bg-red-100 text-red-700 border-red-200'
+                          : treatment === '내림'
+                          ? 'bg-amber-100 text-amber-700 border-amber-200'
+                          : treatment === '경유'
+                          ? 'bg-purple-100 text-purple-700 border-purple-200'
+                          : treatment === '존치'
+                          ? 'bg-slate-100 text-slate-700 border-slate-300'
+                          : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
+                      }`}
+                    >
+                      {treatment}
+                    </button>
+                  </div>
+
+                  {/* 규격 드롭다운 / 텍스트 (전체 폭 고시인성 박스) */}
+                  <div className="mt-1.5 w-full">
                     {availableSpecs.length > 1 ? (
                       <select
                         value={item.spec || ''}
                         onChange={e => handleUpdateSpec(item._uid, e.target.value)}
-                        className="mt-0.5 text-[11px] font-medium text-gray-600 bg-transparent border-b border-gray-300 focus:border-blue-500 outline-none cursor-pointer max-w-full"
+                        className={`w-full px-2 py-1.5 rounded-lg text-xs sm:text-[13px] font-extrabold border outline-none cursor-pointer transition-colors ${
+                          item.spec
+                            ? hasQty
+                              ? 'bg-white text-blue-950 border-blue-400 focus:border-blue-600 shadow-2xs'
+                              : 'bg-indigo-50/90 text-indigo-950 border-indigo-300 hover:border-indigo-400 focus:border-blue-500'
+                            : 'bg-amber-50/90 text-amber-950 border-amber-300 hover:border-amber-400 focus:border-blue-500'
+                        }`}
                       >
-                        <option value="">규격 선택</option>
+                        <option value="">▾ 규격 선택</option>
                         {availableSpecs.map(s => (
                           <option key={s.id} value={s.spec || '기본'}>
                             {s.spec || '기본'} ({s.defaultCbm} CBM
@@ -653,31 +702,17 @@ export function QuickTouchCbmPanel({
                         ))}
                       </select>
                     ) : (
-                      <div className="text-[11px] text-gray-500 font-medium truncate mt-0.5">
+                      <div
+                        className={`w-full px-2 py-1.5 rounded-lg text-xs sm:text-[13px] font-extrabold truncate border ${
+                          hasQty
+                            ? 'bg-white text-blue-950 border-blue-300'
+                            : 'bg-slate-100/90 text-slate-900 border-slate-300'
+                        }`}
+                      >
                         {item.spec || availableSpecs[0]?.spec || '기본'}
                       </div>
                     )}
                   </div>
-
-                  {/* 처리 상태 배지 (클릭 시 순환 변경) */}
-                  <button
-                    type="button"
-                    onClick={() => handleCycleTreatment(item._uid)}
-                    title="클릭하여 처리 변경 (이동 -> 폐기 -> 내림 -> 경유 -> 존치)"
-                    className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold transition-all border ${
-                      treatment === '폐기'
-                        ? 'bg-red-100 text-red-700 border-red-200'
-                        : treatment === '내림'
-                        ? 'bg-amber-100 text-amber-700 border-amber-200'
-                        : treatment === '경유'
-                        ? 'bg-purple-100 text-purple-700 border-purple-200'
-                        : treatment === '존치'
-                        ? 'bg-slate-100 text-slate-700 border-slate-300'
-                        : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
-                    }`}
-                  >
-                    {treatment}
-                  </button>
                 </div>
 
                 {/* 중단: CBM 단가 및 합계 */}

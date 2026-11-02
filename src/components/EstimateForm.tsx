@@ -138,6 +138,87 @@ export const ensureItemUid = (item: any): any => {
   return item
 }
 
+/**
+ * 특정 위치(catId)와 연결된 BOX 기준품목 규격 목록 조회 (규격 가나다순 정렬)
+ */
+export const getConnectedBoxSpecsForLocation = (catId: string, stdItems: any[]): any[] => {
+  if (!Array.isArray(stdItems)) return []
+  const connected = stdItems.filter(
+    (s: any) =>
+      isBoxItem(s.name) &&
+      (catId ? s.locations?.some((l: any) => l.id === catId) : !s.locations || s.locations.length === 0)
+  )
+  return [...connected].sort((a, b) => (a.spec || '').localeCompare(b.spec || '', 'ko'))
+}
+
+/**
+ * 대상 위치 목록(targetCategories) 각각에 연결된 BOX 규격들을 수량 0으로 해당 위치 최상단에 기본 노출 보장
+ */
+export const ensureLocationConnectedBoxItems = (
+  itemsList: any[],
+  targetCategories: { id: string; name: string }[],
+  stdItems: any[]
+): any[] => {
+  if (!Array.isArray(itemsList)) return []
+  let result = [...itemsList]
+
+  targetCategories.forEach(cat => {
+    const catId = cat.id || ''
+    const catName = cat.name || '기타/미지정'
+    const connectedBoxes = getConnectedBoxSpecsForLocation(catId, stdItems)
+    if (connectedBoxes.length === 0) return
+
+    // 규격이 비어있고 수량이 0인 구버전 빈 BOX 플레이스홀더 제거
+    result = result.filter(
+      it => !((it.locationId || '') === catId && isBoxItem(it.name) && !it.spec && (Number(it.quantity) || 0) === 0)
+    )
+
+    const catExisting = result.filter(it => (it.locationId || '') === catId)
+    const missingBoxEntries: any[] = []
+
+    connectedBoxes.forEach(bStd => {
+      const specVal = bStd.spec || ''
+      const alreadyHas = catExisting.some(
+        it => isBoxItem(it.name) && (it.spec || '') === specVal
+      )
+      if (!alreadyHas) {
+        missingBoxEntries.push(
+          ensureItemUid({
+            locationId: catId,
+            locationName: catName,
+            name: bStd.name,
+            spec: specVal,
+            quantity: 0,
+            treatment: '이동',
+            cbm: bStd.defaultCbm ?? 0,
+            innerBoxCbm: bStd.defaultInnerCbm ?? 0,
+          })
+        )
+      }
+    })
+
+    // 해당 위치의 물품 중 BOX를 최상단으로 배치
+    const combinedCatItems = [...missingBoxEntries, ...catExisting]
+    const catBoxes = combinedCatItems
+      .filter(it => isBoxItem(it.name))
+      .sort((a, b) => (a.spec || '').localeCompare(b.spec || '', 'ko'))
+    const catNonBoxes = combinedCatItems.filter(it => !isBoxItem(it.name))
+    const reorderedCatItems = [...catBoxes, ...catNonBoxes]
+
+    // result 내에서 해당 catId 품목들을 재정렬된 목록으로 교체 (기존 위치에 없으면 끝에 추가)
+    const firstIdx = result.findIndex(it => (it.locationId || '') === catId)
+    if (firstIdx >= 0) {
+      const withoutCat = result.filter(it => (it.locationId || '') !== catId)
+      withoutCat.splice(firstIdx, 0, ...reorderedCatItems)
+      result = withoutCat
+    } else {
+      result.push(...reorderedCatItems)
+    }
+  })
+
+  return result.map(ensureItemUid)
+}
+
 const parseAndFilterCbmItems = (cbmItemsStr: string | null | undefined): any[] => {
   if (!cbmItemsStr) return []
   try {
@@ -735,41 +816,47 @@ export function EstimateForm({
     return allCategoriesWithUnassigned.filter((c: any) => !displayedIdSet.has(c.id))
   }, [allCategoriesWithUnassigned, displayedCategories])
 
-  // 공간 추가 핸들러
+  // 공간 추가 핸들러 (템플릿 없이 위치 추가 시에도 연결된 BOX 및 표준 물품을 수량 0으로 기본 노출)
   const handleAddCategory = (catId: string) => {
     const targetCat = allCategoriesWithUnassigned.find((c: any) => c.id === catId)
     if (!targetCat) return
 
     setActiveCategoryIds(prev => Array.from(new Set([...prev, catId])))
 
-    // 해당 공간의 표준 물품들을 items에 추가 (수량 0)
-    const catStandardItems = standardItems
-      .filter((item: any) => catId ? item.locations?.some((l: any) => l.id === catId) : (!item.locations || item.locations.length === 0))
-      .sort((a: any, b: any) => {
-        const aBox = isBoxItem(a.name)
-        const bBox = isBoxItem(b.name)
-        if (aBox && !bBox) return -1
-        if (!aBox && bBox) return 1
-        return (a.name || '').localeCompare(b.name || '', 'ko')
-      })
+    // 해당 공간의 일반 표준 물품들 (BOX는 ensureLocationConnectedBoxItems에서 규격별로 최상단 노출)
+    const catNonBoxStandardItems = standardItems
+      .filter(
+        (item: any) =>
+          !isBoxItem(item.name) &&
+          (catId ? item.locations?.some((l: any) => l.id === catId) : !item.locations || item.locations.length === 0)
+      )
+      .sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '', 'ko'))
 
     setItems(prevItems => {
-      const nextItems = [...prevItems]
-      const existingNames = new Set(prevItems.filter(i => (i.locationId || '') === catId).map(i => i.name))
+      let nextItems = ensureLocationConnectedBoxItems(
+        prevItems,
+        [{ id: catId, name: targetCat.name }],
+        standardItems
+      )
+      const existingNames = new Set(
+        nextItems.filter(i => (i.locationId || '') === catId).map(i => i.name)
+      )
 
-      catStandardItems.forEach((sItem: any) => {
+      catNonBoxStandardItems.forEach((sItem: any) => {
         if (!existingNames.has(sItem.name)) {
           existingNames.add(sItem.name)
-          nextItems.push(ensureItemUid({
-            locationId: catId,
-            locationName: targetCat.name,
-            name: sItem.name,
-            spec: '',
-            quantity: 0,
-            treatment: '이동',
-            cbm: 0,
-            innerBoxCbm: 0
-          }))
+          nextItems.push(
+            ensureItemUid({
+              locationId: catId,
+              locationName: targetCat.name,
+              name: sItem.name,
+              spec: '',
+              quantity: 0,
+              treatment: '이동',
+              cbm: 0,
+              innerBoxCbm: 0,
+            })
+          )
         }
       })
       return nextItems
@@ -891,10 +978,35 @@ export function EstimateForm({
   const handleApplyPreset = (presetItems: PresetItem[], mode: 'replace' | 'append') => {
     if (!presetItems || presetItems.length === 0) return
 
+    // 템플릿에 짐이 있는 공간들을 활성 공간 목록으로 설정
+    const presetLocIds = Array.from(
+      new Set(
+        presetItems
+          .filter(p => !isBoxItem(p.name) && Number(p.quantity) > 0)
+          .map(p => {
+            const locCat = categories.find(c => c.name === p.locationName)
+            return locCat ? locCat.id : ''
+          })
+      )
+    ) as string[]
+
+    const nextActiveCatIds =
+      mode === 'replace'
+        ? presetLocIds
+        : (Array.from(new Set([...activeCategoryIds, ...presetLocIds])) as string[])
+
+    const targetCatObjs = nextActiveCatIds.map(id => {
+      const found = allCategoriesWithUnassigned.find((c: any) => c.id === id)
+      return { id, name: found ? found.name : '기타/미지정' }
+    })
+
     setItems(prevItems => {
       let nextList = mode === 'replace' ? [] : [...prevItems]
 
       presetItems.forEach(pItem => {
+        // 평형 템플릿 적용 시 BOX 수량은 사전 적용하지 않음 (수량 0으로 위치별 연결 BOX만 노출)
+        if (isBoxItem(pItem.name)) return
+
         const locCat = categories.find(c => c.name === pItem.locationName)
         const locId = locCat ? locCat.id : ''
         const locName = locCat ? locCat.name : pItem.locationName
@@ -905,15 +1017,20 @@ export function EstimateForm({
         )
         const finalCbm = stdMatch
           ? stdMatch.defaultCbm
-          : (pItem.cbm !== undefined ? pItem.cbm : 0)
+          : pItem.cbm !== undefined
+          ? pItem.cbm
+          : 0
         const finalInnerCbm = stdMatch
-          ? (stdMatch.defaultInnerCbm || 0)
-          : (pItem.innerBoxCbm !== undefined ? pItem.innerBoxCbm : 0)
+          ? stdMatch.defaultInnerCbm || 0
+          : pItem.innerBoxCbm !== undefined
+          ? pItem.innerBoxCbm
+          : 0
 
         const existingIdx = nextList.findIndex(
-          it => (it.locationId || '') === locId &&
-                it.name === pItem.name &&
-                (it.spec || '') === (pItem.spec || '')
+          it =>
+            (it.locationId || '') === locId &&
+            it.name === pItem.name &&
+            (it.spec || '') === (pItem.spec || '')
         )
 
         if (existingIdx >= 0) {
@@ -925,41 +1042,29 @@ export function EstimateForm({
             quantity: newQty,
             cbm: finalCbm,
             innerBoxCbm: finalInnerCbm,
-            treatment: pItem.treatment || cur.treatment || '이동'
+            treatment: pItem.treatment || cur.treatment || '이동',
           }
         } else {
-          nextList.push(ensureItemUid({
-            locationId: locId,
-            locationName: locName,
-            name: pItem.name,
-            spec: pItem.spec || '',
-            quantity: pItem.quantity,
-            cbm: finalCbm,
-            innerBoxCbm: finalInnerCbm,
-            treatment: pItem.treatment || '이동'
-          }))
+          nextList.push(
+            ensureItemUid({
+              locationId: locId,
+              locationName: locName,
+              name: pItem.name,
+              spec: pItem.spec || '',
+              quantity: pItem.quantity,
+              cbm: finalCbm,
+              innerBoxCbm: finalInnerCbm,
+              treatment: pItem.treatment || '이동',
+            })
+          )
         }
       })
 
-      return nextList.map(ensureItemUid)
+      // 각 활성 위치에 연결된 BOX 규격들을 수량 0(수량 적용 없이)으로 최상단에 노출
+      return ensureLocationConnectedBoxItems(nextList, targetCatObjs, standardItems)
     })
 
-    // 템플릿에 짐이 있는 공간들을 활성 공간 목록으로 설정 (짐이 없는 빈 공간은 화면에서 숨김)
-    const presetLocIds = Array.from(new Set(
-      presetItems
-        .filter(p => Number(p.quantity) > 0)
-        .map(p => {
-          const locCat = categories.find(c => c.name === p.locationName)
-          return locCat ? locCat.id : ''
-        })
-    )) as string[]
-
-    if (mode === 'replace') {
-      setActiveCategoryIds(presetLocIds)
-    } else {
-      setActiveCategoryIds(prev => Array.from(new Set([...prev, ...presetLocIds])))
-    }
-
+    setActiveCategoryIds(nextActiveCatIds)
     setExpandedCategories({})
   }
 
@@ -1463,15 +1568,16 @@ export function EstimateForm({
         const initialItems: any[] = []
         const grouped: Record<string, boolean> = {}
 
-        // 기본 활성 공간(안방)의 표준 물품들만 초기 목록으로 세팅 (수량 0)
+        // 기본 활성 공간(안방)의 일반 표준 물품들 초기 목록 세팅 (수량 0, BOX는 ensureLocationConnectedBoxItems로 최상단 노출)
         if (defaultCat) {
           const catStandardItems = sortedStandardItems
-            .filter((item: any) => item.locations && item.locations.some((l: any) => l.id === defaultCat.id))
+            .filter(
+              (item: any) =>
+                !isBoxItem(item.name) &&
+                item.locations &&
+                item.locations.some((l: any) => l.id === defaultCat.id)
+            )
             .sort((a: any, b: any) => {
-              const aBox = isBoxItem(a.name)
-              const bBox = isBoxItem(b.name)
-              if (aBox && !bBox) return -1
-              if (!aBox && bBox) return 1
               const nameComp = (a.name || '').localeCompare(b.name || '', 'ko')
               if (nameComp !== 0) return nameComp
               return (a.spec || '').localeCompare(b.spec || '', 'ko')
@@ -1481,16 +1587,18 @@ export function EstimateForm({
             const key = `${defaultCat.id}_${item.name}`
             if (!grouped[key]) {
               grouped[key] = true
-              initialItems.push(ensureItemUid({
-                locationId: defaultCat.id,
-                locationName: defaultCat.name,
-                name: item.name,
-                spec: '',
-                quantity: 0,
-                treatment: '이동',
-                cbm: 0,
-                innerBoxCbm: 0
-              }))
+              initialItems.push(
+                ensureItemUid({
+                  locationId: defaultCat.id,
+                  locationName: defaultCat.name,
+                  name: item.name,
+                  spec: '',
+                  quantity: 0,
+                  treatment: '이동',
+                  cbm: 0,
+                  innerBoxCbm: 0,
+                })
+              )
             }
           })
         }
@@ -1512,6 +1620,12 @@ export function EstimateForm({
             }
           }
         } catch {}
+
+        const activeCatObjs = loadedActiveCats.map(id => {
+          const found = catsRes.find((c: any) => c.id === id)
+          return { id, name: found ? found.name : '기타/미지정' }
+        })
+        finalItems = ensureLocationConnectedBoxItems(finalItems, activeCatObjs, sortedStandardItems)
 
         setItems(finalItems.map(ensureItemUid))
         setActiveCategoryIds(loadedActiveCats)
@@ -1537,13 +1651,28 @@ export function EstimateForm({
           }
         } catch {}
 
-        setItems(finalItems.map(ensureItemUid))
+        // 수정 모드: 이미 물량작업을 마친 위치(수량 > 0인 물품이 존재하는 위치)에는 수량 0인 빈 BOX를 노출하지 않음
+        const workedCatIdSet = new Set(
+          finalItems
+            .filter((i: any) => (Number(i.quantity) || 0) > 0)
+            .map((i: any) => i.locationId || '')
+        )
+        finalItems = finalItems.filter((i: any) => {
+          const locId = i.locationId || ''
+          if (workedCatIdSet.has(locId) && isBoxItem(i.name) && (Number(i.quantity) || 0) === 0) {
+            return false
+          }
+          return true
+        })
 
         // 기존 견적의 짐이 있는 공간들을 활성화
         const existingCatIds = Array.from(new Set(
           finalItems.map((i: any) => i.locationId || '')
         )) as string[]
-        setActiveCategoryIds(existingCatIds.length > 0 ? existingCatIds : (defaultCat ? [defaultCat.id] : []))
+        const activeIdsForEdit = existingCatIds.length > 0 ? existingCatIds : (defaultCat ? [defaultCat.id] : [])
+
+        setItems(finalItems.map(ensureItemUid))
+        setActiveCategoryIds(activeIdsForEdit)
 
         const initialExpanded: Record<string, boolean> = {}
         catsRes.forEach((c: any) => {
@@ -3286,10 +3415,23 @@ export function EstimateForm({
                                 </td>
                                 <td className="px-1.5 sm:px-2 py-1">
                                   {(() => {
-                                    // 해당 품목명(name)을 가진 기준정보 항목들을 찾음 (규격순 정렬)
-                                    const availableSpecs = standardItems
+                                    // 해당 품목명(name)을 가진 기준정보 항목들을 찾음 (규격순 정렬, BOX는 위치 연결 규격 우선)
+                                    const allSpecsForName = standardItems
                                       .filter(i => i.name === item.name)
                                       .sort((a, b) => (a.spec || '').localeCompare(b.spec || '', 'ko'))
+                                    const locSpecsForName = allSpecsForName.filter(s =>
+                                      cat.id
+                                        ? s.locations?.some((l: any) => l.id === cat.id)
+                                        : !s.locations || s.locations.length === 0
+                                    )
+                                    const availableSpecs =
+                                      isBoxItem(item.name) && locSpecsForName.length > 0
+                                        ? allSpecsForName.filter(
+                                            s =>
+                                              locSpecsForName.some(ls => ls.id === s.id) ||
+                                              (item.spec && (s.spec || '기본') === item.spec)
+                                          )
+                                        : allSpecsForName
                                     
                                     if (availableSpecs.length > 0) {
                                       return (

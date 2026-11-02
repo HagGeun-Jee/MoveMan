@@ -155,13 +155,16 @@ export function ItemQuickAddModal({
       >
         {/* 모달 헤더 */}
         <div className="px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2">
-            <PackagePlus size={18} className="text-amber-300" />
+          <div className="flex items-center gap-2.5">
+            <PackagePlus size={19} className="text-amber-300 shrink-0" />
             <div>
-              <h3 className="font-extrabold text-sm sm:text-base flex items-center gap-1.5">
-                <span>[{categoryName || '기타/미지정'}] 품목 빠른 검색·추가</span>
+              <h3 className="font-extrabold text-sm sm:text-base flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg bg-amber-300 text-slate-950 font-black text-sm sm:text-base border border-amber-100 shadow-sm tracking-tight">
+                  {categoryName || '기타/미지정'}
+                </span>
+                <span className="text-white">품목 빠른 검색·추가</span>
               </h3>
-              <p className="text-[11px] text-blue-100">
+              <p className="text-[11px] text-blue-100 mt-0.5">
                 초성(ㄱ~ㅎ)·분류·검색으로 원하는 물품 규격을 탭하면 즉시 1개씩 추가됩니다.
               </p>
             </div>
