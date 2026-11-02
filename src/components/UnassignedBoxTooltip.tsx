@@ -176,10 +176,10 @@ export function UnassignedBoxTooltip({ variant = 'badge', className = '' }: Unas
 
               <div className="flex items-start gap-2 p-2 rounded-lg bg-gray-50 border border-gray-100">
                 <span className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800">
-                  거실 / 침실
+                  거실 / 안방 / 입구방 / 작은방
                 </span>
                 <span className="text-gray-700 text-[11px] leading-tight">
-                  화장대 위 화장품, 스탠드, 멀티탭/전선, 쿠션, 인형, 액자, 생활 소품
+                  화장대 위 화장품, 소형 소품, 멀티탭/전선, 쿠션, 인형, 액자, 생활 잡화
                 </span>
               </div>
 

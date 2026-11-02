@@ -76,23 +76,78 @@ export async function updateStandardItem(id: string, formData: FormData) {
   }
 }
 
-let isStandLampSeeded = false
+let isLocationAndStandLampSeededV2 = false
 
 export async function ensureStandLampItems() {
-  if (isStandLampSeeded) return
+  if (isLocationAndStandLampSeededV2) return
   try {
-    const existing = await prisma.standardItem.count({
-      where: { name: '스탠드등' }
-    })
-    if (existing >= 5) {
-      isStandLampSeeded = true
-      return
+    // 1. 현장 친화적 방 명칭 전환 (기존 LocationCategory ID 및 연결 물품 100% 유지)
+    const roomRenameMap: Array<{ from: string; to: string }> = [
+      { from: '방1', to: '입구방' },
+      { from: '방2', to: '작은방1' },
+      { from: '방3', to: '작은방2' },
+      { from: '방4', to: '드레스룸/서재' },
+    ]
+
+    for (const { from, to } of roomRenameMap) {
+      const oldCat = await prisma.locationCategory.findUnique({ where: { name: from } })
+      if (oldCat) {
+        const existingTarget = await prisma.locationCategory.findUnique({ where: { name: to } })
+        if (!existingTarget) {
+          await prisma.locationCategory.update({
+            where: { id: oldCat.id },
+            data: { name: to }
+          })
+        }
+      }
     }
 
+    // 2. 작업 동선 기준 공간 정렬 순서(order) 일괄 보정
+    const preferredOrder = [
+      '안방',
+      '거실',
+      '주방',
+      '입구방',
+      '작은방1',
+      '작은방2',
+      '드레스룸/서재',
+      '베란다',
+      '팬트리',
+      '화장실',
+    ]
+    const currentLocations = await prisma.locationCategory.findMany()
+    for (const loc of currentLocations) {
+      const idx = preferredOrder.indexOf(loc.name)
+      const targetOrder = idx >= 0 ? idx + 1 : 99
+      if (loc.order !== targetOrder) {
+        await prisma.locationCategory.update({
+          where: { id: loc.id },
+          data: { order: targetOrder }
+        })
+      }
+    }
+
+    // 3. 기존 견적서(Estimate.cbmItems) 내 구 방 명칭('방1'~'방4') 자동 마이그레이션
+    await prisma.$executeRawUnsafe(`
+      UPDATE "Estimate"
+      SET "cbmItems" = REPLACE(
+        REPLACE(
+          REPLACE(
+            REPLACE("cbmItems", '"locationName":"방1"', '"locationName":"입구방"'),
+            '"locationName":"방2"', '"locationName":"작은방1"'
+          ),
+          '"locationName":"방3"', '"locationName":"작은방2"'
+        ),
+        '"locationName":"방4"', '"locationName":"드레스룸/서재"'
+      )
+      WHERE "cbmItems" LIKE '%"locationName":"방%'
+    `)
+
+    // 4. 스탠드등 5종 등록 및 실제 시스템 위치(거실, 안방, 입구방, 작은방1, 작은방2, 드레스룸/서재) 연결
     const allLocations = await prisma.locationCategory.findMany()
-    const targetLocNames = ['거실', '안방', '침실', '작은방', '서재']
+    const targetLocNames = ['거실', '안방', '입구방', '작은방1', '작은방2', '드레스룸/서재']
     const matchedLocs = allLocations.filter(loc =>
-      targetLocNames.some(t => loc.name.includes(t))
+      targetLocNames.includes(loc.name)
     )
 
     const standLamps = [
@@ -114,6 +169,9 @@ export async function ensureStandLampItems() {
         update: {
           defaultCbm: lamp.defaultCbm,
           defaultInnerCbm: lamp.defaultInnerCbm,
+          locations: {
+            set: matchedLocs.map(l => ({ id: l.id }))
+          }
         },
         create: {
           name: lamp.name,
@@ -126,7 +184,7 @@ export async function ensureStandLampItems() {
         }
       })
     }
-    isStandLampSeeded = true
+    isLocationAndStandLampSeededV2 = true
   } catch (err) {
     console.warn('ensureStandLampItems warning:', err)
   }
@@ -144,6 +202,7 @@ export async function getStandardItems() {
 }
 
 export async function getLocationCategories() {
+  await ensureStandLampItems()
   return await prisma.locationCategory.findMany({
     orderBy: { order: 'asc' }
   })

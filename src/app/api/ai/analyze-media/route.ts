@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { ensureStandLampItems } from '@/app/actions/item'
 import { GoogleGenAI } from '@google/genai'
 import fs from 'fs'
 import path from 'path'
@@ -52,6 +53,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. MEMAN 표준 품목 및 공간 마스터 데이터 조회
+    await ensureStandLampItems()
     const [standardItems, locations] = await Promise.all([
       prisma.standardItem.findMany({
         include: { locations: true },

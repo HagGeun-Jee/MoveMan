@@ -97,6 +97,19 @@ const sortCbmItems = (list: any[]): any[] => {
   })
 }
 
+const LEGACY_ROOM_NAME_MAP: Record<string, string> = {
+  '방1': '입구방',
+  '방2': '작은방1',
+  '방3': '작은방2',
+  '방4': '드레스룸/서재',
+}
+
+export const normalizeLocationName = (locName?: string): string => {
+  if (!locName) return ''
+  const trimmed = locName.trim()
+  return LEGACY_ROOM_NAME_MAP[trimmed] || trimmed
+}
+
 const filterValidCbmItems = (itemsList: any[]): any[] => {
   if (!Array.isArray(itemsList)) return []
   const filtered = itemsList.filter((item: any) => {
@@ -105,6 +118,7 @@ const filterValidCbmItems = (itemsList: any[]): any[] => {
     return unitCbm > 0 && qty > 0
   }).map((item: any) => ({
     ...item,
+    locationName: item.locationName ? normalizeLocationName(item.locationName) : item.locationName,
     treatment: item.treatment || '이동'
   }))
   return sortCbmItems(filtered)
@@ -113,6 +127,9 @@ const filterValidCbmItems = (itemsList: any[]): any[] => {
 let globalItemSeq = 0
 export const ensureItemUid = (item: any): any => {
   if (!item) return item
+  if (item.locationName) {
+    item.locationName = normalizeLocationName(item.locationName)
+  }
   if (!item._uid) {
     globalItemSeq += 1
     item._uid = `cbm_${Date.now()}_${globalItemSeq}_${Math.random().toString(36).substring(2, 7)}`

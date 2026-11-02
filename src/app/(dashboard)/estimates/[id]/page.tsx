@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import prisma from '@/lib/prisma'
+import { getLocationCategories } from '@/app/actions/item'
 import { format } from 'date-fns'
 import { MapPin, Phone } from 'lucide-react'
 import { PrintButton } from '@/components/PrintButton'
@@ -9,6 +10,19 @@ import { EstimateContractItemsView } from '@/components/EstimateContractItemsVie
 import { CustomerPreMoveSmsTrigger } from '@/components/CustomerPreMoveSmsModal'
 
 import { Metadata } from 'next'
+
+const LEGACY_ROOM_NAME_MAP: Record<string, string> = {
+  '방1': '입구방',
+  '방2': '작은방1',
+  '방3': '작은방2',
+  '방4': '드레스룸/서재',
+}
+
+const normalizeLocationName = (locName?: string): string => {
+  if (!locName) return '기타/미지정'
+  const trimmed = locName.trim()
+  return LEGACY_ROOM_NAME_MAP[trimmed] || trimmed
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params
@@ -34,9 +48,7 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
     prisma.estimate.findUnique({
       where: { id }
     }),
-    prisma.locationCategory.findMany({
-      orderBy: { order: 'asc' }
-    })
+    getLocationCategories()
   ])
   
   if (!estimate) {
@@ -73,7 +85,10 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
         const qty = item.quantity !== undefined ? Number(item.quantity) : 1
         const unitCbm = (Number(item.cbm) || 0) + (Number(item.innerBoxCbm) || 0)
         return unitCbm > 0 && qty > 0
-      })
+      }).map((item: any) => ({
+        ...item,
+        locationName: normalizeLocationName(item.locationName)
+      }))
     : []
   const labors = Array.isArray(envObj.labors) ? envObj.labors : []
   const vehicles = Array.isArray(envObj.vehicles) ? envObj.vehicles : []
