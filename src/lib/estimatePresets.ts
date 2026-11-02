@@ -1,5 +1,5 @@
 export interface PresetItem {
-  locationName: string // '안방', '거실', '주방', '입구방', '작은방1', '작은방2', '드레스룸/서재', '베란다', '기타/미지정'
+  locationName: string // '안방', '거실', '주방', '입구방', '작은방1', '작은방2', '드레스룸', '서재', '베란다', '기타/미지정'
   name: string
   spec: string
   quantity: number
@@ -169,7 +169,7 @@ export const ESTIMATE_PRESETS: EstimatePreset[] = [
       { locationName: '작은방1', name: '책상', spec: '분리형/1M이하', quantity: 1, cbm: 1.0, innerBoxCbm: 0 },
       { locationName: '작은방1', name: '의자', spec: '책상용', quantity: 1, cbm: 0.5, innerBoxCbm: 0 },
       { locationName: '작은방2', name: '책장', spec: '3x5단', quantity: 2, cbm: 0.65, innerBoxCbm: 0.65 },
-      { locationName: '드레스룸/서재', name: '장식장', spec: '기본+내품추가', quantity: 1, cbm: 1.0, innerBoxCbm: 0 },
+      { locationName: '서재', name: '장식장', spec: '기본+내품추가', quantity: 1, cbm: 1.0, innerBoxCbm: 0 },
       { locationName: '베란다', name: '세탁기', spec: '콤보/신형', quantity: 1, cbm: 1.5, innerBoxCbm: 0 },
       { locationName: '베란다', name: '건조기', spec: '대형', quantity: 1, cbm: 1.1, innerBoxCbm: 0 },
       { locationName: '베란다', name: '앵글', spec: '철재 120x45x180', quantity: 2, cbm: 1.0, innerBoxCbm: 0.5 },

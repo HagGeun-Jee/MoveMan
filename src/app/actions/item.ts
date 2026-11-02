@@ -76,17 +76,16 @@ export async function updateStandardItem(id: string, formData: FormData) {
   }
 }
 
-let isLocationAndStandLampSeededV2 = false
+let isLocationAndStandLampSeededV3 = false
 
 export async function ensureStandLampItems() {
-  if (isLocationAndStandLampSeededV2) return
+  if (isLocationAndStandLampSeededV3) return
   try {
-    // 1. 현장 친화적 방 명칭 전환 (기존 LocationCategory ID 및 연결 물품 100% 유지)
+    // 1. 현장 친화적 방 명칭 전환 (방1->입구방, 방2->작은방1, 방3->작은방2)
     const roomRenameMap: Array<{ from: string; to: string }> = [
       { from: '방1', to: '입구방' },
       { from: '방2', to: '작은방1' },
       { from: '방3', to: '작은방2' },
-      { from: '방4', to: '드레스룸/서재' },
     ]
 
     for (const { from, to } of roomRenameMap) {
@@ -102,52 +101,84 @@ export async function ensureStandLampItems() {
       }
     }
 
-    // 2. 작업 동선 기준 공간 정렬 순서(order) 일괄 보정
-    const preferredOrder = [
-      '안방',
-      '거실',
-      '주방',
-      '입구방',
-      '작은방1',
-      '작은방2',
-      '드레스룸/서재',
-      '베란다',
-      '팬트리',
-      '화장실',
-    ]
-    const currentLocations = await prisma.locationCategory.findMany()
-    for (const loc of currentLocations) {
-      const idx = preferredOrder.indexOf(loc.name)
-      const targetOrder = idx >= 0 ? idx + 1 : 99
-      if (loc.order !== targetOrder) {
+    // 2. '드레스룸/서재'(또는 '방4')의 등록 물품을 '드레스룸'으로 이전 (중복 시 스킵) 후 '서재'로 명칭 변경
+    const sourceDressStudyCat =
+      (await prisma.locationCategory.findUnique({
+        where: { name: '드레스룸/서재' },
+        include: { items: true }
+      })) ||
+      (await prisma.locationCategory.findUnique({
+        where: { name: '방4' },
+        include: { items: true }
+      }))
+
+    let dressroomCat = await prisma.locationCategory.findUnique({
+      where: { name: '드레스룸' },
+      include: { items: true }
+    })
+
+    if (!dressroomCat) {
+      dressroomCat = await prisma.locationCategory.create({
+        data: { name: '드레스룸', order: 7 },
+        include: { items: true }
+      })
+    }
+
+    if (sourceDressStudyCat) {
+      const existingDressroomItemIds = new Set(dressroomCat.items.map(i => i.id))
+      const itemsToCopyToDressroom = sourceDressStudyCat.items.filter(
+        i => !existingDressroomItemIds.has(i.id)
+      )
+
+      if (itemsToCopyToDressroom.length > 0) {
         await prisma.locationCategory.update({
-          where: { id: loc.id },
-          data: { order: targetOrder }
+          where: { id: dressroomCat.id },
+          data: {
+            items: {
+              connect: itemsToCopyToDressroom.map(i => ({ id: i.id }))
+            }
+          }
+        })
+      }
+
+      // 이후 '드레스룸/서재'(또는 '방4')를 '서재'로 수정
+      const existingStudyCat = await prisma.locationCategory.findUnique({
+        where: { name: '서재' },
+        include: { items: true }
+      })
+
+      if (!existingStudyCat) {
+        await prisma.locationCategory.update({
+          where: { id: sourceDressStudyCat.id },
+          data: { name: '서재' }
+        })
+      } else if (existingStudyCat.id !== sourceDressStudyCat.id) {
+        // 만약 '서재'가 이미 별도로 존재한다면 물품 병합 후 중복 '드레스룸/서재' 삭제
+        const existingStudyItemIds = new Set(existingStudyCat.items.map(i => i.id))
+        const itemsToMergeToStudy = sourceDressStudyCat.items.filter(
+          i => !existingStudyItemIds.has(i.id)
+        )
+        if (itemsToMergeToStudy.length > 0) {
+          await prisma.locationCategory.update({
+            where: { id: existingStudyCat.id },
+            data: {
+              items: {
+                connect: itemsToMergeToStudy.map(i => ({ id: i.id }))
+              }
+            }
+          })
+        }
+        await prisma.locationCategory.delete({
+          where: { id: sourceDressStudyCat.id }
         })
       }
     }
 
-    // 3. 기존 견적서(Estimate.cbmItems) 내 구 방 명칭('방1'~'방4') 자동 마이그레이션
-    await prisma.$executeRawUnsafe(`
-      UPDATE "Estimate"
-      SET "cbmItems" = REPLACE(
-        REPLACE(
-          REPLACE(
-            REPLACE("cbmItems", '"locationName":"방1"', '"locationName":"입구방"'),
-            '"locationName":"방2"', '"locationName":"작은방1"'
-          ),
-          '"locationName":"방3"', '"locationName":"작은방2"'
-        ),
-        '"locationName":"방4"', '"locationName":"드레스룸/서재"'
-      )
-      WHERE "cbmItems" LIKE '%"locationName":"방%'
-    `)
-
-    // 4. 스탠드등 5종 등록 및 실제 시스템 위치(거실, 안방, 입구방, 작은방1, 작은방2, 드레스룸/서재) 연결
-    const allLocations = await prisma.locationCategory.findMany()
-    const targetLocNames = ['거실', '안방', '입구방', '작은방1', '작은방2', '드레스룸/서재']
-    const matchedLocs = allLocations.filter(loc =>
-      targetLocNames.includes(loc.name)
+    // 3. 스탠드등 5종 등록 및 공간 연결
+    const allLocationsAfterRename = await prisma.locationCategory.findMany()
+    const lampTargetLocNames = ['거실', '안방', '입구방', '작은방1', '작은방2', '드레스룸', '서재']
+    const lampMatchedLocs = allLocationsAfterRename.filter(loc =>
+      lampTargetLocNames.includes(loc.name)
     )
 
     const standLamps = [
@@ -170,7 +201,7 @@ export async function ensureStandLampItems() {
           defaultCbm: lamp.defaultCbm,
           defaultInnerCbm: lamp.defaultInnerCbm,
           locations: {
-            set: matchedLocs.map(l => ({ id: l.id }))
+            set: lampMatchedLocs.map(l => ({ id: l.id }))
           }
         },
         create: {
@@ -179,12 +210,118 @@ export async function ensureStandLampItems() {
           defaultCbm: lamp.defaultCbm,
           defaultInnerCbm: lamp.defaultInnerCbm,
           locations: {
-            connect: matchedLocs.map(l => ({ id: l.id }))
+            connect: lampMatchedLocs.map(l => ({ id: l.id }))
           }
         }
       })
     }
-    isLocationAndStandLampSeededV2 = true
+
+    // 4. '서재' 및 '드레스룸'에 연결 가능한 표준 물품 자동 연결 (중복 시 스킵)
+    const studyCat = await prisma.locationCategory.findUnique({
+      where: { name: '서재' },
+      include: { items: true }
+    })
+    const refreshedDressroomCat = await prisma.locationCategory.findUnique({
+      where: { name: '드레스룸' },
+      include: { items: true }
+    })
+    const allStandardItems = await prisma.standardItem.findMany()
+
+    if (studyCat) {
+      // 서재에 적합한 물품 키워드 (책상, 책장, 의자, 서랍장, 장식장, 스탠드등, 소파, 컴퓨터/가전, 피아노 등)
+      const studyKeywords = [
+        '책상', '책장', '책꽂이', '의자', '스탠드등', '서랍장', '장식장', '진열장', '수납장',
+        '선반', '앵글', '컴퓨터', 'PC', '모니터', '프린터', '복합기', '소파', '쇼파',
+        '공기청정기', '에어컨', '안마의자', '안마', '피아노', '침대', 'TV', '금고', '테이블', '협탁'
+      ]
+      const existingStudyIds = new Set(studyCat.items.map(i => i.id))
+      const studyConnectItems = allStandardItems.filter(
+        item =>
+          !existingStudyIds.has(item.id) &&
+          studyKeywords.some(kw => item.name.toLowerCase().includes(kw.toLowerCase()))
+      )
+      if (studyConnectItems.length > 0) {
+        await prisma.locationCategory.update({
+          where: { id: studyCat.id },
+          data: {
+            items: {
+              connect: studyConnectItems.map(i => ({ id: i.id }))
+            }
+          }
+        })
+      }
+    }
+
+    if (refreshedDressroomCat) {
+      // 드레스룸에 적합한 물품 키워드 (장농, 옷장, 행거, 서랍장, 화장대, 스타일러, 거울, 선반, 앵글 등)
+      const dressroomKeywords = [
+        '장농', '장롱', '옷장', '행거', '시스템', '서랍장', '화장대', '스타일러', '에어드레서',
+        '거울', '수납장', '선반', '앵글', '스탠드등', '공기청정기', '제습기'
+      ]
+      const existingDressIds = new Set(refreshedDressroomCat.items.map(i => i.id))
+      const dressConnectItems = allStandardItems.filter(
+        item =>
+          !existingDressIds.has(item.id) &&
+          dressroomKeywords.some(kw => item.name.toLowerCase().includes(kw.toLowerCase()))
+      )
+      if (dressConnectItems.length > 0) {
+        await prisma.locationCategory.update({
+          where: { id: refreshedDressroomCat.id },
+          data: {
+            items: {
+              connect: dressConnectItems.map(i => ({ id: i.id }))
+            }
+          }
+        })
+      }
+    }
+
+    // 5. 작업 동선 기준 공간 정렬 순서(order) 일괄 보정
+    const preferredOrder = [
+      '안방',
+      '거실',
+      '주방',
+      '입구방',
+      '작은방1',
+      '작은방2',
+      '드레스룸',
+      '서재',
+      '베란다',
+      '팬트리',
+      '화장실',
+    ]
+    const currentLocations = await prisma.locationCategory.findMany()
+    for (const loc of currentLocations) {
+      const idx = preferredOrder.indexOf(loc.name)
+      const targetOrder = idx >= 0 ? idx + 1 : 99
+      if (loc.order !== targetOrder) {
+        await prisma.locationCategory.update({
+          where: { id: loc.id },
+          data: { order: targetOrder }
+        })
+      }
+    }
+
+    // 6. 기존 견적서(Estimate.cbmItems) 내 구 방 명칭('방1'~'방4', '드레스룸/서재') 자동 마이그레이션
+    await prisma.$executeRawUnsafe(`
+      UPDATE "Estimate"
+      SET "cbmItems" = REPLACE(
+        REPLACE(
+          REPLACE(
+            REPLACE(
+              REPLACE("cbmItems", '"locationName":"방1"', '"locationName":"입구방"'),
+              '"locationName":"방2"', '"locationName":"작은방1"'
+            ),
+            '"locationName":"방3"', '"locationName":"작은방2"'
+          ),
+          '"locationName":"방4"', '"locationName":"서재"'
+        ),
+        '"locationName":"드레스룸/서재"', '"locationName":"서재"'
+      )
+      WHERE "cbmItems" LIKE '%"locationName":"방%' OR "cbmItems" LIKE '%"locationName":"드레스룸/서재"%'
+    `)
+
+    isLocationAndStandLampSeededV3 = true
   } catch (err) {
     console.warn('ensureStandLampItems warning:', err)
   }

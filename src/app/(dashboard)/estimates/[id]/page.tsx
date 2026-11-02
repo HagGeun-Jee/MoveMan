@@ -15,7 +15,8 @@ const LEGACY_ROOM_NAME_MAP: Record<string, string> = {
   '방1': '입구방',
   '방2': '작은방1',
   '방3': '작은방2',
-  '방4': '드레스룸/서재',
+  '방4': '서재',
+  '드레스룸/서재': '서재',
 }
 
 const normalizeLocationName = (locName?: string): string => {
