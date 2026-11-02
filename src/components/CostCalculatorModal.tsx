@@ -478,6 +478,8 @@ export function CostCalculatorModal({
   const [isWeekend, setIsWeekend] = useState<boolean>(false)
   const [isFriday, setIsFriday] = useState<boolean>(false)
   const [isMonthEnd, setIsMonthEnd] = useState<boolean>(false)
+  const [isHoliday, setIsHoliday] = useState<boolean>(false)
+  const [holidayName, setHolidayName] = useState<string | null>(null)
 
   const [applySonEobNeunNal, setApplySonEobNeunNal] = useState<boolean>(false)
   const [sonEobNeunNalCost, setSonEobNeunNalCost] = useState<number>(150000)
@@ -493,6 +495,62 @@ export function CostCalculatorModal({
 
   const [applyHoliday, setApplyHoliday] = useState<boolean>(false)
   const [holidayCost, setHolidayCost] = useState<number>(100000)
+
+  // 로컬 날짜 YYYY-MM-DD 포맷 헬퍼 (toISOString() 시 UTC 타임존 차감 방지)
+  const formatLocalYMD = (dateVal: Date | string): string => {
+    const d = new Date(dateVal)
+    if (isNaN(d.getTime())) return ''
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
+
+  // 대한민국 법정 공휴일(양력 + 음력 설날/부처님오신날/추석) 판별 헬퍼
+  const detectKoreanHolidayName = (d: Date): string | null => {
+    const sMonth = d.getMonth() + 1
+    const sDay = d.getDate()
+    const sKey = `${sMonth}-${sDay}`
+
+    const solarHolidays: Record<string, string> = {
+      '1-1': '신정',
+      '3-1': '삼일절',
+      '5-5': '어린이날',
+      '6-6': '현충일',
+      '8-15': '광복절',
+      '10-3': '개천절',
+      '10-9': '한글날',
+      '12-25': '성탄절'
+    }
+    if (solarHolidays[sKey]) return solarHolidays[sKey]
+
+    try {
+      const korCal = new KoreanLunarCalendar()
+      korCal.setSolarDate(d.getFullYear(), sMonth, sDay)
+      const lunar = korCal.getLunarCalendar() as { year: number; month: number; day: number; isLeap?: boolean; intercalation?: boolean }
+      if (!lunar.isLeap && !lunar.intercalation) {
+        const lKey = `${lunar.month}-${lunar.day}`
+        if (lKey === '1-1') return '설날'
+        if (lKey === '1-2') return '설날 연휴'
+        if (lKey === '4-8') return '부처님오신날'
+        if (lKey === '8-14') return '추석 연휴'
+        if (lKey === '8-15') return '추석'
+        if (lKey === '8-16') return '추석 연휴'
+      }
+
+      // 설날 전날(음력 12월 말일) 체크: 다음날이 음력 1월 1일(평달)인지 확인
+      const tomorrow = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)
+      const nextCal = new KoreanLunarCalendar()
+      nextCal.setSolarDate(tomorrow.getFullYear(), tomorrow.getMonth() + 1, tomorrow.getDate())
+      const nextLunar = nextCal.getLunarCalendar() as { year: number; month: number; day: number; isLeap?: boolean; intercalation?: boolean }
+      if (!nextLunar.isLeap && !nextLunar.intercalation && nextLunar.month === 1 && nextLunar.day === 1) {
+        return '설날 연휴'
+      }
+    } catch {
+      // ignore lunar conversion error
+    }
+    return null
+  }
 
   // 6. 목표 마진율 (%)
   const [marginRate, setMarginRate] = useState<number>(standards.defaultMarginRate || 20.0)
@@ -709,7 +767,7 @@ export function CostCalculatorModal({
     setDriverStepRate(driverStepAllowance)
     setTonnageRate(getTonnageAllowanceForTon(totalTon))
 
-    // 이사일자 기반 캘린더 할증 해당 여부 판정 (명목별 기본 금액은 항상 표시하고, 체크 시 소계/제안가에 적용)
+    // 이사일자 기반 캘린더 할증 해당 여부 판정 및 해당 항목 자동 기본 체크
     setSonEobNeunNalCost(150000)
     setWeekendCost(100000)
     setFridayCost(50000)
@@ -721,34 +779,48 @@ export function CostCalculatorModal({
       const dayOfWeek = d.getDay() // 0: 일, 5: 금, 6: 토
       const dateNum = d.getDate()
 
+      let isSon = false
       try {
         const korCal = new KoreanLunarCalendar()
         korCal.setSolarDate(d.getFullYear(), d.getMonth() + 1, d.getDate())
         const korLunar = korCal.getLunarCalendar()
-        const isSon = korLunar.day % 10 === 9 || korLunar.day % 10 === 0
-        setIsSonEobNeunNal(isSon)
+        isSon = korLunar.day % 10 === 9 || korLunar.day % 10 === 0
       } catch {
-        setIsSonEobNeunNal(false)
+        isSon = false
       }
 
       const isWk = dayOfWeek === 0 || dayOfWeek === 6
       const isFri = dayOfWeek === 5
+      const isEnd = dateNum >= 25
+      const detectedHoliday = detectKoreanHolidayName(d)
+      const isHol = Boolean(detectedHoliday)
+
+      setIsSonEobNeunNal(isSon)
       setIsWeekend(isWk)
       setIsFriday(isFri)
-
-      const isEnd = dateNum >= 25
       setIsMonthEnd(isEnd)
+      setIsHoliday(isHol)
+      setHolidayName(detectedHoliday)
+
+      // 해당되는 할증 요소가 있을 경우 기본 체크(true)로 자동 반영
+      setApplySonEobNeunNal(isSon)
+      setApplyWeekend(isWk)
+      setApplyFriday(isFri)
+      setApplyMonthEnd(isEnd)
+      setApplyHoliday(isHol)
     } else {
       setIsSonEobNeunNal(false)
       setIsWeekend(false)
       setIsFriday(false)
       setIsMonthEnd(false)
+      setIsHoliday(false)
+      setHolidayName(null)
+      setApplySonEobNeunNal(false)
+      setApplyWeekend(false)
+      setApplyFriday(false)
+      setApplyMonthEnd(false)
+      setApplyHoliday(false)
     }
-    setApplySonEobNeunNal(false)
-    setApplyWeekend(false)
-    setApplyFriday(false)
-    setApplyMonthEnd(false)
-    setApplyHoliday(false)
 
     const initWorkerExtra = Math.max(0, distanceKm - baseDistance)
     const initWorkerSteps = initWorkerExtra > 0 ? Math.ceil(initWorkerExtra / stepDistance) : 0
@@ -1872,9 +1944,9 @@ export function CostCalculatorModal({
             <div className="px-4 py-2.5 bg-indigo-50/70 border-b border-indigo-100 flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <CalendarIcon className="w-4 h-4 text-indigo-600" />
-                <span className="font-bold text-indigo-900">5. 캘린더 및 이사일정 할증 (손 없는 날 · 주말 · 금요일 · 월말)</span>
+                <span className="font-bold text-indigo-900">5. 캘린더 및 이사일정 할증 (손 없는 날 · 주말 · 금요일 · 월말 · 공휴일)</span>
                 <span className="text-[11px] font-semibold text-indigo-700 bg-white/90 px-2 py-0.5 rounded-full border border-indigo-200">
-                  이사일: {movingDate ? new Date(movingDate).toISOString().slice(0, 10) : '미지정'}
+                  이사일: {movingDate ? formatLocalYMD(movingDate) : '미지정'}
                 </span>
               </div>
               <span className="font-extrabold text-indigo-700 text-sm">
@@ -1887,7 +1959,7 @@ export function CostCalculatorModal({
               {movingDate && (
                 <div
                   className={`p-2.5 rounded-lg border text-xs flex flex-wrap items-center justify-between gap-2 ${
-                    isSonEobNeunNal
+                    isSonEobNeunNal || isWeekend || isFriday || isMonthEnd || isHoliday
                       ? 'bg-amber-50/90 border-amber-300 text-amber-900'
                       : 'bg-gray-50 border-gray-200 text-gray-600'
                   }`}
@@ -1895,23 +1967,28 @@ export function CostCalculatorModal({
                   <div className="flex items-center gap-1.5">
                     <Sparkles
                       className={`w-4 h-4 shrink-0 ${
-                        isSonEobNeunNal ? 'text-amber-600' : 'text-gray-400'
+                        isSonEobNeunNal || isWeekend || isFriday || isMonthEnd || isHoliday
+                          ? 'text-amber-600'
+                          : 'text-gray-400'
                       }`}
                     />
                     <span>
                       {isSonEobNeunNal ? (
                         <strong>
-                          ★ 선택하신 이사일({new Date(movingDate).toISOString().slice(0, 10)})은 민속 손 없는 날입니다!
+                          ★ 선택하신 이사일({formatLocalYMD(movingDate)})은 민속 손 없는 날입니다!
                         </strong>
                       ) : (
-                        <span>선택하신 이사일은 손 없는 날이 아닙니다.</span>
+                        <span>선택하신 이사일({formatLocalYMD(movingDate)})은 손 없는 날이 아닙니다.</span>
                       )}
+                      {isHoliday && holidayName ? ` [공휴일: ${holidayName}]` : ''}
                       {isWeekend ? ' (주말 일정)' : isFriday ? ' (금요일 일정)' : ''}
                       {isMonthEnd ? ' (월말 일정)' : ''}
                     </span>
                   </div>
                   <span className="text-[10px] text-indigo-700 font-bold bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
-                    항목 체크 시 할증 금액이 적용됩니다
+                    {isSonEobNeunNal || isWeekend || isFriday || isMonthEnd || isHoliday
+                      ? '해당 할증요소 자동 체크 반영됨'
+                      : '항목 체크 시 할증 금액이 적용됩니다'}
                   </span>
                 </div>
               )}
@@ -2066,7 +2143,7 @@ export function CostCalculatorModal({
                   </div>
                 </div>
 
-                {/* 5) 공휴일 / 성수기 수동 할증 */}
+                {/* 5) 공휴일 / 성수기 할증 */}
                 <div
                   className={`p-2.5 rounded-lg flex items-center justify-between gap-2 transition-all ${
                     applyHoliday && holidayCost > 0
@@ -2082,6 +2159,11 @@ export function CostCalculatorModal({
                       className="w-3.5 h-3.5 text-rose-600 rounded focus:ring-rose-500"
                     />
                     <span>공휴일/성수기</span>
+                    {isHoliday && (
+                      <span className="bg-rose-100 text-rose-800 text-[10px] px-1.5 py-0.2 rounded font-extrabold">
+                        {holidayName ? `해당일(${holidayName})` : '해당일'}
+                      </span>
+                    )}
                   </label>
                   <div className="flex items-center gap-1">
                     <span className={applyHoliday ? 'text-rose-700 font-bold' : 'text-gray-400'}>+</span>

@@ -220,6 +220,8 @@ export function MovingCostCalculatorModal({
   const [isWeekend, setIsWeekend] = useState<boolean>(false)
   const [isFriday, setIsFriday] = useState<boolean>(false)
   const [isMonthEnd, setIsMonthEnd] = useState<boolean>(false)
+  const [isHoliday, setIsHoliday] = useState<boolean>(false)
+  const [holidayName, setHolidayName] = useState<string | null>(null)
 
   const [applySonEobNeunNal, setApplySonEobNeunNal] = useState<boolean>(false)
   const [sonEobNeunNalCost, setSonEobNeunNalCost] = useState<number>(150000)
@@ -235,6 +237,60 @@ export function MovingCostCalculatorModal({
 
   const [applyHoliday, setApplyHoliday] = useState<boolean>(false)
   const [holidayCost, setHolidayCost] = useState<number>(100000)
+
+  // 로컬 날짜 YYYY-MM-DD 포맷 헬퍼
+  const formatLocalYMD = (dateVal: Date | string): string => {
+    const d = new Date(dateVal)
+    if (isNaN(d.getTime())) return ''
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
+
+  // 대한민국 법정 공휴일 판별 헬퍼
+  const detectKoreanHolidayName = (d: Date): string | null => {
+    const sMonth = d.getMonth() + 1
+    const sDay = d.getDate()
+    const sKey = `${sMonth}-${sDay}`
+    const solarHolidays: Record<string, string> = {
+      '1-1': '신정',
+      '3-1': '삼일절',
+      '5-5': '어린이날',
+      '6-6': '현충일',
+      '8-15': '광복절',
+      '10-3': '개천절',
+      '10-9': '한글날',
+      '12-25': '성탄절'
+    }
+    if (solarHolidays[sKey]) return solarHolidays[sKey]
+
+    try {
+      const korCal = new KoreanLunarCalendar()
+      korCal.setSolarDate(d.getFullYear(), sMonth, sDay)
+      const lunar = korCal.getLunarCalendar() as { year: number; month: number; day: number; isLeap?: boolean; intercalation?: boolean }
+      if (!lunar.isLeap && !lunar.intercalation) {
+        const lKey = `${lunar.month}-${lunar.day}`
+        if (lKey === '1-1') return '설날'
+        if (lKey === '1-2') return '설날 연휴'
+        if (lKey === '4-8') return '부처님오신날'
+        if (lKey === '8-14') return '추석 연휴'
+        if (lKey === '8-15') return '추석'
+        if (lKey === '8-16') return '추석 연휴'
+      }
+
+      const tomorrow = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)
+      const nextCal = new KoreanLunarCalendar()
+      nextCal.setSolarDate(tomorrow.getFullYear(), tomorrow.getMonth() + 1, tomorrow.getDate())
+      const nextLunar = nextCal.getLunarCalendar() as { year: number; month: number; day: number; isLeap?: boolean; intercalation?: boolean }
+      if (!nextLunar.isLeap && !nextLunar.intercalation && nextLunar.month === 1 && nextLunar.day === 1) {
+        return '설날 연휴'
+      }
+    } catch {
+      // ignore
+    }
+    return null
+  }
 
   // 4. 특수물품 분해조립 목록
   const [specialItems, setSpecialItems] = useState<SpecialItemOption[]>(DEFAULT_SPECIAL_ITEMS)
@@ -283,15 +339,24 @@ export function MovingCostCalculatorModal({
       const isEnd = dateNum >= 25
       setIsMonthEnd(isEnd)
       setApplyMonthEnd(isEnd)
+
+      const detectedHoliday = detectKoreanHolidayName(d)
+      const isHol = Boolean(detectedHoliday)
+      setIsHoliday(isHol)
+      setHolidayName(detectedHoliday)
+      setApplyHoliday(isHol)
     } else {
       setIsSonEobNeunNal(false)
       setIsWeekend(false)
       setIsFriday(false)
       setIsMonthEnd(false)
+      setIsHoliday(false)
+      setHolidayName(null)
       setApplySonEobNeunNal(false)
       setApplyWeekend(false)
       setApplyFriday(false)
       setApplyMonthEnd(false)
+      setApplyHoliday(false)
     }
   }, [isOpen, currentCbm, movingDate, currentMovingCost, distanceKm, waypointCount])
 
@@ -809,30 +874,33 @@ export function MovingCostCalculatorModal({
                 </h3>
               </div>
               <div className="text-xs text-gray-500">
-                이사일: <strong className="text-gray-900">{movingDate ? movingDate.toISOString().slice(0, 10) : '미지정'}</strong>
+                이사일: <strong className="text-gray-900">{movingDate ? formatLocalYMD(movingDate) : '미지정'}</strong>
               </div>
             </div>
 
             {/* 손없는날 알림 배너 */}
             {movingDate && (
               <div className={`p-3 rounded-xl border text-xs flex items-center justify-between gap-2 ${
-                isSonEobNeunNal 
+                isSonEobNeunNal || isWeekend || isFriday || isMonthEnd || isHoliday
                   ? 'bg-amber-50/80 border-amber-300 text-amber-900' 
                   : 'bg-gray-50 border-gray-200 text-gray-600'
               }`}>
                 <div className="flex items-center gap-2">
-                  <Sparkles size={16} className={isSonEobNeunNal ? 'text-amber-600 shrink-0' : 'text-gray-400 shrink-0'} />
+                  <Sparkles size={16} className={isSonEobNeunNal || isWeekend || isFriday || isMonthEnd || isHoliday ? 'text-amber-600 shrink-0' : 'text-gray-400 shrink-0'} />
                   <span>
                     {isSonEobNeunNal ? (
-                      <strong>★ 선택하신 이사일({movingDate.toISOString().slice(0, 10)})은 민속 손 없는 날입니다!</strong>
+                      <strong>★ 선택하신 이사일({formatLocalYMD(movingDate)})은 민속 손 없는 날입니다!</strong>
                     ) : (
-                      <span>선택하신 이사일은 손 없는 날이 아닙니다.</span>
+                      <span>선택하신 이사일({formatLocalYMD(movingDate)})은 손 없는 날이 아닙니다.</span>
                     )}
+                    {isHoliday && holidayName ? ` [공휴일: ${holidayName}]` : ''}
                     {isWeekend ? ' (주말 일정)' : isFriday ? ' (금요일 일정)' : ''}
                     {isMonthEnd ? ' (월말 일정)' : ''}
                   </span>
                 </div>
-                <span className="text-[11px] text-gray-400 font-medium">자동 체크 반영</span>
+                <span className="text-[11px] text-indigo-700 font-bold bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                  {isSonEobNeunNal || isWeekend || isFriday || isMonthEnd || isHoliday ? '자동 체크 반영' : '할증 해당 없음'}
+                </span>
               </div>
             )}
 
@@ -978,6 +1046,11 @@ export function MovingCostCalculatorModal({
                     className="w-4 h-4 text-rose-600 rounded focus:ring-rose-500"
                   />
                   <span>공휴일 / 봄·가을 이사 성수기 특별 할증</span>
+                  {isHoliday && (
+                    <span className="bg-rose-100 text-rose-800 text-[10px] px-1.5 py-0.2 rounded font-bold">
+                      {holidayName ? `해당일(${holidayName})` : '해당일'}
+                    </span>
+                  )}
                 </label>
                 <div className="flex items-center gap-1">
                   <span className="text-xs text-gray-400">+</span>
