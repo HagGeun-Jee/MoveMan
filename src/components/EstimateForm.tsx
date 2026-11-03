@@ -346,6 +346,27 @@ export function EstimateForm({
   const paidAmount = downPayment + intermediatePayment + balance
   const remainingAmount = targetAmount - paidAmount
 
+  // 견적금액(targetAmount)이 정해지거나 변경될 때 10% 계약금 및 잔금 자동 계산
+  useEffect(() => {
+    if (!isCostEdited) return
+    const autoDownPayment = Math.floor(targetAmount * 0.1)
+    const nextBalance = Math.max(0, targetAmount - autoDownPayment - intermediatePayment)
+    setDownPayment(autoDownPayment)
+    setBalance(nextBalance)
+  }, [targetAmount, isCostEdited])
+
+  // 계약금 수정 시 잔금 자동 연동 계산
+  const handleDownPaymentChange = (nextDown: number) => {
+    setDownPayment(nextDown)
+    setBalance(Math.max(0, targetAmount - nextDown - intermediatePayment))
+  }
+
+  // 중도금 수정 시 잔금 자동 연동 계산
+  const handleIntermediatePaymentChange = (nextIntermediate: number) => {
+    setIntermediatePayment(nextIntermediate)
+    setBalance(Math.max(0, targetAmount - downPayment - nextIntermediate))
+  }
+
   const [fromAddress, setFromAddress] = useState(initialData?.fromAddress || '')
   const [toAddress, setToAddress] = useState(initialData?.toAddress || '')
   const [postcodeOpen, setPostcodeOpen] = useState(false)
@@ -4209,7 +4230,7 @@ export function EstimateForm({
                   type="radio" 
                   name="paymentTarget" 
                   checked={paymentTarget === 'supply'} 
-                  onChange={() => setPaymentTarget('supply')} 
+                  onChange={() => { setPaymentTarget('supply'); setIsCostEdited(true); }} 
                   className="w-3.5 h-3.5 text-blue-600" 
                 />
                 공급가액
@@ -4219,7 +4240,7 @@ export function EstimateForm({
                   type="radio" 
                   name="paymentTarget" 
                   checked={paymentTarget === 'total'} 
-                  onChange={() => setPaymentTarget('total')} 
+                  onChange={() => { setPaymentTarget('total'); setIsCostEdited(true); }} 
                   className="w-3.5 h-3.5 text-blue-600" 
                 />
                 공급대가
@@ -4313,7 +4334,7 @@ export function EstimateForm({
             </div>
             <div>
               <label className="block text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap mb-1">부가세</label>
-              <NumberInput name="vat" value={vat} onChange={setVat} className="block w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs sm:text-sm text-right outline-none focus:border-blue-500" />
+              <NumberInput name="vat" value={vat} onChange={v => { setVat(v); setIsCostEdited(true); }} className="block w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs sm:text-sm text-right outline-none focus:border-blue-500" />
             </div>
           </div>
 
@@ -4350,9 +4371,16 @@ export function EstimateForm({
               <tbody className="divide-y divide-gray-200 bg-white">
                 {/* 계약금 */}
                 <tr className="hover:bg-gray-50/60 transition-colors">
-                  <td className="px-2.5 py-1.5 font-bold text-gray-800 whitespace-nowrap">계약금</td>
+                  <td className="px-2.5 py-1.5 font-bold text-gray-800 whitespace-nowrap">
+                    <div className="flex items-center gap-1">
+                      <span>계약금</span>
+                      <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1 py-0.2 rounded border border-blue-200" title="견적금액 결정 시 10% 자동 산출 (수정 시 잔금 자동 연동)">
+                        10%
+                      </span>
+                    </div>
+                  </td>
                   <td className="px-2.5 py-1">
-                    <NumberInput value={downPayment} onChange={setDownPayment} className="w-full h-7 sm:h-8 rounded border border-gray-300 px-2 text-right text-xs sm:text-sm font-semibold outline-none focus:border-blue-500" />
+                    <NumberInput value={downPayment} onChange={handleDownPaymentChange} className="w-full h-7 sm:h-8 rounded border border-gray-300 px-2 text-right text-xs sm:text-sm font-semibold outline-none focus:border-blue-500" />
                   </td>
                   <td className="px-2 py-1">
                     <CustomDatePicker selected={downPaymentDate} onChange={setDownPaymentDate} className="w-full h-7 sm:h-8 rounded border border-gray-300 px-1.5 text-xs outline-none focus:border-blue-500" />
@@ -4368,7 +4396,7 @@ export function EstimateForm({
                 <tr className="hover:bg-gray-50/60 transition-colors">
                   <td className="px-2.5 py-1.5 font-bold text-gray-800 whitespace-nowrap">중도금</td>
                   <td className="px-2.5 py-1">
-                    <NumberInput value={intermediatePayment} onChange={setIntermediatePayment} className="w-full h-7 sm:h-8 rounded border border-gray-300 px-2 text-right text-xs sm:text-sm font-semibold outline-none focus:border-blue-500" />
+                    <NumberInput value={intermediatePayment} onChange={handleIntermediatePaymentChange} className="w-full h-7 sm:h-8 rounded border border-gray-300 px-2 text-right text-xs sm:text-sm font-semibold outline-none focus:border-blue-500" />
                   </td>
                   <td className="px-2 py-1">
                     <CustomDatePicker selected={intermediateDate} onChange={setIntermediateDate} className="w-full h-7 sm:h-8 rounded border border-gray-300 px-1.5 text-xs outline-none focus:border-blue-500" />
@@ -4545,9 +4573,11 @@ export function EstimateForm({
             const newVat = Math.floor(newSupply * 0.1)
             const newTotal = newSupply + newVat
             const newTarget = paymentTarget === 'supply' ? newSupply : newTotal
-            const newBalance = Math.max(0, newTarget - downPayment - intermediatePayment)
+            const newDown = Math.floor(newTarget * 0.1)
+            const newBalance = Math.max(0, newTarget - newDown - intermediatePayment)
+            setDownPayment(newDown)
             setBalance(newBalance)
-            alert(`산출된 이사비용 (${calculatedCost.toLocaleString()}원)이 기본 이사 비용에 반영되었습니다!\n(총 공급대가: ${newTotal.toLocaleString()}원 / 잔금: ${newBalance.toLocaleString()}원)`)
+            alert(`산출된 이사비용 (${calculatedCost.toLocaleString()}원)이 기본 이사 비용에 반영되었습니다!\n(결제대상: ${newTarget.toLocaleString()}원 / 계약금 10%: ${newDown.toLocaleString()}원 / 잔금: ${newBalance.toLocaleString()}원)`)
           }}
         />
       )}
@@ -4598,9 +4628,11 @@ export function EstimateForm({
               const newVat = Math.floor(newSupply * 0.1)
               const newTotal = newSupply + newVat
               const newTarget = paymentTarget === 'supply' ? newSupply : newTotal
-              const newBalance = Math.max(0, newTarget - downPayment - intermediatePayment)
+              const newDown = Math.floor(newTarget * 0.1)
+              const newBalance = Math.max(0, newTarget - newDown - intermediatePayment)
+              setDownPayment(newDown)
               setBalance(newBalance)
-              alert(`원가 기반 산출 이사비용 (${calculatedCost.toLocaleString()}원)이 기본 이사 비용에 반영되었습니다!\n(총 공급대가: ${newTotal.toLocaleString()}원 / 잔금: ${newBalance.toLocaleString()}원)`)
+              alert(`원가 기반 산출 이사비용 (${calculatedCost.toLocaleString()}원)이 기본 이사 비용에 반영되었습니다!\n(결제대상: ${newTarget.toLocaleString()}원 / 계약금 10%: ${newDown.toLocaleString()}원 / 잔금: ${newBalance.toLocaleString()}원)`)
             }}
           />
         )

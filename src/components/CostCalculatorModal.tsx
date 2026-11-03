@@ -552,8 +552,9 @@ export function CostCalculatorModal({
     return null
   }
 
-  // 6. 목표 마진율 (%)
+  // 6. 목표 마진율 (%) 및 디스카운드 금액 (원)
   const [marginRate, setMarginRate] = useState<number>(standards.defaultMarginRate || 20.0)
+  const [discountAmount, setDiscountAmount] = useState<number>(0)
   const [roundToTenThousand, setRoundToTenThousand] = useState<boolean>(true) // 만원 단위 올림 여부
 
   // 용차 기준정보 로드 및 기존 배차 차량의 용차비 자동 동기화
@@ -860,6 +861,7 @@ export function CostCalculatorModal({
     setIncludeLadderCost(false)
     setLadderCost(ladderTotalCost || 0)
     setMarginRate(standards.defaultMarginRate || 20.0)
+    setDiscountAmount(0)
   }
 
   const excludedCharteredCount = vehicleStats.charteredCount
@@ -915,14 +917,16 @@ export function CostCalculatorModal({
   // 6. 총 원가 (소요비용 합계)
   const totalCost = totalLaborCost + totalVehicleCost + totalMaterialCost + totalEquipmentCost
 
-  // 7. 마진액 및 일정 할증 포함 최종 제안 판매가
+  // 7. 마진액, 디스카운드 및 일정 할증 포함 최종 제안 판매가
   const marginAmount = Math.round(totalCost * (marginRate / 100))
-  const rawSellingPrice = totalCost + marginAmount + totalCalendarSurcharge
-
-  // 만원 단위 올림 처리
-  const finalSellingPrice = roundToTenThousand 
-    ? Math.ceil(rawSellingPrice / 10000) * 10000 
-    : rawSellingPrice
+  const effectiveMarginAmount = marginAmount - discountAmount
+  const effectiveMarginRate = totalCost > 0 ? Math.round((effectiveMarginAmount / totalCost) * 1000) / 10 : 0
+  const baseSellingBeforeDiscount = totalCost + marginAmount + totalCalendarSurcharge
+  const roundedBeforeDiscount = roundToTenThousand
+    ? Math.ceil(baseSellingBeforeDiscount / 10000) * 10000
+    : baseSellingBeforeDiscount
+  const rawSellingPrice = Math.max(0, baseSellingBeforeDiscount - discountAmount)
+  const finalSellingPrice = Math.max(0, roundedBeforeDiscount - discountAmount)
 
   // 이사비용 적용
   const handleApplyClick = () => {
@@ -2231,32 +2235,76 @@ export function CostCalculatorModal({
               </div>
             </div>
 
+            {/* 디스카운드(할인 금액) 입력 바 */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white/85 px-3 py-2 rounded-xl border border-rose-200/90">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-xs font-extrabold text-rose-700">💸 디스카운드 (금액 할인):</span>
+                {[0, 30000, 50000, 100000, 150000, 200000].map(amt => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => setDiscountAmount(amt)}
+                    className={`px-2 py-0.5 rounded text-xs font-bold transition-all cursor-pointer ${
+                      discountAmount === amt
+                        ? 'bg-rose-600 text-white shadow-2xs'
+                        : 'bg-rose-50/70 text-rose-700 border border-rose-200 hover:bg-rose-100'
+                    }`}
+                  >
+                    {amt === 0 ? '없음' : `-${(amt / 10000).toLocaleString()}만`}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-1.5 self-end sm:self-center">
+                <span className="text-xs font-bold text-rose-600">-</span>
+                <FormattedModalNumberInput
+                  value={discountAmount}
+                  onChange={val => setDiscountAmount(Math.max(0, val))}
+                  className="w-28 px-2 py-1 text-right font-extrabold bg-white border border-rose-400 rounded-lg text-xs text-rose-700 focus:ring-2 focus:ring-rose-500/20 outline-none"
+                />
+                <span className="text-xs font-bold text-gray-700">원 할인</span>
+              </div>
+            </div>
+
             {/* 최종 산출 금액 요약 */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 items-center pt-1">
-              <div className="bg-white/80 p-2.5 rounded-xl border border-amber-200">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 items-stretch pt-1">
+              <div className="bg-white/80 p-2.5 rounded-xl border border-amber-200 flex flex-col justify-between">
                 <span className="text-[11px] text-gray-500 font-medium">총 소요 원가</span>
-                <p className="text-base font-extrabold text-gray-800">
+                <p className="text-sm sm:text-base font-extrabold text-gray-800">
                   {totalCost.toLocaleString()} <span className="text-xs font-normal">원</span>
                 </p>
               </div>
 
-              <div className="bg-white/80 p-2.5 rounded-xl border border-amber-200">
+              <div className="bg-white/80 p-2.5 rounded-xl border border-amber-200 flex flex-col justify-between">
                 <span className="text-[11px] text-gray-500 font-medium">회사 마진액 ({marginRate}%)</span>
-                <p className="text-base font-extrabold text-emerald-700">
-                  +{marginAmount.toLocaleString()} <span className="text-xs font-normal">원</span>
-                </p>
+                <div>
+                  <p className="text-sm sm:text-base font-extrabold text-emerald-700">
+                    +{marginAmount.toLocaleString()} <span className="text-xs font-normal">원</span>
+                  </p>
+                  {discountAmount > 0 && (
+                    <p className={`text-[10px] font-bold ${effectiveMarginAmount >= 0 ? 'text-emerald-800' : 'text-red-600'}`}>
+                      실마진: {effectiveMarginAmount >= 0 ? '+' : ''}{effectiveMarginAmount.toLocaleString()}원 ({effectiveMarginRate}%)
+                    </p>
+                  )}
+                </div>
               </div>
 
-              <div className="bg-white/80 p-2.5 rounded-xl border border-indigo-200">
+              <div className="bg-white/80 p-2.5 rounded-xl border border-indigo-200 flex flex-col justify-between">
                 <span className="text-[11px] text-gray-500 font-medium">캘린더·일정 할증</span>
-                <p className="text-base font-extrabold text-indigo-700">
+                <p className="text-sm sm:text-base font-extrabold text-indigo-700">
                   +{totalCalendarSurcharge.toLocaleString()} <span className="text-xs font-normal">원</span>
                 </p>
               </div>
 
-              <div className="bg-amber-600 text-white p-3 rounded-xl shadow-md flex items-center justify-between sm:justify-center sm:flex-col">
+              <div className="bg-white/80 p-2.5 rounded-xl border border-rose-200 flex flex-col justify-between">
+                <span className="text-[11px] text-rose-600 font-bold">디스카운드 (할인)</span>
+                <p className="text-sm sm:text-base font-extrabold text-rose-600">
+                  -{discountAmount.toLocaleString()} <span className="text-xs font-normal">원</span>
+                </p>
+              </div>
+
+              <div className="col-span-2 sm:col-span-1 bg-amber-600 text-white p-2.5 sm:p-3 rounded-xl shadow-md flex items-center justify-between sm:justify-center sm:flex-col">
                 <span className="text-xs text-amber-100 font-medium">최종 제안 기본 이사비용</span>
-                <p className="text-lg sm:text-xl font-black tracking-tight">
+                <p className="text-base sm:text-lg font-black tracking-tight">
                   {finalSellingPrice.toLocaleString()}{' '}
                   <span className="text-xs font-normal text-amber-200">원</span>
                 </p>
@@ -2272,7 +2320,9 @@ export function CostCalculatorModal({
                   onChange={(e) => setRoundToTenThousand(e.target.checked)}
                   className="w-3.5 h-3.5 text-amber-600 rounded"
                 />
-                <span className="text-[11px]">만원 단위로 올림하여 단수 정리 ({rawSellingPrice.toLocaleString()}원 ➔ {finalSellingPrice.toLocaleString()}원)</span>
+                <span className="text-[11px]">
+                  만원 단위로 올림하여 단수 정리 ({rawSellingPrice.toLocaleString()}원 ➔ {finalSellingPrice.toLocaleString()}원)
+                </span>
               </label>
             </div>
           </div>

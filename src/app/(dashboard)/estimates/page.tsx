@@ -52,7 +52,7 @@ export default async function EstimatesPage() {
                 <th className="p-4 font-bold whitespace-nowrap">접수일자</th>
                 <th className="p-4 font-bold whitespace-nowrap">이사예정일</th>
                 <th className="p-4 font-bold whitespace-nowrap">결제상태</th>
-                <th className="p-4 font-bold text-right whitespace-nowrap">총 금액</th>
+                <th className="p-4 font-bold text-right whitespace-nowrap">공급가액 (VAT별도)</th>
               </tr>
             </thead>
             <tbody>
@@ -91,6 +91,9 @@ export default async function EstimatesPage() {
                   }
                   const estimatorName = (envObj.estimatorName || historyCreator || '').trim()
                   const estDistance = envObj.distance
+                  const supplyAmount =
+                    (est.movingCost || 0) + (est.additionalCost || 0) + (est.storageCost || 0) ||
+                    Math.max(0, (est.totalAmount || 0) - (est.vat || 0))
 
                   return (
                     <EstimateRow key={est.id} id={est.id}>
@@ -119,7 +122,7 @@ export default async function EstimatesPage() {
                           {paymentStatusText}
                         </span>
                       </td>
-                      <td className="p-4 text-right font-bold text-gray-900">{est.totalAmount.toLocaleString()}원</td>
+                      <td className="p-4 text-right font-bold text-gray-900 whitespace-nowrap">{supplyAmount.toLocaleString()}원</td>
                     </EstimateRow>
                   )
                 })
