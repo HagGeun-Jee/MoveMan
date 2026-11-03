@@ -37,8 +37,11 @@ import {
   ShieldAlert,
   Sparkles,
   FileText,
-  Users
+  Users,
+  Fuel,
+  Gauge
 } from 'lucide-react'
+import VehicleLogbookTab from './VehicleLogbookTab'
 
 const TONNAGE_PRESETS = [
   { label: '5톤', value: 5, defaultCbm: 30 },
@@ -60,7 +63,8 @@ const CHARTERED_QUICK_OPTIONS = [
 ]
 
 export default function VehiclesPage() {
-  const [activeTab, setActiveTab] = useState<'FLEET' | 'DISPATCH'>('FLEET')
+  const [activeTab, setActiveTab] = useState<'FLEET' | 'DISPATCH' | 'LOGBOOK'>('FLEET')
+  const [selectedLogVehicleId, setSelectedLogVehicleId] = useState<string>('')
   const [vehicles, setVehicles] = useState<VehicleItem[]>([])
   const [schedules, setSchedules] = useState<DispatchScheduleItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -553,19 +557,19 @@ export default function VehiclesPage() {
       </div>
 
       {/* 메인 세그먼트 탭 네비게이션 */}
-      <div className="bg-gray-200/80 p-1 rounded-2xl grid grid-cols-2 gap-1.5 max-w-xl">
+      <div className="bg-gray-200/80 p-1 rounded-2xl grid grid-cols-3 gap-1.5 max-w-3xl">
         <button
           type="button"
           onClick={() => setActiveTab('FLEET')}
-          className={`py-2.5 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2 ${
+          className={`py-2.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
             activeTab === 'FLEET'
               ? 'bg-white text-blue-700 shadow-xs'
               : 'text-gray-600 hover:text-gray-900'
           }`}
         >
-          <Truck className="w-4 h-4" />
-          <span>보유 차량 · 전담 팀장 관리</span>
-          <span className={`px-1.5 py-0.2 rounded-full text-[11px] ${
+          <Truck className="w-4 h-4 shrink-0" />
+          <span className="truncate">보유 차량 · 팀장</span>
+          <span className={`px-1.5 py-0.2 rounded-full text-[11px] shrink-0 ${
             activeTab === 'FLEET' ? 'bg-blue-100 text-blue-800' : 'bg-gray-300/80 text-gray-700'
           }`}>
             {vehicles.length}
@@ -575,23 +579,41 @@ export default function VehiclesPage() {
         <button
           type="button"
           onClick={() => setActiveTab('DISPATCH')}
-          className={`py-2.5 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2 ${
+          className={`py-2.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
             activeTab === 'DISPATCH'
               ? 'bg-white text-indigo-700 shadow-xs'
               : 'text-gray-600 hover:text-gray-900'
           }`}
         >
-          <Calendar className="w-4 h-4" />
-          <span>이삿날 배차 · 팀장 배정</span>
+          <Calendar className="w-4 h-4 shrink-0" />
+          <span className="truncate">이삿날 배차 · 팀장 배정</span>
           {summaryStats.unassignedCount > 0 ? (
-            <span className="px-1.5 py-0.2 rounded-full text-[11px] bg-amber-500 text-white font-black">
+            <span className="px-1.5 py-0.2 rounded-full text-[11px] bg-amber-500 text-white font-black shrink-0">
               미배차 {summaryStats.unassignedCount}
             </span>
           ) : (
-            <span className="px-1.5 py-0.2 rounded-full text-[11px] bg-emerald-100 text-emerald-800">
+            <span className="px-1.5 py-0.2 rounded-full text-[11px] bg-emerald-100 text-emerald-800 shrink-0">
               {summaryStats.totalSchedules}건
             </span>
           )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('LOGBOOK')}
+          className={`py-2.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
+            activeTab === 'LOGBOOK'
+              ? 'bg-white text-emerald-700 shadow-xs'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          <Fuel className="w-4 h-4 shrink-0" />
+          <span className="truncate">차계부 · 주유/정비</span>
+          <span className={`px-1.5 py-0.2 rounded-full text-[11px] shrink-0 ${
+            activeTab === 'LOGBOOK' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-300/80 text-gray-700'
+          }`}>
+            유가보조
+          </span>
         </button>
       </div>
 
@@ -816,6 +838,28 @@ export default function VehiclesPage() {
                         <p className="text-[11px] text-gray-600 bg-gray-50 px-2.5 py-1.5 rounded-lg border border-gray-100">
                           📌 {v.memo}
                         </p>
+                      )}
+
+                      {isOwn && (
+                        <div className="pt-2 border-t border-gray-100 flex items-center justify-between gap-2">
+                          <span className="text-[11px] text-gray-500 flex items-center gap-1 font-medium">
+                            <Gauge className="w-3.5 h-3.5 text-slate-500" />
+                            {v.currentMileage > 0
+                              ? `주행거리: ${v.currentMileage.toLocaleString()} km`
+                              : '주행거리 미등록'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedLogVehicleId(v.id)
+                              setActiveTab('LOGBOOK')
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-extrabold flex items-center gap-1 transition-colors"
+                          >
+                            <Fuel className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>차계부 기록/조회</span>
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -1302,6 +1346,22 @@ export default function VehiclesPage() {
             </div>
           )}
         </div>
+      )}
+
+      {/* ==================== 탭 3: 차계부 · 주유(유가보조금)/정비 관리 ==================== */}
+      {activeTab === 'LOGBOOK' && (
+        <VehicleLogbookTab
+          vehicles={vehicles}
+          selectedVehicleId={selectedLogVehicleId}
+          onSelectVehicleId={setSelectedLogVehicleId}
+          currentYearMonth={currentYearMonth}
+          onMonthChange={handleMonthChange}
+          onResetToCurrentMonth={handleResetToCurrentMonth}
+          onRefreshVehicles={async () => {
+            const updated = await getVehicles()
+            setVehicles(updated)
+          }}
+        />
       )}
 
       {/* ==================== 신규 차량/호차 등록 및 수정 모달 ==================== */}

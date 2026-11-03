@@ -17,6 +17,12 @@ export interface VehicleItem {
   status: 'ACTIVE' | 'MAINTENANCE' | 'INACTIVE'
   memo: string
   order: number
+  currentMileage: number
+  nextEngineOilKm: number
+  inspectionExpiry: string
+  insuranceExpiry: string
+  subsidyRatePerLiter: number
+  monthlySubsidyLimitLiters: number
   createdAt: Date | string
 }
 
@@ -67,12 +73,25 @@ async function ensureVehicleColumns() {
         ADD COLUMN IF NOT EXISTS "leaderPhone" TEXT DEFAULT '',
         ADD COLUMN IF NOT EXISTS "status" TEXT DEFAULT 'ACTIVE',
         ADD COLUMN IF NOT EXISTS "memo" TEXT DEFAULT '',
-        ADD COLUMN IF NOT EXISTS "order" INTEGER DEFAULT 0;
+        ADD COLUMN IF NOT EXISTS "order" INTEGER DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS "currentMileage" INTEGER DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS "nextEngineOilKm" INTEGER DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS "inspectionExpiry" TEXT DEFAULT '',
+        ADD COLUMN IF NOT EXISTS "insuranceExpiry" TEXT DEFAULT '',
+        ADD COLUMN IF NOT EXISTS "subsidyRatePerLiter" DOUBLE PRECISION DEFAULT 205.0,
+        ADD COLUMN IF NOT EXISTS "monthlySubsidyLimitLiters" INTEGER DEFAULT 2261;
     `)
     isSchemaEnsured = true
   } catch (err) {
     console.warn('ensureVehicleColumns warning (fallback active):', err)
   }
+}
+
+function inferMonthlySubsidyLimit(tonnage: number, explicitLimit?: number): number {
+  if (explicitLimit && explicitLimit > 0) return Number(explicitLimit)
+  if (tonnage >= 5) return 2261 // 3톤 초과 ~ 5톤 이하 법정 월 한도 2,261L
+  if (tonnage >= 2.5) return 1474 // 1톤 초과 ~ 3톤 이하 법정 월 한도 1,474L
+  return 683 // 1톤 이하 법정 월 한도 683L
 }
 
 function inferTonnageFromName(name: string, currentTonnage?: number): number {
@@ -118,6 +137,12 @@ export async function getVehicles(): Promise<VehicleItem[]> {
         COALESCE("status", 'ACTIVE') AS "status",
         COALESCE("memo", '') AS "memo",
         COALESCE("order", 0) AS "order",
+        COALESCE("currentMileage", 0) AS "currentMileage",
+        COALESCE("nextEngineOilKm", 0) AS "nextEngineOilKm",
+        COALESCE("inspectionExpiry", '') AS "inspectionExpiry",
+        COALESCE("insuranceExpiry", '') AS "insuranceExpiry",
+        COALESCE("subsidyRatePerLiter", 205.0) AS "subsidyRatePerLiter",
+        COALESCE("monthlySubsidyLimitLiters", 0) AS "monthlySubsidyLimitLiters",
         "createdAt"
       FROM "VehicleMaster"
       ORDER BY COALESCE("order", 0) ASC, "createdAt" ASC
@@ -142,6 +167,12 @@ export async function getVehicles(): Promise<VehicleItem[]> {
           | 'INACTIVE',
         memo: r.memo || '',
         order: Number(r.order) || 0,
+        currentMileage: Number(r.currentMileage) || 0,
+        nextEngineOilKm: Number(r.nextEngineOilKm) || 0,
+        inspectionExpiry: r.inspectionExpiry || '',
+        insuranceExpiry: r.insuranceExpiry || '',
+        subsidyRatePerLiter: Number(r.subsidyRatePerLiter) > 0 ? Number(r.subsidyRatePerLiter) : 205.0,
+        monthlySubsidyLimitLiters: inferMonthlySubsidyLimit(tonnage, Number(r.monthlySubsidyLimitLiters)),
         createdAt: r.createdAt
       }
     })
@@ -165,6 +196,12 @@ export async function getVehicles(): Promise<VehicleItem[]> {
         status: 'ACTIVE',
         memo: '',
         order: idx,
+        currentMileage: 0,
+        nextEngineOilKm: 0,
+        inspectionExpiry: '',
+        insuranceExpiry: '',
+        subsidyRatePerLiter: 205.0,
+        monthlySubsidyLimitLiters: inferMonthlySubsidyLimit(tonnage),
         createdAt: r.createdAt
       }
     })
