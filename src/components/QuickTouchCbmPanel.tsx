@@ -138,14 +138,8 @@ export function QuickTouchCbmPanel({
       if (chosung !== '전체' && !matchesChosungFilter(it.name, chosung)) {
         return false
       }
-      if (searchQuery.trim()) {
-        const matchesSelf = matchesKoreanSearch(it.name, it.spec, searchQuery)
-        const matchesAvailableSpecs = standardItems.some(
-          s => s.name === it.name && matchesKoreanSearch(s.name, s.spec, searchQuery)
-        )
-        if (!matchesSelf && !matchesAvailableSpecs) {
-          return false
-        }
+      if (searchQuery.trim() && !matchesKoreanSearch(it.name, it.spec, searchQuery)) {
+        return false
       }
       return true
     })
@@ -160,7 +154,7 @@ export function QuickTouchCbmPanel({
     }
 
     return list
-  }, [currentCategoryItems, standardItems, midCategory, chosung, searchQuery, selectedFirst])
+  }, [currentCategoryItems, midCategory, chosung, searchQuery, selectedFirst])
 
   // 초성 또는 검색어가 입력되었을 때, 현재 공간 카드에는 없지만 전체 기준정보(standardItems)에 있는 품목 추천
   const extraStandardMatches = useMemo(() => {

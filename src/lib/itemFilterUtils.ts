@@ -325,7 +325,7 @@ const NORMALIZED_CHOSUNG_MAP: Record<string, string> = {
 // 영문/외래어 대표 품목의 한글 초성 별칭 매핑 (예: BOX -> ㅂ, TV -> ㅌ, PC -> ㅍ/ㅋ)
 const ALIAS_CHOSUNG_MAP: Array<{ pattern: RegExp; chosungs: string[]; keywords: string[] }> = [
   { pattern: /^box|박스/i, chosungs: ['ㅂ'], keywords: ['박스', 'ㅂㅅ', 'box', 'ㅠㅐㅌ'] },
-  { pattern: /^tv|티비|텔레비전/i, chosungs: ['ㅌ'], keywords: ['티비', '텔레비전', 'ㅌㅂ', 'tv', 'ㅅㅍ'] },
+  { pattern: /^tv|티비|텔레비전/i, chosungs: ['ㅌ'], keywords: ['티비', '텔레비전', 'ㅌㅂ', 'tv'] },
   { pattern: /^pc|컴퓨터/i, chosungs: ['ㅍ', 'ㅋ'], keywords: ['컴퓨터', '피씨', 'ㅋㅍㅌ', 'ㅍㅆ', 'pc', 'ㅔㅊ'] },
 ]
 
@@ -389,9 +389,11 @@ export function matchesKoreanSearch(itemName: string, spec: string | undefined, 
   const rawQ = (query || '').trim().toLowerCase()
   if (!rawQ) return true
 
-  // 영문으로 들어온 경우도 한글로 변환한 쿼리와 영문 역변환 쿼리를 모두 준비
+  // 영문으로 들어온 경우도 한글로 변환한 쿼리와 영문 역변환 쿼리를 준비
+  // 단, 순수 한글 자음(초성 검색어 예: 'ㅅㅍ', 'ㅅㅍㅌ')은 영문 타건 역변환('tv', 'tvx') 시 오매칭을 유발하므로 제외
   const korQ = convertEngInputToKor(rawQ).toLowerCase()
-  const engQ = convertKorToEngKeystrokes(rawQ).toLowerCase()
+  const isPureConsonantQuery = /^[ㄱ-ㅎ\s]+$/.test(rawQ) || /^[ㄱ-ㅎ\s]+$/.test(korQ)
+  const engQ = isPureConsonantQuery ? '' : convertKorToEngKeystrokes(rawQ).toLowerCase()
 
   const nameLower = (itemName || '').toLowerCase()
   const specLower = (spec || '').toLowerCase()
@@ -402,26 +404,24 @@ export function matchesKoreanSearch(itemName: string, spec: string | undefined, 
     return true
   }
 
-  // 2. 영문/한글 별칭 매칭 (예: '박스'/'ㅠㅐㅌ' 검색 시 'BOX' 매칭, '티비' 검색 시 'TV' 매칭)
+  // 2. 영문/한글 별칭 매칭 (예: '박스'/'ㅠㅐㅌ' 검색 시 'BOX' 매칭, '티비'/'ㅌㅂ' 검색 시 'TV' 매칭)
+  // 역방향 포함(rawQ.includes(k))을 제거하여 'ㅅㅍㅌ' 등 더 긴 검색어가 짧은 별칭에 잘못 매칭되는 현상 방지
   for (const alias of ALIAS_CHOSUNG_MAP) {
     if (alias.pattern.test(nameLower)) {
-      if (
-        alias.keywords.some(
-          k => k.includes(rawQ) || rawQ.includes(k) || k.includes(korQ) || korQ.includes(k)
-        )
-      ) {
+      if (alias.keywords.some(k => k.includes(rawQ) || k.includes(korQ))) {
         return true
       }
     }
   }
 
-  // 3. 초성 검색 매칭 (예: 'ㅅㅍ' -> '소파', 'ㄱㅊㄴㅈ' -> '김치냉장고')
+  // 3. 초성 검색 매칭 (예: 'ㅅㅍ' -> '소파', 'ㅅㅍㅌ' -> '소파테이블', 'ㄱㅊㄴㅈ' -> '김치냉장고')
   const normalizedQuery = korQ
+    .replace(/\s+/g, '')
     .split('')
     .map(c => NORMALIZED_CHOSUNG_MAP[c] || c)
     .join('')
-  const nameChosung = extractChosungString(nameLower)
-  const specChosung = extractChosungString(specLower)
+  const nameChosung = extractChosungString(nameLower).replace(/\s+/g, '')
+  const specChosung = extractChosungString(specLower).replace(/\s+/g, '')
 
   if (nameChosung.includes(normalizedQuery) || specChosung.includes(normalizedQuery)) {
     return true
