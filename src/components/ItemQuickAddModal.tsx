@@ -194,7 +194,7 @@ export function ItemQuickAddModal({
                 style={{ imeMode: 'active' } as React.CSSProperties}
                 value={searchQuery}
                 onChange={e => setSearchQuery(convertEngInputToKor(e.target.value))}
-                placeholder="품목명 또는 초성 검색 (예: 침대, ㅊㄷ — 영타도 한글로 자동변환)"
+                placeholder="품목명·규격 또는 초성 검색 (예: 침대, 퀸, 6인용, ㅊㄷ)"
                 className="w-full pl-9 pr-8 py-1.5 sm:py-2 rounded-xl border border-gray-300 bg-white text-xs sm:text-sm font-medium text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 autoFocus
               />

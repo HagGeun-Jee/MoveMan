@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createStandardItem, deleteStandardItem, getStandardItems, updateStandardItem, getLocationCategories, createLocationCategory, deleteLocationCategory } from '@/app/actions/item'
 import { Trash2, Edit2, Check, X, Calculator, Copy, RotateCcw } from 'lucide-react'
+import { matchesKoreanSearch } from '@/lib/itemFilterUtils'
 
 export default function ItemsPage() {
   const [items, setItems] = useState<any[]>([])
@@ -178,7 +179,11 @@ export default function ItemsPage() {
 
       let nameMatch = true
       if (filterName.trim() !== '') {
-        nameMatch = item.name.toLowerCase().includes(filterName.toLowerCase())
+        const q = filterName.trim().toLowerCase()
+        nameMatch =
+          (item.name || '').toLowerCase().includes(q) ||
+          (item.spec || '').toLowerCase().includes(q) ||
+          matchesKoreanSearch(item.name || '', item.spec || '', filterName)
       }
 
       return locationMatch && nameMatch
@@ -404,13 +409,25 @@ export default function ItemsPage() {
           <div className="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
             <h2 className="text-lg font-bold text-gray-900">등록된 물품 목록</h2>
             <div className="flex gap-2">
-              <input 
-                type="text" 
-                placeholder="품목 검색..."
-                value={filterName}
-                onChange={e => setFilterName(e.target.value)}
-                className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-blue-500 bg-white"
-              />
+              <div className="relative">
+                <input 
+                  type="text" 
+                  placeholder="품목·규격 검색..."
+                  value={filterName}
+                  onChange={e => setFilterName(e.target.value)}
+                  className="rounded-lg border border-gray-300 pl-3 pr-7 py-1.5 text-sm outline-none focus:border-blue-500 bg-white"
+                />
+                {filterName && (
+                  <button
+                    type="button"
+                    onClick={() => setFilterName('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    title="검색어 지우기"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
               <select 
                 value={filterLocationId} 
                 onChange={e => setFilterLocationId(e.target.value)}

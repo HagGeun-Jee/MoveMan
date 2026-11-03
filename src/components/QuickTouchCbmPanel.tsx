@@ -138,8 +138,14 @@ export function QuickTouchCbmPanel({
       if (chosung !== '전체' && !matchesChosungFilter(it.name, chosung)) {
         return false
       }
-      if (searchQuery.trim() && !matchesKoreanSearch(it.name, it.spec, searchQuery)) {
-        return false
+      if (searchQuery.trim()) {
+        const matchesSelf = matchesKoreanSearch(it.name, it.spec, searchQuery)
+        const matchesAvailableSpecs = standardItems.some(
+          s => s.name === it.name && matchesKoreanSearch(s.name, s.spec, searchQuery)
+        )
+        if (!matchesSelf && !matchesAvailableSpecs) {
+          return false
+        }
       }
       return true
     })
@@ -154,7 +160,7 @@ export function QuickTouchCbmPanel({
     }
 
     return list
-  }, [currentCategoryItems, midCategory, chosung, searchQuery, selectedFirst])
+  }, [currentCategoryItems, standardItems, midCategory, chosung, searchQuery, selectedFirst])
 
   // 초성 또는 검색어가 입력되었을 때, 현재 공간 카드에는 없지만 전체 기준정보(standardItems)에 있는 품목 추천
   const extraStandardMatches = useMemo(() => {
@@ -506,7 +512,7 @@ export function QuickTouchCbmPanel({
                 style={{ imeMode: 'active' } as React.CSSProperties}
                 value={searchQuery}
                 onChange={e => setSearchQuery(convertEngInputToKor(e.target.value))}
-                placeholder="품목·초성 검색 (예: 침대, ㅊㄷ)"
+                placeholder="품목·규격·초성 검색 (예: 침대, 퀸, ㅊㄷ)"
                 className="w-full pl-7 pr-6 py-1 rounded-lg border border-gray-300 bg-white text-xs font-medium text-gray-800 outline-none focus:border-blue-500"
               />
               {searchQuery && (
