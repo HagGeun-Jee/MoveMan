@@ -573,22 +573,26 @@ export default function VehiclesPage() {
         </div>
       </div>
 
-      {/* 메인 세그먼트 탭 네비게이션 */}
-      <div className="bg-gray-200/80 p-1 rounded-2xl grid grid-cols-3 gap-1.5 max-w-3xl">
+      {/* 메인 세그먼트 탭 네비게이션 (고대비 탭 디자인 및 명칭 간략화) */}
+      <div className="bg-white p-1.5 sm:p-2 rounded-2xl border-2 border-slate-200/90 shadow-sm grid grid-cols-3 gap-1.5 sm:gap-2">
         <button
           type="button"
           onClick={() => setActiveTab('FLEET')}
-          className={`py-2.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
+          className={`py-2.5 sm:py-3 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap cursor-pointer ${
             activeTab === 'FLEET'
-              ? 'bg-white text-blue-700 shadow-xs'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-600/25 scale-[1.01]'
+              : 'bg-slate-100 text-slate-700 border border-slate-200/90 hover:bg-slate-200/80 hover:text-slate-950'
           }`}
         >
-          <Truck className="w-4 h-4 shrink-0" />
-          <span className="truncate">보유 차량 · 팀장</span>
-          <span className={`px-1.5 py-0.2 rounded-full text-[11px] shrink-0 ${
-            activeTab === 'FLEET' ? 'bg-blue-100 text-blue-800' : 'bg-gray-300/80 text-gray-700'
-          }`}>
+          <Truck className={`w-4 h-4 shrink-0 ${activeTab === 'FLEET' ? 'text-white' : 'text-blue-600'}`} />
+          <span>차량 · 팀장</span>
+          <span
+            className={`px-1.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-extrabold leading-none shrink-0 ${
+              activeTab === 'FLEET'
+                ? 'bg-white text-blue-700'
+                : 'bg-blue-100 text-blue-800'
+            }`}
+          >
             {vehicles.length}
           </span>
         </button>
@@ -596,20 +600,32 @@ export default function VehiclesPage() {
         <button
           type="button"
           onClick={() => setActiveTab('DISPATCH')}
-          className={`py-2.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
+          className={`py-2.5 sm:py-3 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap cursor-pointer ${
             activeTab === 'DISPATCH'
-              ? 'bg-white text-indigo-700 shadow-xs'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'bg-indigo-600 text-white shadow-md ring-2 ring-indigo-600/25 scale-[1.01]'
+              : 'bg-slate-100 text-slate-700 border border-slate-200/90 hover:bg-slate-200/80 hover:text-slate-950'
           }`}
         >
-          <Calendar className="w-4 h-4 shrink-0" />
-          <span className="truncate">이삿날 배차 · 팀장 배정</span>
+          <Calendar className={`w-4 h-4 shrink-0 ${activeTab === 'DISPATCH' ? 'text-white' : 'text-indigo-600'}`} />
+          <span>배차 · 팀장 배정</span>
           {summaryStats.unassignedCount > 0 ? (
-            <span className="px-1.5 py-0.2 rounded-full text-[11px] bg-amber-500 text-white font-black shrink-0">
+            <span
+              className={`px-1.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black leading-none shrink-0 ${
+                activeTab === 'DISPATCH'
+                  ? 'bg-amber-300 text-slate-950'
+                  : 'bg-amber-500 text-white'
+              }`}
+            >
               미배차 {summaryStats.unassignedCount}
             </span>
           ) : (
-            <span className="px-1.5 py-0.2 rounded-full text-[11px] bg-emerald-100 text-emerald-800 shrink-0">
+            <span
+              className={`px-1.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-extrabold leading-none shrink-0 ${
+                activeTab === 'DISPATCH'
+                  ? 'bg-white text-indigo-700'
+                  : 'bg-indigo-100 text-indigo-800'
+              }`}
+            >
               {summaryStats.totalSchedules}건
             </span>
           )}
@@ -618,19 +634,14 @@ export default function VehiclesPage() {
         <button
           type="button"
           onClick={() => setActiveTab('LOGBOOK')}
-          className={`py-2.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
+          className={`py-2.5 sm:py-3 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap cursor-pointer ${
             activeTab === 'LOGBOOK'
-              ? 'bg-white text-emerald-700 shadow-xs'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'bg-emerald-600 text-white shadow-md ring-2 ring-emerald-600/25 scale-[1.01]'
+              : 'bg-slate-100 text-slate-700 border border-slate-200/90 hover:bg-slate-200/80 hover:text-slate-950'
           }`}
         >
-          <Fuel className="w-4 h-4 shrink-0" />
-          <span className="truncate">차계부 · 주유/정비</span>
-          <span className={`px-1.5 py-0.2 rounded-full text-[11px] shrink-0 ${
-            activeTab === 'LOGBOOK' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-300/80 text-gray-700'
-          }`}>
-            유가보조
-          </span>
+          <Fuel className={`w-4 h-4 shrink-0 ${activeTab === 'LOGBOOK' ? 'text-white' : 'text-emerald-600'}`} />
+          <span>차계부 유가보조</span>
         </button>
       </div>
 
