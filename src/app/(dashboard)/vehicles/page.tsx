@@ -122,7 +122,24 @@ export default function VehiclesPage() {
   }
 
   useEffect(() => {
-    fetchAllData(currentYearMonth)
+    let targetYm = currentYearMonth
+    if (typeof window !== 'undefined') {
+      const sp = new URLSearchParams(window.location.search)
+      const qTab = sp.get('tab')
+      const qVid = sp.get('vehicleId')
+      const qYm = sp.get('ym')
+      if (qTab === 'LOGBOOK' || qTab === 'DISPATCH' || qTab === 'FLEET') {
+        setActiveTab(qTab)
+      }
+      if (qVid) {
+        setSelectedLogVehicleId(qVid)
+      }
+      if (qYm && /^\d{4}-\d{2}$/.test(qYm)) {
+        targetYm = qYm
+        setCurrentYearMonth(qYm)
+      }
+    }
+    fetchAllData(targetYm)
   }, [])
 
   const handleMonthChange = (offset: number) => {

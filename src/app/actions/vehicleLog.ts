@@ -279,6 +279,7 @@ export async function createVehicleLog(payload: CreateVehicleLogInput) {
 
     await syncVehicleMasterOnLogSave(payload)
     revalidatePath('/vehicles')
+    revalidatePath('/calendar')
     return { success: true, id }
   } catch (err) {
     console.error('createVehicleLog error:', err)
@@ -343,6 +344,7 @@ export async function updateVehicleLog(id: string, payload: CreateVehicleLogInpu
 
     await syncVehicleMasterOnLogSave(payload)
     revalidatePath('/vehicles')
+    revalidatePath('/calendar')
     return { success: true }
   } catch (err) {
     console.error('updateVehicleLog error:', err)
@@ -355,6 +357,7 @@ export async function deleteVehicleLog(id: string) {
   try {
     await prisma.$executeRawUnsafe(`DELETE FROM "VehicleLog" WHERE "id" = $1`, id)
     revalidatePath('/vehicles')
+    revalidatePath('/calendar')
     return { success: true }
   } catch (err) {
     console.error('deleteVehicleLog error:', err)
@@ -394,10 +397,151 @@ export async function updateVehicleLogSettings(
       vehicleId
     )
     revalidatePath('/vehicles')
+    revalidatePath('/calendar')
     return { success: true }
   } catch (err) {
     console.error('updateVehicleLogSettings error:', err)
     return { error: '차량 관리 기준 저장 중 오류가 발생했습니다.' }
+  }
+}
+
+export interface VehicleCalendarEvent {
+  id: string
+  date: string // YYYY-MM-DD
+  vehicleId: string
+  vehicleShortName: string
+  type: 'EXPIRY_INSPECTION' | 'EXPIRY_INSURANCE' | 'DUE_DATE' | 'MAINTENANCE_LOG'
+  label: string
+  tooltip: string
+}
+
+/**
+ * 일정 캘린더(/calendar)에 표시할 해당 월(YYYY-MM)의 차량 검사/보험 만기일, 점검 예정일, 정비/검사 실행 내역 조회
+ */
+export async function getVehicleCalendarEvents(yearMonth: string): Promise<VehicleCalendarEvent[]> {
+  await ensureVehicleLogSchema()
+  const events: VehicleCalendarEvent[] = []
+  const seenKeys = new Set<string>()
+
+  const getShortVehicleName = (name: string) => {
+    const trimmed = (name || '').trim()
+    if (!trimmed) return '차량'
+    return trimmed.split(' ')[0] // 예: "1호차 (5톤 탑차)" -> "1호차"
+  }
+
+  try {
+    // 1. VehicleMaster의 정기검사 만기일(inspectionExpiry) 및 보험 만기일(insuranceExpiry)
+    const vehicles = await prisma.$queryRawUnsafe<any[]>(
+      `SELECT
+        "id",
+        "name",
+        COALESCE("ownership", 'OWN') AS "ownership",
+        COALESCE("inspectionExpiry", '') AS "inspectionExpiry",
+        COALESCE("insuranceExpiry", '') AS "insuranceExpiry"
+      FROM "VehicleMaster"
+      WHERE COALESCE("ownership", 'OWN') = 'OWN'`
+    )
+
+    for (const v of vehicles) {
+      const vShort = getShortVehicleName(v.name)
+      if (v.inspectionExpiry && v.inspectionExpiry.startsWith(yearMonth)) {
+        const key = `${v.id}_${v.inspectionExpiry}_INSP`
+        seenKeys.add(key)
+        events.push({
+          id: `insp-${v.id}-${v.inspectionExpiry}`,
+          date: v.inspectionExpiry,
+          vehicleId: v.id,
+          vehicleShortName: vShort,
+          type: 'EXPIRY_INSPECTION',
+          label: `📋 ${vShort} 정기검사만기`,
+          tooltip: `[차량 정기검사 만기일] ${v.name} (${v.inspectionExpiry})`
+        })
+      }
+
+      if (v.insuranceExpiry && v.insuranceExpiry.startsWith(yearMonth)) {
+        const key = `${v.id}_${v.insuranceExpiry}_INS`
+        seenKeys.add(key)
+        events.push({
+          id: `ins-${v.id}-${v.insuranceExpiry}`,
+          date: v.insuranceExpiry,
+          vehicleId: v.id,
+          vehicleShortName: vShort,
+          type: 'EXPIRY_INSURANCE',
+          label: `🛡️ ${vShort} 보험만기`,
+          tooltip: `[자동차/적재물 보험 만기일] ${v.name} (${v.insuranceExpiry})`
+        })
+      }
+    }
+
+    // 2. VehicleLog의 다음 예정일(nextDueDate) 및 당월 정비/검사 실행 내역(logDate)
+    const logs = await prisma.$queryRawUnsafe<any[]>(
+      `SELECT
+        "id",
+        "vehicleId",
+        COALESCE("vehicleName", '') AS "vehicleName",
+        "logDate",
+        COALESCE("category", 'FUEL') AS "category",
+        COALESCE("subType", '') AS "subType",
+        COALESCE("netAmount", 0) AS "netAmount",
+        COALESCE("nextDueDate", '') AS "nextDueDate",
+        COALESCE("shopName", '') AS "shopName"
+      FROM "VehicleLog"
+      WHERE "logDate" LIKE $1 OR "nextDueDate" LIKE $1
+      ORDER BY "logDate" ASC`,
+      `${yearMonth}-%`
+    )
+
+    for (const l of logs) {
+      const vShort = getShortVehicleName(l.vehicleName)
+
+      // (A) nextDueDate가 해당 월에 속하는 경우
+      if (l.nextDueDate && l.nextDueDate.startsWith(yearMonth)) {
+        const isInsp = l.subType.includes('검사')
+        const isIns = l.subType.includes('보험')
+        const dupKey = isInsp
+          ? `${l.vehicleId}_${l.nextDueDate}_INSP`
+          : isIns
+            ? `${l.vehicleId}_${l.nextDueDate}_INS`
+            : `${l.vehicleId}_${l.nextDueDate}_${l.subType}`
+
+        if (!seenKeys.has(dupKey)) {
+          seenKeys.add(dupKey)
+          events.push({
+            id: `due-${l.id}`,
+            date: l.nextDueDate,
+            vehicleId: l.vehicleId,
+            vehicleShortName: vShort,
+            type: isInsp ? 'EXPIRY_INSPECTION' : isIns ? 'EXPIRY_INSURANCE' : 'DUE_DATE',
+            label: `🔔 ${vShort} ${l.subType} 예정`,
+            tooltip: `[차량 예정/만기일] ${l.vehicleName} - ${l.subType} (${l.nextDueDate})`
+          })
+        }
+      }
+
+      // (B) 정비/소모품(MAINTENANCE) 또는 검사/보험(INSURANCE_TAX) 실행일인 경우
+      if (
+        l.logDate &&
+        l.logDate.startsWith(yearMonth) &&
+        (l.category === 'MAINTENANCE' || l.category === 'INSURANCE_TAX')
+      ) {
+        events.push({
+          id: `log-${l.id}`,
+          date: l.logDate,
+          vehicleId: l.vehicleId,
+          vehicleShortName: vShort,
+          type: 'MAINTENANCE_LOG',
+          label: `🔧 ${vShort} ${l.subType}`,
+          tooltip: `[차계부 기록] ${l.vehicleName} - ${l.subType} (${Number(l.netAmount || 0).toLocaleString()}원)${
+            l.shopName ? ` @${l.shopName}` : ''
+          }`
+        })
+      }
+    }
+
+    return events
+  } catch (err) {
+    console.error('getVehicleCalendarEvents error:', err)
+    return []
   }
 }
 

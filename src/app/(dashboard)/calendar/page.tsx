@@ -6,6 +6,7 @@ import KoreanLunarCalendar from 'korean-lunar-calendar'
 import { Sun, Star } from 'lucide-react'
 import Link from 'next/link'
 import { CalendarWeatherProvider, CalendarDayWeatherBadge } from './CalendarWeatherClient'
+import { getVehicleCalendarEvents } from '@/app/actions/vehicleLog'
 
 // 한국 표준시(KST, Asia/Seoul) 기준 오늘 날짜 정보 구하기 (Vercel/Render UTC 서버 환경 대응)
 function getKoreaToday(): { year: number, month: number, day: number, dateString: string } {
@@ -75,8 +76,11 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
     }
   })
 
-  // 날씨 데이터 가져오기
-  const weatherData = await getWeatherData()
+  const targetYearMonthStr = `${targetYear}-${String(targetMonth).padStart(2, '0')}`
+  const [weatherData, vehicleEvents] = await Promise.all([
+    getWeatherData(),
+    getVehicleCalendarEvents(targetYearMonthStr)
+  ])
 
   function getKoreanHolidayAndJieQi(solar: any, lunar: any): { holidayName: string | null, isRedDay: boolean, jieQi: string | null } {
     let holidayName = null;
@@ -148,11 +152,14 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
           <div className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
             <span className="w-3 h-3 rounded-full bg-red-500 shadow-sm"></span> 이사/작업
           </div>
+          <div className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
+            <span className="w-3 h-3 rounded-full bg-amber-500 shadow-sm"></span> 차량검사/정비
+          </div>
           <Link
-            href="/vehicles"
+            href="/vehicles?tab=LOGBOOK"
             className="ml-1 px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold shadow-2xs transition-colors"
           >
-            🚛 차량·배차관리
+            🚛 차량·차계부
           </Link>
         </div>
       </div>
@@ -182,6 +189,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                   .filter(e => e.visitDate && isSameDay(new Date(e.visitDate), date))
                   .sort((a, b) => new Date(a.visitDate!).getTime() - new Date(b.visitDate!).getTime())
                 const dayMovings = estimates.filter(e => e.movingDate && isSameDay(new Date(e.movingDate), date))
+                const dayVehicleEvents = vehicleEvents.filter(ev => ev.date === dateStr)
                 
                 const solar = Solar.fromYmd(date.getFullYear(), date.getMonth() + 1, date.getDate())
                 const lunar = solar.getLunar()
@@ -279,6 +287,26 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                                 {dispatchLabel}
                               </span>
                             )}
+                          </Link>
+                        )
+                      })}
+                      {dayVehicleEvents.map(ev => {
+                        const isExpiryOrDue =
+                          ev.type === 'EXPIRY_INSPECTION' ||
+                          ev.type === 'EXPIRY_INSURANCE' ||
+                          ev.type === 'DUE_DATE'
+                        return (
+                          <Link
+                            href={`/vehicles?tab=LOGBOOK&vehicleId=${ev.vehicleId}&ym=${targetYearMonthStr}`}
+                            key={ev.id}
+                            title={ev.tooltip}
+                            className={`block text-[11px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 font-bold rounded truncate cursor-pointer shadow-sm border ${
+                              isExpiryOrDue
+                                ? 'bg-purple-100 text-purple-900 hover:bg-purple-200 border-purple-300'
+                                : 'bg-amber-100 text-amber-950 hover:bg-amber-200 border-amber-300'
+                            }`}
+                          >
+                            <span>{ev.label}</span>
                           </Link>
                         )
                       })}
