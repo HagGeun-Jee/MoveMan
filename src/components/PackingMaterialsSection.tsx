@@ -70,6 +70,35 @@ export function PackingMaterialsSection({
   const [isExpanded, setIsExpanded] = useState(true)
   const [selectedAddCode, setSelectedAddCode] = useState('')
   const [activeCategoryTab, setActiveCategoryTab] = useState<'ALL' | PackingMaterialItem['category']>('ALL')
+  const [expandedCats, setExpandedCats] = useState<Record<PackingMaterialItem['category'], boolean>>({
+    BOX: true,
+    BASKET: false,
+    COVER: false,
+    CONSUMABLE: false,
+    PROTECTION: false,
+  })
+
+  const toggleCatAccordion = (catKey: PackingMaterialItem['category']) => {
+    setExpandedCats(prev => ({ ...prev, [catKey]: !prev[catKey] }))
+  }
+
+  const allCatsOpen = useMemo(() => {
+    const activeKeys = (['BOX', 'BASKET', 'COVER', 'CONSUMABLE', 'PROTECTION'] as const).filter(k =>
+      packingMaterials.some(m => m.category === k)
+    )
+    return activeKeys.length > 0 && activeKeys.every(k => expandedCats[k])
+  }, [expandedCats, packingMaterials])
+
+  const handleToggleAllCats = () => {
+    const nextState = !allCatsOpen
+    setExpandedCats({
+      BOX: nextState,
+      BASKET: nextState,
+      COVER: nextState,
+      CONSUMABLE: nextState,
+      PROTECTION: nextState,
+    })
+  }
 
   // 옷걸이 박스를 제외한 전체 선택 가능 자재 목록
   const selectableCatalog = useMemo(() => {
@@ -244,7 +273,10 @@ export function PackingMaterialsSection({
                 <button
                   key={catKey}
                   type="button"
-                  onClick={() => setActiveCategoryTab(catKey)}
+                  onClick={() => {
+                    setActiveCategoryTab(catKey)
+                    setExpandedCats(prev => ({ ...prev, [catKey]: true }))
+                  }}
                   className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer border ${
                     isSelected
                       ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
@@ -260,7 +292,16 @@ export function PackingMaterialsSection({
             })}
           </div>
 
-          <div className="flex items-center gap-1.5 text-[11px]">
+          <div className="flex items-center gap-2 text-[11px]">
+            {activeCategoryTab === 'ALL' && packingMaterials.length > 0 && (
+              <button
+                type="button"
+                onClick={handleToggleAllCats}
+                className="px-2 py-0.5 rounded-md bg-white hover:bg-gray-100 text-gray-700 font-bold border border-gray-300 transition-colors cursor-pointer"
+              >
+                {allCatsOpen ? '분류 전체 접기 ▲' : '분류 전체 펼치기 ▼'}
+              </button>
+            )}
             {isAutoSync ? (
               <span className="inline-flex items-center gap-1 text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                 <Sparkles size={11} />
@@ -275,9 +316,9 @@ export function PackingMaterialsSection({
           </div>
         </div>
 
-        {/* 상세 리스트 */}
+        {/* 상세 리스트 (종류별 아코디언) */}
         {isExpanded && (
-          <div className="p-3 sm:p-4 space-y-3">
+          <div className="p-3 sm:p-4 space-y-2.5">
             {packingMaterials.length === 0 ? (
               <div className="bg-white rounded-xl border border-dashed border-gray-300 p-6 text-center space-y-2">
                 <p className="text-xs sm:text-sm font-bold text-gray-600">
@@ -287,99 +328,133 @@ export function PackingMaterialsSection({
                 </p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {(['BOX', 'BASKET', 'COVER', 'CONSUMABLE', 'PROTECTION'] as const)
                   .filter(catKey => activeCategoryTab === 'ALL' || activeCategoryTab === catKey)
                   .map(catKey => {
                     const groupItems = packingMaterials.filter(m => m.category === catKey)
                     if (groupItems.length === 0) return null
                     const meta = CATEGORY_META[catKey]
+                    const isCatOpen = activeCategoryTab === catKey || Boolean(expandedCats[catKey])
 
                     return (
                       <div key={catKey} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-2xs">
-                        <div className={`px-3 py-1.5 border-b text-xs font-extrabold flex items-center justify-between ${meta.badgeClass}`}>
-                          <span className="flex items-center gap-1.5">
+                        {/* 종류별 아코디언 헤더 */}
+                        <button
+                          type="button"
+                          onClick={() => toggleCatAccordion(catKey)}
+                          className={`w-full px-3 py-2 text-xs font-extrabold flex items-center justify-between transition-colors cursor-pointer ${
+                            isCatOpen ? 'border-b' : ''
+                          } ${meta.badgeClass}`}
+                        >
+                          <span className="flex items-center gap-1.5 text-left">
                             <span>{meta.icon}</span>
                             <span>{meta.title}</span>
                           </span>
-                          <span className="text-[11px] font-bold">
-                            {groupItems.length}종 · 합계 {groupItems.reduce((s, i) => s + i.quantity, 0).toLocaleString()} {groupItems[0]?.unit || '개'}
+                          <span className="flex items-center gap-2 shrink-0 ml-2">
+                            <span className="text-[11px] font-bold bg-white/80 px-2 py-0.5 rounded-full border border-current/20">
+                              {groupItems.length}종 · 합계 {groupItems.reduce((s, i) => s + i.quantity, 0).toLocaleString()} {groupItems[0]?.unit || '개'}
+                            </span>
+                            {isCatOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                           </span>
-                        </div>
+                        </button>
 
-                      <div className="divide-y divide-gray-100">
-                        {groupItems.map(item => (
+                        {/* 접혀 있을 때 한 줄 요약 프리뷰 */}
+                        {!isCatOpen && (
                           <div
-                            key={item.code}
-                            className="px-3 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-gray-50/70 transition-colors"
+                            onClick={() => toggleCatAccordion(catKey)}
+                            className="px-3 py-2 bg-white hover:bg-gray-50/80 transition-colors cursor-pointer flex flex-wrap items-center gap-1.5"
                           >
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="font-bold text-xs sm:text-sm text-gray-900">
-                                  {item.name}
-                                </span>
-                                {item.spec && (
-                                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200/80">
-                                    {item.spec}
-                                  </span>
-                                )}
-                                <span
-                                  className={`px-1.5 py-0.2 rounded text-[10px] font-bold border ${
-                                    item.source === 'REGISTERED'
-                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                      : 'bg-amber-50 text-amber-800 border-amber-200'
-                                  }`}
-                                >
-                                  {item.source === 'REGISTERED' ? '등록자재' : '일반기준'}
-                                </span>
-                              </div>
-                              {item.reason && (
-                                <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">
-                                  산출근거: {item.reason}
-                                </p>
-                              )}
-                            </div>
-
-                            <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0">
-                              <button
-                                type="button"
-                                onClick={() => handleQtyChange(item.code, item.quantity - 1)}
-                                className="w-6 h-6 rounded border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 font-bold text-xs flex items-center justify-center cursor-pointer"
+                            {groupItems.map(item => (
+                              <span
+                                key={item.code}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-gray-50 border border-gray-200 text-[11px] text-gray-700 font-semibold"
                               >
-                                -
-                              </button>
-                              <input
-                                type="number"
-                                min={0}
-                                value={item.quantity}
-                                onChange={e => handleQtyChange(item.code, parseInt(e.target.value, 10) || 0)}
-                                className="w-14 h-6 rounded border border-gray-300 bg-white px-1.5 text-right text-xs font-extrabold text-blue-700 outline-none focus:border-blue-500"
-                              />
-                              <span className="text-xs font-bold text-gray-600 w-6">
-                                {item.unit}
+                                <span>{item.name}</span>
+                                <strong className="text-blue-700 font-extrabold">
+                                  {item.quantity}{item.unit}
+                                </strong>
                               </span>
-                              <button
-                                type="button"
-                                onClick={() => handleQtyChange(item.code, item.quantity + 1)}
-                                className="w-6 h-6 rounded border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 font-bold text-xs flex items-center justify-center cursor-pointer"
-                              >
-                                +
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleRemove(item.code)}
-                                className="p-1 text-gray-400 hover:text-red-600 transition-colors cursor-pointer"
-                                title="자재 제외"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
+                            ))}
                           </div>
-                        ))}
+                        )}
+
+                        {/* 펼쳐졌을 때 상세 편집 목록 */}
+                        {isCatOpen && (
+                          <div className="divide-y divide-gray-100">
+                            {groupItems.map(item => (
+                              <div
+                                key={item.code}
+                                className="px-3 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-gray-50/70 transition-colors"
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="font-bold text-xs sm:text-sm text-gray-900">
+                                      {item.name}
+                                    </span>
+                                    {item.spec && (
+                                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200/80">
+                                        {item.spec}
+                                      </span>
+                                    )}
+                                    <span
+                                      className={`px-1.5 py-0.2 rounded text-[10px] font-bold border ${
+                                        item.source === 'REGISTERED'
+                                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                          : 'bg-amber-50 text-amber-800 border-amber-200'
+                                      }`}
+                                    >
+                                      {item.source === 'REGISTERED' ? '등록자재' : '일반기준'}
+                                    </span>
+                                  </div>
+                                  {item.reason && (
+                                    <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">
+                                      산출근거: {item.reason}
+                                    </p>
+                                  )}
+                                </div>
+
+                                <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleQtyChange(item.code, item.quantity - 1)}
+                                    className="w-6 h-6 rounded border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 font-bold text-xs flex items-center justify-center cursor-pointer"
+                                  >
+                                    -
+                                  </button>
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={item.quantity}
+                                    onChange={e => handleQtyChange(item.code, parseInt(e.target.value, 10) || 0)}
+                                    className="w-14 h-6 rounded border border-gray-300 bg-white px-1.5 text-right text-xs font-extrabold text-blue-700 outline-none focus:border-blue-500"
+                                  />
+                                  <span className="text-xs font-bold text-gray-600 w-6">
+                                    {item.unit}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleQtyChange(item.code, item.quantity + 1)}
+                                    className="w-6 h-6 rounded border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 font-bold text-xs flex items-center justify-center cursor-pointer"
+                                  >
+                                    +
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemove(item.code)}
+                                    className="p-1 text-gray-400 hover:text-red-600 transition-colors cursor-pointer"
+                                    title="자재 제외"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
               </div>
             )}
 

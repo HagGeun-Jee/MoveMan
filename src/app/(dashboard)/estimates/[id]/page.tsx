@@ -9,6 +9,7 @@ import { MapPin, Phone } from 'lucide-react'
 import { PrintButton } from '@/components/PrintButton'
 import { formatPhoneNumber } from '@/lib/format'
 import { EstimateContractItemsView } from '@/components/EstimateContractItemsView'
+import { EstimatePackingMaterialsView } from '@/components/EstimatePackingMaterialsView'
 import { CustomerPreMoveSmsTrigger } from '@/components/CustomerPreMoveSmsModal'
 
 import { Metadata } from 'next'
@@ -562,119 +563,8 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
             </div>
           )}
 
-          {/* 현장 작업용 필요 포장자재 소요량 (화면 전용 표시, 고객 계약서 인쇄 시 자동 숨김) */}
-          {packingMaterials.length > 0 && (
-            <div className="mt-3 bg-slate-50/80 border border-slate-200 rounded-xl p-3 sm:p-3.5 space-y-2.5 print:hidden">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-xs sm:text-sm font-extrabold text-gray-900">
-                    📦 현장 필요 포장자재 소요량
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                    자재마스터 · 원가기준정보 연동
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                    옷걸이박스 제외
-                  </span>
-                </div>
-                <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-bold">
-                  <span className="px-2 py-0.5 rounded bg-white border border-blue-200 text-blue-800">
-                    단프라박스 {packingMaterials.filter(m => m.category === 'BOX').reduce((s, m) => s + m.quantity, 0)}개
-                  </span>
-                  <span className="px-2 py-0.5 rounded bg-white border border-emerald-200 text-emerald-800">
-                    바구니·아이스박스 {packingMaterials.filter(m => m.category === 'BASKET').reduce((s, m) => s + m.quantity, 0)}개
-                  </span>
-                  <span className="px-2 py-0.5 rounded bg-white border border-indigo-200 text-indigo-800">
-                    보호커버 {packingMaterials.filter(m => m.category === 'COVER').reduce((s, m) => s + m.quantity, 0)}개
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-2.5">
-                {[
-                  {
-                    key: 'BOX_BASKET',
-                    title: '1. 포장박스 · 바구니 · 아이스박스',
-                    icon: '📦',
-                    headerClass: 'bg-blue-50/90 text-blue-900 border-blue-200',
-                    badgeClass: 'bg-blue-100 text-blue-800',
-                    items: packingMaterials.filter(m => m.category === 'BOX' || m.category === 'BASKET'),
-                  },
-                  {
-                    key: 'COVER',
-                    title: '2. 가구 · 가전 · 침대 보호커버',
-                    icon: '🛡️',
-                    headerClass: 'bg-indigo-50/90 text-indigo-900 border-indigo-200',
-                    badgeClass: 'bg-indigo-100 text-indigo-800',
-                    items: packingMaterials.filter(m => m.category === 'COVER'),
-                  },
-                  {
-                    key: 'CONSUMABLE_PROTECTION',
-                    title: '3. 포장 소모품 · 현장 보양재 · 운반장비',
-                    icon: '🎗️',
-                    headerClass: 'bg-purple-50/90 text-purple-900 border-purple-200',
-                    badgeClass: 'bg-purple-100 text-purple-800',
-                    items: packingMaterials.filter(m => m.category === 'CONSUMABLE' || m.category === 'PROTECTION'),
-                  },
-                ].map(group => {
-                  if (group.items.length === 0) return null
-                  const totalQty = group.items.reduce((sum, i) => sum + i.quantity, 0)
-                  return (
-                    <div key={group.key} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-2xs">
-                      <div className={`px-3 py-1.5 border-b flex items-center justify-between text-xs font-extrabold ${group.headerClass}`}>
-                        <span className="flex items-center gap-1.5">
-                          <span>{group.icon}</span>
-                          <span>{group.title}</span>
-                        </span>
-                        <span className={`px-2 py-0.5 rounded-full text-[11px] font-extrabold ${group.badgeClass}`}>
-                          {group.items.length}종 · 합계 {totalQty.toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 divide-y sm:divide-y-0 gap-px bg-gray-100">
-                        {group.items.map(mat => (
-                          <div
-                            key={mat.code}
-                            className="bg-white px-3 py-2 flex items-center justify-between gap-2"
-                          >
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1 flex-wrap">
-                                <span className="font-bold text-xs text-gray-900 truncate">
-                                  {mat.name}
-                                </span>
-                                {mat.spec && (
-                                  <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-50 text-blue-700 border border-blue-200/80 shrink-0">
-                                    {mat.spec}
-                                  </span>
-                                )}
-                                {mat.source === 'GENERAL' && (
-                                  <span className="px-1 py-0.2 rounded text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200 shrink-0">
-                                    일반기준
-                                  </span>
-                                )}
-                              </div>
-                              {mat.reason && (
-                                <div className="text-[10px] text-gray-500 truncate mt-0.5" title={mat.reason}>
-                                  {mat.reason}
-                                </div>
-                              )}
-                            </div>
-                            <div className="text-right shrink-0 pl-1">
-                              <span className="font-extrabold text-xs sm:text-sm text-blue-700">
-                                {mat.quantity.toLocaleString()}
-                              </span>
-                              <span className="text-[11px] font-semibold text-gray-600 ml-0.5">
-                                {mat.unit}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
+          {/* 현장 작업용 필요 포장자재 소요량 (종류별 아코디언 뷰, 고객 계약서 인쇄 시 자동 숨김) */}
+          <EstimatePackingMaterialsView packingMaterials={packingMaterials} />
         </section>
 
         {/* 3. 이사 비용 및 결제 플랜 (좌우 2단 계약 금액표) */}
