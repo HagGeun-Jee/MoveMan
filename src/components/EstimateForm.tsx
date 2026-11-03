@@ -17,6 +17,14 @@ import { formatPhoneNumber, handlePhoneInputChange, handleSelectAllOnFocus } fro
 import { MovingCostCalculatorModal } from '@/components/MovingCostCalculatorModal'
 import { CostCalculatorModal } from '@/components/CostCalculatorModal'
 import { getCostStandards, CostStandardData } from '@/app/actions/costStandards'
+import { getInventoryOverview } from '@/app/actions/inventory'
+import {
+  calculatePackingMaterials,
+  PackingMaterialItem,
+  RegisteredMaterialCatalogItem,
+  isExcludedMaterial,
+} from '@/lib/packingMaterialCalculator'
+import { PackingMaterialsSection } from '@/components/PackingMaterialsSection'
 import { AiCbmEstimateModal, type AiIdentifiedItem } from '@/components/AiCbmEstimateModal'
 import { EstimatePresetModal } from '@/components/EstimatePresetModal'
 import { QuickTouchCbmPanel } from '@/components/QuickTouchCbmPanel'
@@ -260,9 +268,11 @@ export function EstimateForm({
     ? (adminHistoryArr.find((h: any) => h?.action === 'CREATE')?.by || adminHistoryArr[adminHistoryArr.length - 1]?.by || '')
     : ''
 
-  // 임시 저장 키 (신규 견적 작성 또는 특정 견적 수정 구분)
+  // 임시 저장 키 (신규 견적 작성 또는 특정 견적 수정 구분 + 계정별 격리)
   const storageKey = initialData?.id 
     ? `meman_estimate_draft_edit_${initialData.id}` 
+    : currentUserName?.trim()
+    ? `meman_estimate_draft_new_${currentUserName.trim()}`
     : 'meman_estimate_draft_new'
 
   const [draftRestoredTime, setDraftRestoredTime] = useState<string | null>(null)
@@ -462,6 +472,19 @@ export function EstimateForm({
 
   const [labors, setLabors] = useState<any[]>(envObj.labors || [])
   const [standardLabors, setStandardLabors] = useState<any[]>([])
+
+  // 포장자재 소요량 상태 (기존 저장된 내역이 있으면 로드, 없으면 자동 산출 모드)
+  const initialParsedMaterials = useMemo(() => {
+    const parsed = safeJsonParse(initialData?.materials, [])
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed.filter((m: any) => !isExcludedMaterial(m?.code, m?.name)) as PackingMaterialItem[]
+    }
+    return []
+  }, [initialData?.materials])
+
+  const [packingMaterials, setPackingMaterials] = useState<PackingMaterialItem[]>(initialParsedMaterials)
+  const [isPackingAutoSync, setIsPackingAutoSync] = useState<boolean>(initialParsedMaterials.length === 0)
+  const [registeredMaterials, setRegisteredMaterials] = useState<RegisteredMaterialCatalogItem[]>([])
 
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({})
   const [selectedItemNames, setSelectedItemNames] = useState<Record<string, string>>({})
@@ -1513,6 +1536,12 @@ export function EstimateForm({
 
           if (draft.isCostEdited !== undefined) setIsCostEdited(draft.isCostEdited)
           if (draft.signature !== undefined) setSignature(draft.signature)
+          if (Array.isArray(draft.packingMaterials) && draft.packingMaterials.length > 0) {
+            setPackingMaterials(draft.packingMaterials.filter((m: any) => !isExcludedMaterial(m?.code, m?.name)))
+          }
+          if (draft.isPackingAutoSync !== undefined) {
+            setIsPackingAutoSync(Boolean(draft.isPackingAutoSync))
+          }
 
           if (draft.savedAt) {
             setDraftRestoredTime(format(new Date(draft.savedAt), 'yyyy-MM-dd HH:mm:ss'))
@@ -1536,8 +1565,28 @@ export function EstimateForm({
       getVehicles(),
       getLabors(),
       getLocationCategories(),
-      getCostStandards()
-    ]).then(([itemsRes, vehiclesRes, laborsRes, catsRes, costStandardsRes]) => {
+      getCostStandards(),
+      getInventoryOverview().catch(() => ({ materials: [] }))
+    ]).then(([itemsRes, vehiclesRes, laborsRes, catsRes, costStandardsRes, inventoryRes]) => {
+      if (inventoryRes && Array.isArray((inventoryRes as any).materials)) {
+        const regList = (inventoryRes as any).materials as RegisteredMaterialCatalogItem[]
+        setRegisteredMaterials(regList)
+        // 수동 저장된 자재가 있더라도 자재 코드(code) 기준으로 최신 자재명 및 비고/규격을 자동 반영
+        const regMap = new Map(regList.map(m => [m.code, m]))
+        setPackingMaterials(prev =>
+          prev.map(item => {
+            const latest = regMap.get(item.code)
+            return latest
+              ? {
+                  ...item,
+                  name: latest.name,
+                  unit: latest.unit || item.unit,
+                  spec: latest.memo ?? item.spec ?? '',
+                }
+              : item
+          })
+        )
+      }
       const sortedStandardItems = [...itemsRes].sort((a: any, b: any) => {
         const nameComp = (a.name || '').localeCompare(b.name || '', 'ko')
         if (nameComp !== 0) return nameComp
@@ -1754,7 +1803,9 @@ export function EstimateForm({
           balanceDate: balanceDate ? balanceDate.toISOString() : null,
           balancePaid,
           isCostEdited,
-          signature
+          signature,
+          packingMaterials,
+          isPackingAutoSync
         }
         localStorage.setItem(storageKey, JSON.stringify(draftData))
       } catch (e) {
@@ -1812,8 +1863,36 @@ export function EstimateForm({
     balanceDate,
     balancePaid,
     isCostEdited,
-    signature
+    signature,
+    packingMaterials,
+    isPackingAutoSync
   ])
+
+  const handleRecalculatePackingMaterials = () => {
+    const calculated = calculatePackingMaterials({
+      items: filterValidCbmItems(items),
+      vehicles,
+      labors,
+      costStandards: costStandardsData,
+      registeredMaterials,
+      movingType,
+    })
+    setPackingMaterials(calculated)
+  }
+
+  // 자동 동기화 모드일 때 물품, 차량, 인력, 원가기준정보 변경 시 포장자재 소요량 실시간 갱신
+  useEffect(() => {
+    if (!isPackingAutoSync) return
+    const calculated = calculatePackingMaterials({
+      items: filterValidCbmItems(items),
+      vehicles,
+      labors,
+      costStandards: costStandardsData,
+      registeredMaterials,
+      movingType,
+    })
+    setPackingMaterials(calculated)
+  }, [isPackingAutoSync, items, vehicles, labors, costStandardsData, registeredMaterials, movingType])
 
   // 작업 환경(인원, 차량, 사다리차, 거리, 배차 등) 통합 객체 직렬화
   const currentEnvironmentObj = {
@@ -4085,6 +4164,18 @@ export function EstimateForm({
               <input type="hidden" name="vehicles" value={JSON.stringify(vehicles)} />
             </div>
           </div>
+
+          {/* 필요 포장자재 소요량 산출 (자재 마스터 + 원가기준정보 연동, 옷걸이박스 제외) */}
+          <PackingMaterialsSection
+            packingMaterials={packingMaterials}
+            onChange={setPackingMaterials}
+            onRecalculate={handleRecalculatePackingMaterials}
+            isAutoSync={isPackingAutoSync}
+            onToggleAutoSync={setIsPackingAutoSync}
+            registeredMaterials={registeredMaterials}
+            costStandards={costStandardsData}
+            validItemCount={items.filter(it => (Number(it.quantity) || 0) > 0).length}
+          />
         </div>
 
         {/* 이사 비용 및 결제 플랜 통합 섹션 */}

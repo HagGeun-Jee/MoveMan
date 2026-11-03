@@ -93,11 +93,14 @@ export default function InventoryPage() {
     return [...materials].sort((a, b) => a.name.localeCompare(b.name, 'ko'))
   }, [materials])
 
-  // 필터링된 자재 목록 (자재 품명 기본 가나다순 정렬 유지)
+  // 필터링된 자재 목록 (자재 품명 기본 가나다순 정렬 유지, 비고/규격 검색 포함)
   const filteredMaterials = useMemo(() => {
+    const q = searchQuery.toLowerCase()
     return sortedMaterials.filter(m => {
-      const matchQuery = m.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         m.code.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchQuery =
+        m.name.toLowerCase().includes(q) ||
+        m.code.toLowerCase().includes(q) ||
+        (m.memo || '').toLowerCase().includes(q)
       const matchCategory = categoryFilter === 'ALL' || m.category === categoryFilter
       return matchQuery && matchCategory
     })
@@ -703,20 +706,25 @@ export default function InventoryPage() {
 
             <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
               {sortedMaterials.map(m => (
-                <div key={m.id} className="py-2.5 flex items-center justify-between hover:bg-gray-50/50 px-2 rounded-lg">
-                  <div>
-                    <div className="flex items-center gap-2">
+                <div key={m.id} className="py-2.5 flex items-center justify-between gap-2 hover:bg-gray-50/50 px-2 rounded-lg">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
                       <span className="font-bold text-xs text-gray-900">{m.name}</span>
                       <span className="text-[10px] text-gray-500 font-mono">({m.code})</span>
                       <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-medium">
                         {m.unit}
                       </span>
+                      {m.memo && (
+                        <span className="text-[11px] bg-blue-50 text-blue-700 border border-blue-200 px-1.5 py-0.5 rounded font-semibold">
+                          {m.memo}
+                        </span>
+                      )}
                     </div>
                     <p className="text-[11px] text-gray-500 mt-0.5">
-                      안전재고: {m.safetyStock}개 | 단가: {m.unitPrice.toLocaleString()}원
+                      안전재고: {m.safetyStock}{m.unit || '개'} | 단가: {m.unitPrice.toLocaleString()}원
                     </p>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 shrink-0">
                     <button
                       type="button"
                       onClick={() => handleCopyMaterial(m)}

@@ -130,34 +130,57 @@ export async function createEstimate(formData: FormData) {
     { action: 'CREATE', by: environmentObj.estimatorName || session.name, at: new Date().toISOString() }
   ])
 
-  await prisma.estimate.create({
-    data: {
-      id,
-      movingType,
-      customerName: formData.get('customerName') as string,
-      contact: formData.get('contact') as string,
-      fromAddress: formData.get('fromAddress') as string,
-      toAddress: formData.get('toAddress') as string,
-      estimateDate,
-      movingDate: formData.get('movingDate') ? new Date(formData.get('movingDate') as string) : null,
-      organizeDate: formData.get('organizeDate') ? new Date(formData.get('organizeDate') as string) : null,
-      visitDate: formData.get('visitDate') ? new Date(formData.get('visitDate') as string) : null,
-      
-      cbmItems,
-      materials,
-      environment,
-      paymentPlan,
-      adminHistory,
-      signature: formData.get('signature') as string || null,
-      
-      movingCost: parseInt((formData.get('movingCost') as string || '0').replace(/,/g, ''), 10),
-      storageCost: parseInt((formData.get('storageCost') as string || '0').replace(/,/g, ''), 10),
-      storageDays: parseInt((formData.get('storageDays') as string || '0').replace(/,/g, ''), 10),
-      additionalCost: parseInt((formData.get('additionalCost') as string || '0').replace(/,/g, ''), 10),
-      vat: parseInt((formData.get('vat') as string || '0').replace(/,/g, ''), 10),
-      totalAmount: parseInt((formData.get('totalAmount') as string || '0').replace(/,/g, ''), 10),
+  const baseData = {
+    movingType,
+    customerName: formData.get('customerName') as string,
+    contact: formData.get('contact') as string,
+    fromAddress: formData.get('fromAddress') as string,
+    toAddress: formData.get('toAddress') as string,
+    estimateDate,
+    movingDate: formData.get('movingDate') ? new Date(formData.get('movingDate') as string) : null,
+    organizeDate: formData.get('organizeDate') ? new Date(formData.get('organizeDate') as string) : null,
+    visitDate: formData.get('visitDate') ? new Date(formData.get('visitDate') as string) : null,
+    cbmItems,
+    materials,
+    environment,
+    paymentPlan,
+    adminHistory,
+    signature: (formData.get('signature') as string) || null,
+    movingCost: parseInt(((formData.get('movingCost') as string) || '0').replace(/,/g, ''), 10),
+    storageCost: parseInt(((formData.get('storageCost') as string) || '0').replace(/,/g, ''), 10),
+    storageDays: parseInt(((formData.get('storageDays') as string) || '0').replace(/,/g, ''), 10),
+    additionalCost: parseInt(((formData.get('additionalCost') as string) || '0').replace(/,/g, ''), 10),
+    vat: parseInt(((formData.get('vat') as string) || '0').replace(/,/g, ''), 10),
+    totalAmount: parseInt(((formData.get('totalAmount') as string) || '0').replace(/,/g, ''), 10),
+  }
+
+  // 다중 사용자 동시 저장 시 견적번호(id) 채번 충돌 방지를 위한 자동 재시도 루프 (최대 5회)
+  let currentId = id
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      if (attempt > 0) {
+        const latest = await prisma.estimate.findFirst({
+          where: { id: { startsWith: prefix } },
+          orderBy: { id: 'desc' },
+        })
+        const nextSeq = latest ? (parseInt(latest.id.slice(-4), 10) || 0) + 1 : seq + attempt
+        currentId = `${prefix}${nextSeq.toString().padStart(4, '0')}`
+      }
+      await prisma.estimate.create({
+        data: {
+          id: currentId,
+          ...baseData,
+        },
+      })
+      break
+    } catch (err: any) {
+      const isUniqueCollision = err?.code === 'P2002' || String(err?.message || '').includes('Unique constraint')
+      if (isUniqueCollision && attempt < 4) {
+        continue
+      }
+      throw err
     }
-  })
+  }
 
   redirect('/estimates')
 }

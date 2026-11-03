@@ -67,44 +67,57 @@ export async function POST(request: Request) {
             const dateStr = format(estDate, 'yyMMdd')
             const prefix = `${movingType}${dateStr}`
 
-            const lastEstimate = await prisma.estimate.findFirst({
-              where: { id: { startsWith: prefix } },
-              orderBy: { id: 'desc' }
-            })
+            // 다중 사용자 동시 동기화 시 견적번호(id) 채번 충돌 방지를 위한 자동 재시도 (최대 5회)
+            let serverId = ''
+            for (let attempt = 0; attempt < 5; attempt++) {
+              const lastEstimate = await prisma.estimate.findFirst({
+                where: { id: { startsWith: prefix } },
+                orderBy: { id: 'desc' }
+              })
 
-            let seq = 1
-            if (lastEstimate) {
-              const lastSeq = parseInt(lastEstimate.id.slice(-4), 10)
-              if (!isNaN(lastSeq)) {
-                seq = lastSeq + 1
+              let seq = 1
+              if (lastEstimate) {
+                const lastSeq = parseInt(lastEstimate.id.slice(-4), 10)
+                if (!isNaN(lastSeq)) {
+                  seq = lastSeq + 1
+                }
+              }
+              serverId = `${prefix}${seq.toString().padStart(4, '0')}`
+
+              try {
+                await prisma.estimate.create({
+                  data: {
+                    id: serverId,
+                    movingType: data.movingType,
+                    customerName: data.customerName || '',
+                    contact: data.contact || '',
+                    fromAddress: data.fromAddress || '',
+                    toAddress: data.toAddress || '',
+                    estimateDate: estDate,
+                    visitDate: data.visitDate ? new Date(data.visitDate) : null,
+                    movingDate: data.movingDate ? new Date(data.movingDate) : null,
+                    organizeDate: data.organizeDate ? new Date(data.organizeDate) : null,
+                    cbmItems: toValidJsonString(data.cbmItems, '[]'),
+                    materials: toValidJsonString(data.materials, '{}'),
+                    assemblyItems: toValidJsonString(data.assemblyItems, '[]'),
+                    environment: toValidJsonString(data.environment, '{}'),
+                    paymentPlan: toValidJsonString(data.paymentPlan, '{}'),
+                    movingCost: Math.round(Number(data.movingCost) || 0),
+                    storageCost: Math.round(Number(data.storageCost) || 0),
+                    additionalCost: Math.round(Number(data.additionalCost) || 0),
+                    vat: Math.round(Number(data.vat) || 0),
+                    totalAmount: Math.round(Number(data.totalAmount) || 0),
+                  }
+                })
+                break
+              } catch (createErr: any) {
+                const isUniqueCollision = createErr?.code === 'P2002' || String(createErr?.message || '').includes('Unique constraint')
+                if (isUniqueCollision && attempt < 4) {
+                  continue
+                }
+                throw createErr
               }
             }
-            const serverId = `${prefix}${seq.toString().padStart(4, '0')}`
-
-            await prisma.estimate.create({
-              data: {
-                id: serverId,
-                movingType: data.movingType,
-                customerName: data.customerName || '',
-                contact: data.contact || '',
-                fromAddress: data.fromAddress || '',
-                toAddress: data.toAddress || '',
-                estimateDate: estDate,
-                visitDate: data.visitDate ? new Date(data.visitDate) : null,
-                movingDate: data.movingDate ? new Date(data.movingDate) : null,
-                organizeDate: data.organizeDate ? new Date(data.organizeDate) : null,
-                cbmItems: toValidJsonString(data.cbmItems, '[]'),
-                materials: toValidJsonString(data.materials, '{}'),
-                assemblyItems: toValidJsonString(data.assemblyItems, '[]'),
-                environment: toValidJsonString(data.environment, '{}'),
-                paymentPlan: toValidJsonString(data.paymentPlan, '{}'),
-                movingCost: Math.round(Number(data.movingCost) || 0),
-                storageCost: Math.round(Number(data.storageCost) || 0),
-                additionalCost: Math.round(Number(data.additionalCost) || 0),
-                vat: Math.round(Number(data.vat) || 0),
-                totalAmount: Math.round(Number(data.totalAmount) || 0),
-              }
-            })
 
             results.push({
               queueId: item.id,

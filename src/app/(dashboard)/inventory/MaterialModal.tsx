@@ -225,7 +225,7 @@ export function MaterialModal({
                 <option value="">-- 기존 자재 선택 시 정보가 복사됩니다 --</option>
                 {sortedExistingMaterials.map(m => (
                   <option key={m.id} value={m.id}>
-                    {m.name} ({m.code}) - {m.unit} | {(m.unitPrice ?? 0).toLocaleString()}원
+                    {m.name}{m.memo ? ` [${m.memo}]` : ''} ({m.code}) - {m.unit} | {(m.unitPrice ?? 0).toLocaleString()}원
                   </option>
                 ))}
               </select>
