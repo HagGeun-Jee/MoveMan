@@ -245,13 +245,28 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                     <div className="flex-1 space-y-1 overflow-y-auto no-scrollbar">
                       {dayEstimates.map(est => {
                         const visitTimeStr = est.visitDate ? format(new Date(est.visitDate), 'HH:mm') : ''
+                        let partnerBadge = ''
+                        try {
+                          if (est.environment) {
+                            const env = JSON.parse(est.environment)
+                            partnerBadge = String(env?.partnerShortName || env?.partnerName || '').trim()
+                          }
+                        } catch {}
                         return (
                           <Link
                             href={`/estimates/${est.id}`}
                             key={`est-${est.id}`}
-                            title={visitTimeStr ? `방문: ${est.customerName} (${visitTimeStr})` : `방문: ${est.customerName}`}
+                            title={
+                              `${partnerBadge ? `[${partnerBadge}] ` : ''}방문: ${est.customerName}` +
+                              (visitTimeStr ? ` (${visitTimeStr})` : '')
+                            }
                             className="block text-[11px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 bg-blue-100 text-blue-900 font-bold rounded truncate cursor-pointer hover:bg-blue-200 shadow-sm border border-blue-300"
                           >
+                            {partnerBadge && (
+                              <span className="mr-1 text-[10px] font-extrabold text-indigo-800 bg-white/95 px-1 rounded border border-indigo-200">
+                                {partnerBadge}
+                              </span>
+                            )}
                             <span>방문: {est.customerName}</span>
                             {visitTimeStr && (
                               <span className="ml-1 text-[10px] font-extrabold text-blue-700 bg-white/90 px-1 rounded">
@@ -263,6 +278,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                       })}
                       {dayMovings.map(est => {
                         let dispatchLabel = ''
+                        let partnerBadge = ''
                         try {
                           if (est.environment) {
                             const env = JSON.parse(est.environment)
@@ -272,15 +288,24 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                             if (vShort && leader) dispatchLabel = `${vShort}·${leader}`
                             else if (vShort) dispatchLabel = vShort
                             else if (leader) dispatchLabel = leader
+                            partnerBadge = String(env?.partnerShortName || env?.partnerName || '').trim()
                           }
                         } catch {}
                         return (
                           <Link
                             href={`/estimates/${est.id}`}
                             key={`mov-${est.id}`}
-                            title={dispatchLabel ? `이사: ${est.customerName} (${dispatchLabel})` : `이사: ${est.customerName} (미배차)`}
+                            title={
+                              `${partnerBadge ? `[${partnerBadge}] ` : ''}이사: ${est.customerName} ` +
+                              (dispatchLabel ? `(${dispatchLabel})` : '(미배차)')
+                            }
                             className="block text-[11px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 bg-red-100 text-red-900 font-bold rounded truncate cursor-pointer hover:bg-red-200 shadow-sm border border-red-300"
                           >
+                            {partnerBadge && (
+                              <span className="mr-1 text-[10px] font-extrabold text-rose-800 bg-white/95 px-1 rounded border border-rose-200">
+                                {partnerBadge}
+                              </span>
+                            )}
                             <span>이사: {est.customerName}</span>
                             {dispatchLabel && (
                               <span className="ml-1 text-[10px] font-extrabold text-emerald-800 bg-white/90 px-1 rounded">

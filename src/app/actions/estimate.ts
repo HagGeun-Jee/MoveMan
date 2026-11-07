@@ -122,6 +122,10 @@ export async function createEstimate(formData: FormData) {
     scheduledMessages: Array.isArray(parsedEnv.scheduledMessages) ? parsedEnv.scheduledMessages : [],
     specialNotes: String(formData.get('specialNotes') ?? parsedEnv.specialNotes ?? '').trim(),
     estimatorName: String(formData.get('estimatorName') || parsedEnv.estimatorName || session.name || '').trim(),
+    partnerId: String(formData.get('partnerId') ?? parsedEnv.partnerId ?? '').trim(),
+    partnerName: String(formData.get('partnerName') ?? parsedEnv.partnerName ?? '').trim(),
+    partnerShortName: String(formData.get('partnerShortName') ?? parsedEnv.partnerShortName ?? '').trim(),
+    partnerColor: String(formData.get('partnerColor') ?? parsedEnv.partnerColor ?? 'blue').trim(),
   }
   const environment = JSON.stringify(environmentObj)
   
@@ -290,6 +294,10 @@ export async function updateEstimate(formData: FormData) {
       session.name ||
       ''
     ).trim(),
+    partnerId: String(formData.get('partnerId') ?? parsedEnv.partnerId ?? existingEnv.partnerId ?? '').trim(),
+    partnerName: String(formData.get('partnerName') ?? parsedEnv.partnerName ?? existingEnv.partnerName ?? '').trim(),
+    partnerShortName: String(formData.get('partnerShortName') ?? parsedEnv.partnerShortName ?? existingEnv.partnerShortName ?? '').trim(),
+    partnerColor: String(formData.get('partnerColor') ?? parsedEnv.partnerColor ?? existingEnv.partnerColor ?? 'blue').trim(),
   }
   const environment = JSON.stringify(environmentObj)
   

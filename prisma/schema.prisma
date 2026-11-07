@@ -140,6 +140,23 @@ model LaborMaster {
   createdAt   DateTime @default(now())
 }
 
+// 협력/의뢰 이사업체 마스터 (방문견적 의뢰 거래처 관리 및 업체별 통계/수수료 집계용)
+model PartnerCompany {
+  id            String   @id @default(cuid())
+  name          String   @unique // 업체명 (예: A익스프레스)
+  shortName     String   @default("") // 캘린더/목록 표시용 약칭 (예: A익스)
+  color         String   @default("blue") // 배지 색상 (blue, indigo, emerald, purple, amber, rose, cyan, slate)
+  contactPerson String   @default("") // 거래처 담당자명
+  phone         String   @default("") // 거래처 연락처
+  feeType       String   @default("NONE") // NONE(없음), RATE(수수료율 %), FIXED(건당 정액 원)
+  feeValue      Float    @default(0) // 수수료율(%) 또는 건당 정액(원)
+  memo          String   @default("")
+  isActive      Boolean  @default(true)
+  order         Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
 model LadderTruckMaster {
   id          String   @id @default(cuid())
   floorName   String   // 층수 표시 (예: "2~5층", "6~7층")

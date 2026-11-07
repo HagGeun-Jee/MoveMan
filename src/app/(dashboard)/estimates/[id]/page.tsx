@@ -214,13 +214,21 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
 
       {/* 상단 액션 바 (태블릿 및 모바일 한 줄 최적화, 인쇄 시 숨김) */}
       <div className="flex items-center justify-between gap-1.5 sm:gap-2 bg-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl border border-gray-200/80 shadow-xs print:hidden">
-        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 shrink-0 flex-wrap">
           <h1 className="text-sm sm:text-base md:text-lg font-black text-gray-900 whitespace-nowrap">
             견적·계약 상세
           </h1>
           <span className="text-[11px] sm:text-xs font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 shrink-0 whitespace-nowrap">
             {estimate.id}
           </span>
+          {Boolean(envObj.partnerName || envObj.partnerShortName) && (
+            <span
+              title={`의뢰 이사업체: ${envObj.partnerName || envObj.partnerShortName}`}
+              className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-extrabold text-indigo-800 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200 shrink-0 whitespace-nowrap"
+            >
+              🏢 의뢰처: {envObj.partnerName || envObj.partnerShortName}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           <CustomerPreMoveSmsTrigger

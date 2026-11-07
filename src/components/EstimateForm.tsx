@@ -9,8 +9,9 @@ import { getLabors } from '@/app/actions/labor'
 import { getDistance } from '@/app/actions/distance'
 import { getLadderFares } from '@/app/actions/ladder'
 import type { LadderFareItem } from '@/types/ladder'
+import { getPartnerCompanies, createPartnerCompany, type PartnerCompanyItem } from '@/app/actions/partner'
 import DaumPostcodeEmbed from 'react-daum-postcode'
-import { MapPin, Search, ChevronDown, ChevronUp, Navigation, RefreshCw, Car, AlertCircle, CheckCircle2, Calculator, Truck, Plus, FileText, Sparkles, Zap, Smartphone, Table, Trash2, Coins, CreditCard, PackagePlus, X, Wrench } from 'lucide-react'
+import { MapPin, Search, ChevronDown, ChevronUp, Navigation, RefreshCw, Car, AlertCircle, CheckCircle2, Calculator, Truck, Plus, FileText, Sparkles, Zap, Smartphone, Table, Trash2, Coins, CreditCard, PackagePlus, X, Wrench, Building2 } from 'lucide-react'
 import { CustomDatePicker } from '@/components/CustomDatePicker'
 import { format } from 'date-fns'
 import { formatPhoneNumber, handlePhoneInputChange, handleSelectAllOnFocus } from '@/lib/format'
@@ -379,6 +380,68 @@ export function EstimateForm({
   const [estimatorName, setEstimatorName] = useState<string>(
     (envObj.estimatorName || initialCreator || currentUserName || '').trim()
   )
+
+  // 협력/의뢰 이사업체 연동 상태
+  const [partners, setPartners] = useState<PartnerCompanyItem[]>([])
+  const [partnerId, setPartnerId] = useState<string>(envObj.partnerId || '')
+  const [partnerName, setPartnerName] = useState<string>(envObj.partnerName || '')
+  const [partnerShortName, setPartnerShortName] = useState<string>(envObj.partnerShortName || '')
+  const [partnerColor, setPartnerColor] = useState<string>(envObj.partnerColor || '')
+  const [isQuickAddPartnerOpen, setIsQuickAddPartnerOpen] = useState(false)
+  const [quickPartnerNameInput, setQuickPartnerNameInput] = useState('')
+  const [isCreatingPartner, setIsCreatingPartner] = useState(false)
+
+  useEffect(() => {
+    getPartnerCompanies()
+      .then(list => setPartners(list))
+      .catch(() => {})
+  }, [])
+
+  const handlePartnerSelectChange = (selectedId: string) => {
+    if (!selectedId) {
+      setPartnerId('')
+      setPartnerName('')
+      setPartnerShortName('')
+      setPartnerColor('')
+      return
+    }
+    const found = partners.find(p => p.id === selectedId)
+    if (found) {
+      setPartnerId(found.id)
+      setPartnerName(found.name)
+      setPartnerShortName(found.shortName || found.name)
+      setPartnerColor(found.color || 'indigo')
+    }
+  }
+
+  const handleQuickAddPartnerInForm = async () => {
+    const trimmed = quickPartnerNameInput.trim()
+    if (!trimmed) return
+    setIsCreatingPartner(true)
+    try {
+      const res = await createPartnerCompany({
+        name: trimmed,
+        shortName: trimmed.slice(0, 6),
+        color: 'indigo',
+      })
+      if (res.success && res.partner) {
+        const created = res.partner
+        setPartners(prev => [...prev, created].sort((a, b) => a.name.localeCompare(b.name, 'ko')))
+        setPartnerId(created.id)
+        setPartnerName(created.name)
+        setPartnerShortName(created.shortName || created.name)
+        setPartnerColor(created.color || 'indigo')
+        setQuickPartnerNameInput('')
+        setIsQuickAddPartnerOpen(false)
+      } else {
+        alert(res.error || '의뢰업체 추가에 실패했습니다.')
+      }
+    } catch {
+      alert('의뢰업체 추가 중 오류가 발생했습니다.')
+    } finally {
+      setIsCreatingPartner(false)
+    }
+  }
   const [organizeStatus, setOrganizeStatus] = useState<string>(envObj.organizeStatus || '')
   const [fromFloor, setFromFloor] = useState<string>(envObj.fromFloor || '')
   const [fromWorkTypes, setFromWorkTypes] = useState<string[]>(Array.isArray(envObj.fromWorkTypes) ? envObj.fromWorkTypes : [])
@@ -1467,6 +1530,10 @@ export function EstimateForm({
           if (draft.estimatorName !== undefined && String(draft.estimatorName).trim() !== '') {
             setEstimatorName(String(draft.estimatorName).trim())
           }
+          if (draft.partnerId !== undefined) setPartnerId(draft.partnerId)
+          if (draft.partnerName !== undefined) setPartnerName(draft.partnerName)
+          if (draft.partnerShortName !== undefined) setPartnerShortName(draft.partnerShortName)
+          if (draft.partnerColor !== undefined) setPartnerColor(draft.partnerColor)
           if (draft.movingType !== undefined) setMovingType(draft.movingType)
           if (draft.estimateDate) setEstimateDate(new Date(draft.estimateDate))
           if (draft.visitDate) setVisitDate(new Date(draft.visitDate))
@@ -1787,6 +1854,10 @@ export function EstimateForm({
           customerName,
           contact,
           estimatorName,
+          partnerId,
+          partnerName,
+          partnerShortName,
+          partnerColor,
           movingType,
           estimateDate: estimateDate ? estimateDate.toISOString() : null,
           visitDate: visitDate ? visitDate.toISOString() : null,
@@ -1848,6 +1919,10 @@ export function EstimateForm({
     customerName,
     contact,
     estimatorName,
+    partnerId,
+    partnerName,
+    partnerShortName,
+    partnerColor,
     movingType,
     estimateDate,
     visitDate,
@@ -1965,6 +2040,10 @@ export function EstimateForm({
     specialNotes: specialNotes.trim(),
     scheduledMessages,
     estimatorName: estimatorName.trim(),
+    partnerId: partnerId.trim(),
+    partnerName: partnerName.trim(),
+    partnerShortName: (partnerShortName || partnerName).trim(),
+    partnerColor: partnerColor.trim(),
   }
   const currentEnvironmentStr = JSON.stringify(currentEnvironmentObj)
 
@@ -2197,6 +2276,70 @@ export function EstimateForm({
                   required 
                   className="w-full rounded border border-gray-200 px-2.5 py-1.5 outline-none focus:border-blue-500 text-xs sm:text-sm" 
                 />
+              </div>
+            </div>
+
+            {/* 의뢰 이사업체 (협력업체 구분) */}
+            <div className="md:col-span-2 flex flex-col sm:flex-row sm:items-center border border-indigo-200 rounded-lg overflow-hidden bg-indigo-50/30 shadow-2xs focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500">
+              <label className="whitespace-nowrap bg-indigo-50/80 border-b sm:border-b-0 sm:border-r border-indigo-200 px-2.5 sm:px-3 py-2 text-left font-extrabold text-indigo-900 sm:w-28 shrink-0 text-xs sm:text-sm flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                의뢰 이사업체
+              </label>
+              <div className="flex-1 p-1.5 min-w-0 flex flex-wrap items-center gap-1.5">
+                <input type="hidden" name="partnerId" value={partnerId} />
+                <input type="hidden" name="partnerName" value={partnerName} />
+                <input type="hidden" name="partnerShortName" value={partnerShortName} />
+                <input type="hidden" name="partnerColor" value={partnerColor} />
+
+                <select
+                  value={partnerId}
+                  onChange={e => handlePartnerSelectChange(e.target.value)}
+                  className="flex-1 min-w-[180px] rounded border border-gray-300 bg-white px-2.5 py-1.5 outline-none focus:border-indigo-500 text-xs sm:text-sm font-bold text-gray-900"
+                >
+                  <option value="">자체접수 / 직접고객 (의뢰업체 미지정)</option>
+                  {partners.map(p => (
+                    <option key={p.id} value={p.id}>
+                      🏢 {p.name}
+                      {p.shortName && p.shortName !== p.name ? ` (${p.shortName})` : ''}
+                      {p.feeType === 'RATE' && p.feeValue > 0
+                        ? ` · 수수료 ${p.feeValue}%`
+                        : p.feeType === 'FIXED' && p.feeValue > 0
+                        ? ` · 건당 ${p.feeValue.toLocaleString()}원`
+                        : ''}
+                    </option>
+                  ))}
+                  {partnerId && !partners.some(p => p.id === partnerId) && partnerName && (
+                    <option value={partnerId}>🏢 {partnerName}</option>
+                  )}
+                </select>
+
+                <button
+                  type="button"
+                  onClick={() => setIsQuickAddPartnerOpen(v => !v)}
+                  className="px-2.5 py-1.5 rounded border border-indigo-200 bg-white hover:bg-indigo-50 text-indigo-700 text-xs font-extrabold whitespace-nowrap transition-colors shadow-2xs"
+                >
+                  {isQuickAddPartnerOpen ? '취소' : '+ 새 의뢰업체 추가'}
+                </button>
+
+                {isQuickAddPartnerOpen && (
+                  <div className="w-full sm:w-auto flex items-center gap-1.5 mt-1 sm:mt-0">
+                    <input
+                      type="text"
+                      value={quickPartnerNameInput}
+                      onChange={e => setQuickPartnerNameInput(e.target.value)}
+                      placeholder="신규 의뢰 이사업체명 입력"
+                      className="flex-1 sm:w-48 rounded border border-indigo-300 bg-white px-2.5 py-1.5 text-xs font-bold text-gray-900 outline-none focus:border-indigo-600"
+                    />
+                    <button
+                      type="button"
+                      disabled={isCreatingPartner}
+                      onClick={handleQuickAddPartnerInForm}
+                      className="px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold whitespace-nowrap"
+                    >
+                      {isCreatingPartner ? '등록중...' : '즉시 등록'}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
