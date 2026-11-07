@@ -302,7 +302,7 @@ export function EstimateForm({
     if (!initialData || isCostEdited) {
       setVat(Math.floor(supplyAmount * 0.1))
     }
-  }, [supplyAmount, isCostEdited, initialData])
+  }, [supplyAmount])
 
   const [downPayment, setDownPayment] = useState(payPlanObj.downPayment || 0)
   const [downPaymentDate, setDownPaymentDate] = useState<Date | null>(payPlanObj.downPaymentDate ? new Date(payPlanObj.downPaymentDate) : null)
@@ -341,12 +341,14 @@ export function EstimateForm({
     setIsCostModalOpen(true)
   }
 
-  const [paymentTarget, setPaymentTarget] = useState<'supply' | 'total'>(payPlanObj.targetType || 'supply')
+  const [paymentTarget, setPaymentTarget] = useState<'supply' | 'total'>(
+    payPlanObj.targetType === 'supply' ? 'supply' : 'total'
+  )
   const targetAmount = paymentTarget === 'supply' ? supplyAmount : totalAmount
   const paidAmount = downPayment + intermediatePayment + balance
   const remainingAmount = targetAmount - paidAmount
 
-  // 견적금액(targetAmount)이 정해지거나 변경될 때 10% 계약금 및 잔금 자동 계산
+  // 견적금액(targetAmount: 기본 공급대가)이 정해지거나 변경될 때 10% 계약금 및 잔금 자동 계산
   useEffect(() => {
     if (!isCostEdited) return
     const autoDownPayment = Math.floor(targetAmount * 0.1)
@@ -1541,7 +1543,13 @@ export function EstimateForm({
           if (draft.additionalCost !== undefined) setAdditionalCost(draft.additionalCost)
           if (draft.storageCost !== undefined) setStorageCost(draft.storageCost)
           if (draft.vat !== undefined) setVat(draft.vat)
-          if (draft.paymentTarget !== undefined) setPaymentTarget(draft.paymentTarget)
+          if (draft.paymentTarget !== undefined) {
+            const hasDraftCost =
+              (Number(draft.movingCost) || 0) > 0 ||
+              (Number(draft.additionalCost) || 0) > 0 ||
+              (Number(draft.storageCost) || 0) > 0
+            setPaymentTarget(hasDraftCost ? draft.paymentTarget : 'total')
+          }
 
           if (draft.downPayment !== undefined) setDownPayment(draft.downPayment)
           if (draft.downPaymentDate) setDownPaymentDate(new Date(draft.downPaymentDate))
@@ -4223,27 +4231,39 @@ export function EstimateForm({
                 {isPastMovingDate && <span className="text-[10px] bg-gray-600 px-1 rounded ml-0.5">기한만료</span>}
               </button>
             </div>
-            <div className="flex items-center gap-2.5 text-xs text-gray-700 bg-gray-50 px-2 py-1 rounded-lg border border-gray-200">
+            <div className="flex items-center gap-2.5 text-xs text-gray-700 bg-gray-50 px-2.5 py-1 rounded-lg border border-gray-200">
               <span className="font-bold text-gray-600">결제 기준:</span>
-              <label className="flex items-center gap-1 cursor-pointer font-medium text-gray-800 hover:text-blue-600 whitespace-nowrap">
+              <label className="flex items-center gap-1 cursor-pointer font-bold text-blue-900 hover:text-blue-600 whitespace-nowrap">
                 <input 
                   type="radio" 
                   name="paymentTarget" 
-                  checked={paymentTarget === 'supply'} 
-                  onChange={() => { setPaymentTarget('supply'); setIsCostEdited(true); }} 
+                  checked={paymentTarget === 'total'} 
+                  onChange={() => {
+                    setPaymentTarget('total')
+                    setIsCostEdited(true)
+                    const nextDown = Math.floor(totalAmount * 0.1)
+                    setDownPayment(nextDown)
+                    setBalance(Math.max(0, totalAmount - nextDown - intermediatePayment))
+                  }} 
                   className="w-3.5 h-3.5 text-blue-600" 
                 />
-                공급가액
+                공급대가 (기본)
               </label>
               <label className="flex items-center gap-1 cursor-pointer font-medium text-gray-800 hover:text-blue-600 whitespace-nowrap">
                 <input 
                   type="radio" 
                   name="paymentTarget" 
-                  checked={paymentTarget === 'total'} 
-                  onChange={() => { setPaymentTarget('total'); setIsCostEdited(true); }} 
+                  checked={paymentTarget === 'supply'} 
+                  onChange={() => {
+                    setPaymentTarget('supply')
+                    setIsCostEdited(true)
+                    const nextDown = Math.floor(supplyAmount * 0.1)
+                    setDownPayment(nextDown)
+                    setBalance(Math.max(0, supplyAmount - nextDown - intermediatePayment))
+                  }} 
                   className="w-3.5 h-3.5 text-blue-600" 
                 />
-                공급대가
+                공급가액
               </label>
             </div>
           </div>
@@ -4571,13 +4591,14 @@ export function EstimateForm({
             setIsCostEdited(true)
             const newSupply = calculatedCost + additionalCost + storageCost
             const newVat = Math.floor(newSupply * 0.1)
+            setVat(newVat)
             const newTotal = newSupply + newVat
             const newTarget = paymentTarget === 'supply' ? newSupply : newTotal
             const newDown = Math.floor(newTarget * 0.1)
             const newBalance = Math.max(0, newTarget - newDown - intermediatePayment)
             setDownPayment(newDown)
             setBalance(newBalance)
-            alert(`산출된 이사비용 (${calculatedCost.toLocaleString()}원)이 기본 이사 비용에 반영되었습니다!\n(결제대상: ${newTarget.toLocaleString()}원 / 계약금 10%: ${newDown.toLocaleString()}원 / 잔금: ${newBalance.toLocaleString()}원)`)
+            alert(`산출된 이사비용 (${calculatedCost.toLocaleString()}원)이 기본 이사 비용에 반영되었습니다!\n(결제대상[${paymentTarget === 'supply' ? '공급가액' : '공급대가'}]: ${newTarget.toLocaleString()}원 / 계약금 10%: ${newDown.toLocaleString()}원 / 잔금: ${newBalance.toLocaleString()}원)`)
           }}
         />
       )}
@@ -4626,13 +4647,14 @@ export function EstimateForm({
               setIsCostEdited(true)
               const newSupply = calculatedCost + additionalCost + storageCost
               const newVat = Math.floor(newSupply * 0.1)
+              setVat(newVat)
               const newTotal = newSupply + newVat
               const newTarget = paymentTarget === 'supply' ? newSupply : newTotal
               const newDown = Math.floor(newTarget * 0.1)
               const newBalance = Math.max(0, newTarget - newDown - intermediatePayment)
               setDownPayment(newDown)
               setBalance(newBalance)
-              alert(`원가 기반 산출 이사비용 (${calculatedCost.toLocaleString()}원)이 기본 이사 비용에 반영되었습니다!\n(결제대상: ${newTarget.toLocaleString()}원 / 계약금 10%: ${newDown.toLocaleString()}원 / 잔금: ${newBalance.toLocaleString()}원)`)
+              alert(`원가 기반 산출 이사비용 (${calculatedCost.toLocaleString()}원)이 기본 이사 비용에 반영되었습니다!\n(결제대상[${paymentTarget === 'supply' ? '공급가액' : '공급대가'}]: ${newTarget.toLocaleString()}원 / 계약금 10%: ${newDown.toLocaleString()}원 / 잔금: ${newBalance.toLocaleString()}원)`)
             }}
           />
         )
