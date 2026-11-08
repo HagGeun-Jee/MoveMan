@@ -11,6 +11,7 @@ import { formatPhoneNumber } from '@/lib/format'
 import { EstimateContractItemsView } from '@/components/EstimateContractItemsView'
 import { EstimatePackingMaterialsView } from '@/components/EstimatePackingMaterialsView'
 import { CustomerPreMoveSmsTrigger } from '@/components/CustomerPreMoveSmsModal'
+import { SontaxDetailTrigger } from '@/components/SontaxFilingModal'
 
 import { Metadata } from 'next'
 
@@ -231,6 +232,27 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
           )}
         </div>
         <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          <SontaxDetailTrigger
+            estimate={{
+              id: estimate.id,
+              customerName: estimate.customerName,
+              contact: estimate.contact,
+              movingType: estimate.movingType,
+              movingDate: estimate.movingDate,
+              estimateDate: estimate.estimateDate,
+              supplyAmount:
+                (estimate.movingCost || 0) +
+                (estimate.additionalCost || 0) +
+                (estimate.storageCost || 0),
+              vat: estimate.vat || 0,
+              totalAmount: estimate.totalAmount || 0,
+              paymentTarget: payPlanObj.targetType === 'supply' ? 'supply' : 'total',
+              balancePaid: Boolean(payPlanObj.balancePaid),
+              balanceDate: payPlanObj.balanceDate || null,
+              partnerName: envObj.partnerName || '',
+              taxFiling: envObj.taxFiling || null,
+            }}
+          />
           <CustomerPreMoveSmsTrigger
             variant="header"
             estimateId={estimate.id}

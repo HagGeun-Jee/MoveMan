@@ -298,6 +298,7 @@ export async function updateEstimate(formData: FormData) {
     partnerName: String(formData.get('partnerName') ?? parsedEnv.partnerName ?? existingEnv.partnerName ?? '').trim(),
     partnerShortName: String(formData.get('partnerShortName') ?? parsedEnv.partnerShortName ?? existingEnv.partnerShortName ?? '').trim(),
     partnerColor: String(formData.get('partnerColor') ?? parsedEnv.partnerColor ?? existingEnv.partnerColor ?? 'blue').trim(),
+    taxFiling: parsedEnv.taxFiling || existingEnv.taxFiling || undefined,
   }
   const environment = JSON.stringify(environmentObj)
   
@@ -377,5 +378,52 @@ export async function saveEstimateScheduledMessages(estimateId: string, schedule
   } catch (err) {
     console.error('saveEstimateScheduledMessages error:', err)
     return { success: false, error: '발송예약 저장 중 오류가 발생했습니다.' }
+  }
+}
+
+export async function saveEstimateTaxFiling(estimateId: string, taxFiling: any) {
+  const cookieStore = await cookies()
+  const cookie = cookieStore.get('session')?.value
+  const session = await decrypt(cookie)
+  if (!session?.userId) {
+    return { success: false, error: '인증이 필요합니다.' }
+  }
+  if (!estimateId) {
+    return { success: false, error: '견적 식별번호가 필요합니다.' }
+  }
+
+  try {
+    const existing = await prisma.estimate.findUnique({ where: { id: estimateId } })
+    if (!existing) {
+      return { success: false, error: '견적 정보를 찾을 수 없습니다.' }
+    }
+
+    let envObj: any = {}
+    if (existing.environment) {
+      try {
+        envObj = JSON.parse(existing.environment)
+      } catch {}
+    }
+
+    envObj.taxFiling = {
+      ...(envObj.taxFiling || {}),
+      ...taxFiling,
+      updatedAt: new Date().toISOString(),
+    }
+
+    await prisma.estimate.update({
+      where: { id: estimateId },
+      data: {
+        environment: JSON.stringify(envObj),
+      },
+    })
+
+    revalidatePath(`/estimates/${estimateId}`)
+    revalidatePath(`/estimates/${estimateId}/edit`)
+    revalidatePath('/estimates')
+    return { success: true, taxFiling: envObj.taxFiling }
+  } catch (err) {
+    console.error('saveEstimateTaxFiling error:', err)
+    return { success: false, error: '손택스/세무신고 상태 저장 중 오류가 발생했습니다.' }
   }
 }

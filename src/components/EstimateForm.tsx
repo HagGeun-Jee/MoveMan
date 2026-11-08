@@ -42,6 +42,7 @@ import {
 } from '@/lib/itemFilterUtils'
 import { UnassignedBoxTooltip } from '@/components/UnassignedBoxTooltip'
 import { CustomerPreMoveSmsTrigger, type ScheduledSmsItem } from '@/components/CustomerPreMoveSmsModal'
+import { SontaxSingleFilingModal, getTaxFilingBadgeInfo, type TaxFilingInfo } from '@/components/SontaxFilingModal'
 import type { PresetItem } from '@/lib/estimatePresets'
 import { calculate5TonTruckDuration } from '@/lib/distance'
 import {
@@ -316,6 +317,8 @@ export function EstimateForm({
   const [balance, setBalance] = useState(payPlanObj.balance || 0)
   const [balanceDate, setBalanceDate] = useState<Date | null>(payPlanObj.balanceDate ? new Date(payPlanObj.balanceDate) : null)
   const [balancePaid, setBalancePaid] = useState(payPlanObj.balancePaid || false)
+  const [taxFiling, setTaxFiling] = useState<TaxFilingInfo | null>(envObj.taxFiling || null)
+  const [isSontaxModalOpen, setIsSontaxModalOpen] = useState(false)
   
   const [estimateDate, setEstimateDate] = useState<Date | null>(initialData?.estimateDate ? new Date(initialData.estimateDate) : new Date())
   const [visitDate, setVisitDate] = useState<Date | null>(initialData?.visitDate ? new Date(initialData.visitDate) : null)
@@ -1619,15 +1622,15 @@ export function EstimateForm({
           }
 
           if (draft.downPayment !== undefined) setDownPayment(draft.downPayment)
-          if (draft.downPaymentDate) setDownPaymentDate(new Date(draft.downPaymentDate))
+          if (draft.downPaymentDate !== undefined) setDownPaymentDate(draft.downPaymentDate ? new Date(draft.downPaymentDate) : null)
           if (draft.downPaymentPaid !== undefined) setDownPaymentPaid(draft.downPaymentPaid)
 
           if (draft.intermediatePayment !== undefined) setIntermediatePayment(draft.intermediatePayment)
-          if (draft.intermediateDate) setIntermediateDate(new Date(draft.intermediateDate))
+          if (draft.intermediateDate !== undefined) setIntermediateDate(draft.intermediateDate ? new Date(draft.intermediateDate) : null)
           if (draft.intermediatePaymentPaid !== undefined) setIntermediatePaymentPaid(draft.intermediatePaymentPaid)
 
           if (draft.balance !== undefined) setBalance(draft.balance)
-          if (draft.balanceDate) setBalanceDate(new Date(draft.balanceDate))
+          if (draft.balanceDate !== undefined) setBalanceDate(draft.balanceDate ? new Date(draft.balanceDate) : null)
           if (draft.balancePaid !== undefined) setBalancePaid(draft.balancePaid)
 
           if (draft.isCostEdited !== undefined) setIsCostEdited(draft.isCostEdited)
@@ -2044,6 +2047,7 @@ export function EstimateForm({
     partnerName: partnerName.trim(),
     partnerShortName: (partnerShortName || partnerName).trim(),
     partnerColor: partnerColor.trim(),
+    taxFiling: taxFiling || undefined,
   }
   const currentEnvironmentStr = JSON.stringify(currentEnvironmentObj)
 
@@ -4550,7 +4554,16 @@ export function EstimateForm({
                   </td>
                   <td className="px-2 py-1 text-center">
                     <label className={`inline-flex items-center gap-1 px-2 h-7 sm:h-8 rounded-md text-xs font-semibold cursor-pointer transition-all border whitespace-nowrap ${downPaymentPaid ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}>
-                      <input type="checkbox" checked={downPaymentPaid} onChange={e => setDownPaymentPaid(e.target.checked)} className="rounded text-green-600 focus:ring-green-500 w-3 h-3" />
+                      <input
+                        type="checkbox"
+                        checked={downPaymentPaid}
+                        onChange={e => {
+                          const checked = e.target.checked
+                          setDownPaymentPaid(checked)
+                          setDownPaymentDate(checked ? new Date() : null)
+                        }}
+                        className="rounded text-green-600 focus:ring-green-500 w-3 h-3"
+                      />
                       <span>{downPaymentPaid ? '입금완료' : '미입금'}</span>
                     </label>
                   </td>
@@ -4566,7 +4579,16 @@ export function EstimateForm({
                   </td>
                   <td className="px-2 py-1 text-center">
                     <label className={`inline-flex items-center gap-1 px-2 h-7 sm:h-8 rounded-md text-xs font-semibold cursor-pointer transition-all border whitespace-nowrap ${intermediatePaymentPaid ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}>
-                      <input type="checkbox" checked={intermediatePaymentPaid} onChange={e => setIntermediatePaymentPaid(e.target.checked)} className="rounded text-green-600 focus:ring-green-500 w-3 h-3" />
+                      <input
+                        type="checkbox"
+                        checked={intermediatePaymentPaid}
+                        onChange={e => {
+                          const checked = e.target.checked
+                          setIntermediatePaymentPaid(checked)
+                          setIntermediateDate(checked ? new Date() : null)
+                        }}
+                        className="rounded text-green-600 focus:ring-green-500 w-3 h-3"
+                      />
                       <span>{intermediatePaymentPaid ? '입금완료' : '미입금'}</span>
                     </label>
                   </td>
@@ -4581,10 +4603,42 @@ export function EstimateForm({
                     <CustomDatePicker selected={balanceDate} onChange={setBalanceDate} className="w-full h-7 sm:h-8 rounded border border-gray-300 px-1.5 text-xs outline-none focus:border-blue-500" />
                   </td>
                   <td className="px-2 py-1 text-center">
-                    <label className={`inline-flex items-center gap-1 px-2 h-7 sm:h-8 rounded-md text-xs font-semibold cursor-pointer transition-all border whitespace-nowrap ${balancePaid ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}>
-                      <input type="checkbox" checked={balancePaid} onChange={e => setBalancePaid(e.target.checked)} className="rounded text-green-600 focus:ring-green-500 w-3 h-3" />
-                      <span>{balancePaid ? '입금완료' : '미입금'}</span>
-                    </label>
+                    <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                      <label className={`inline-flex items-center gap-1 px-2 h-7 sm:h-8 rounded-md text-xs font-semibold cursor-pointer transition-all border whitespace-nowrap ${balancePaid ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}>
+                        <input
+                          type="checkbox"
+                          checked={balancePaid}
+                          onChange={e => {
+                            const checked = e.target.checked
+                            setBalancePaid(checked)
+                            setBalanceDate(checked ? new Date() : null)
+                          }}
+                          className="rounded text-green-600 focus:ring-green-500 w-3 h-3"
+                        />
+                        <span>{balancePaid ? '입금완료' : '미입금'}</span>
+                      </label>
+                      {(balancePaid || (taxFiling?.status && taxFiling.status !== 'UNFILED')) && (
+                        <button
+                          type="button"
+                          onClick={() => setIsSontaxModalOpen(true)}
+                          className={`inline-flex items-center gap-1 px-2 h-7 sm:h-8 rounded-md text-xs font-extrabold border transition-all whitespace-nowrap ${
+                            taxFiling?.status === 'CASH_RECEIPT' || taxFiling?.status === 'TAX_INVOICE'
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                              : 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700 shadow-2xs'
+                          }`}
+                          title="잔금 입금 완료 건 손택스/홈택스 바로발행 도우미"
+                        >
+                          <Smartphone className="w-3.5 h-3.5" />
+                          <span>
+                            {taxFiling?.status === 'CASH_RECEIPT'
+                              ? '현금영수증완료'
+                              : taxFiling?.status === 'TAX_INVOICE'
+                              ? '세금계산서완료'
+                              : '손택스발행'}
+                          </span>
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               </tbody>
@@ -4824,6 +4878,29 @@ export function EstimateForm({
           currentItemsCount={items.filter(it => (Number(it.quantity) || 0) > 0).length}
         />
       )}
+
+      {/* 손택스 · 홈택스 바로발행 도우미 모달 */}
+      <SontaxSingleFilingModal
+        isOpen={isSontaxModalOpen}
+        onClose={() => setIsSontaxModalOpen(false)}
+        estimate={{
+          id: initialData?.id || '',
+          customerName,
+          contact,
+          movingType,
+          movingDate,
+          estimateDate,
+          supplyAmount,
+          vat,
+          totalAmount,
+          paymentTarget,
+          balancePaid,
+          balanceDate: balanceDate ? format(balanceDate, 'yyyy-MM-dd') : null,
+          partnerName,
+          taxFiling,
+        }}
+        onSaved={(_id, updated) => setTaxFiling(updated)}
+      />
     </div>
   )
 }
