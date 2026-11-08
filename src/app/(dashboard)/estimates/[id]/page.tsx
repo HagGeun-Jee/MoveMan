@@ -213,9 +213,9 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
         `
       }} />
 
-      {/* 상단 액션 바 (태블릿 및 모바일 한 줄 최적화, 인쇄 시 숨김) */}
-      <div className="flex items-center justify-between gap-1.5 sm:gap-2 bg-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl border border-gray-200/80 shadow-xs print:hidden">
-        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 shrink-0 flex-wrap">
+      {/* 상단 액션 바 (타이틀·의뢰처 이후 액션 버튼 그룹 자동 줄바꿈 wrap 처리, 인쇄 시 숨김) */}
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-white px-3 py-2.5 sm:px-4 sm:py-3 rounded-2xl border border-gray-200/80 shadow-xs print:hidden">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 min-w-0">
           <h1 className="text-sm sm:text-base md:text-lg font-black text-gray-900 whitespace-nowrap">
             견적·계약 상세
           </h1>
@@ -231,7 +231,7 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
             </span>
           )}
         </div>
-        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+        <div className="flex flex-wrap items-center justify-end gap-1.5 ml-auto">
           <SontaxDetailTrigger
             estimate={{
               id: estimate.id,
