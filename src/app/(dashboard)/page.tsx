@@ -5,6 +5,8 @@ import { ko } from 'date-fns/locale'
 import { EstimateRow } from './estimates/EstimateRow'
 import { formatPhoneNumber } from '@/lib/format'
 import { Calendar, CalendarDays, FilePlus } from 'lucide-react'
+import { getPartnerCompanies } from '@/app/actions/partner'
+import { QuickVisitBookingTrigger } from '@/components/PartnerQuickBookingAndStatsModals'
 
 // 한국 표준시(KST, Asia/Seoul) 기준 오늘 날짜 정보 구하기 (Vercel UTC 환경 대응)
 function getKoreaToday() {
@@ -36,10 +38,13 @@ function getKoreaToday() {
 }
 
 export default async function DashboardPage() {
-  const recentEstimates = await prisma.estimate.findMany({
-    orderBy: { createdAt: 'desc' },
-    take: 5,
-  })
+  const [recentEstimates, partners] = await Promise.all([
+    prisma.estimate.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    }),
+    getPartnerCompanies().catch(() => []),
+  ])
 
   const koreaToday = getKoreaToday()
 
@@ -111,20 +116,21 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 w-full md:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <Link 
             href="/calendar"
-            className="flex-1 md:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 transition-colors shadow-xs"
+            className="flex-1 md:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 transition-colors shadow-xs whitespace-nowrap"
           >
-            <CalendarDays size={15} className="text-blue-600" />
-            일정 캘린더
+            <CalendarDays size={15} className="text-blue-600 shrink-0" />
+            <span>일정 캘린더</span>
           </Link>
+          <QuickVisitBookingTrigger initialPartners={partners} />
           <Link 
             href="/estimates/new" 
-            className="flex-1 md:flex-none inline-flex items-center justify-center gap-1.5 bg-blue-600 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm hover:bg-blue-700 transition-colors shadow-sm"
+            className="flex-1 md:flex-none inline-flex items-center justify-center gap-1.5 bg-blue-600 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap"
           >
-            <FilePlus size={15} />
-            새 견적 작성
+            <FilePlus size={15} className="shrink-0" />
+            <span>새 견적 작성</span>
           </Link>
         </div>
       </div>

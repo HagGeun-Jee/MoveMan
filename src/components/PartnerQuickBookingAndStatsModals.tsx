@@ -1397,3 +1397,34 @@ export function PartnerStatsAndManageModal({
   )
 }
 
+/**
+ * 대시보드 등 서버 컴포넌트에서 즉시 사용할 수 있는 [방문견적 빠른 접수] 버튼 + 모달 트리거
+ */
+export function QuickVisitBookingTrigger({
+  initialPartners = []
+}: {
+  initialPartners?: PartnerCompanyItem[]
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        className="flex-1 md:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl font-extrabold text-xs sm:text-sm text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm whitespace-nowrap"
+      >
+        <CalendarClock className="w-4 h-4 shrink-0" />
+        <span>방문견적 빠른 접수</span>
+      </button>
+
+      <QuickVisitBookingModal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        initialPartners={initialPartners}
+      />
+    </>
+  )
+}
+
+
