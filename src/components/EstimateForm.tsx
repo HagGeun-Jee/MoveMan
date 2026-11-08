@@ -29,6 +29,7 @@ import { PackingMaterialsSection } from '@/components/PackingMaterialsSection'
 import { AiCbmEstimateModal, type AiIdentifiedItem } from '@/components/AiCbmEstimateModal'
 import { EstimatePresetModal } from '@/components/EstimatePresetModal'
 import { QuickTouchCbmPanel } from '@/components/QuickTouchCbmPanel'
+import { PaperSheetCbmPanel } from '@/components/PaperSheetCbmPanel'
 import { ItemQuickAddModal } from '@/components/ItemQuickAddModal'
 import {
   CHOSUNG_BUTTONS,
@@ -995,7 +996,7 @@ export function EstimateForm({
   const [isCbmCalculatorOpen, setIsCbmCalculatorOpen] = useState(false)
   const [isAiModalOpen, setIsAiModalOpen] = useState(false)
   const [isPresetModalOpen, setIsPresetModalOpen] = useState(false)
-  const [cbmInputMode, setCbmInputMode] = useState<'touch' | 'table'>('touch')
+  const [cbmInputMode, setCbmInputMode] = useState<'touch' | 'paper' | 'table'>('touch')
 
   // 테이블 모드 필터 및 품목 빠른 추가 모달 상태
   const [tableMidCat, setTableMidCat] = useState<ItemMidCategory>('all')
@@ -3392,6 +3393,19 @@ export function EstimateForm({
                   </button>
                   <button
                     type="button"
+                    onClick={() => setCbmInputMode('paper')}
+                    className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-md text-xs font-extrabold transition-all whitespace-nowrap ${
+                      cbmInputMode === 'paper'
+                        ? 'bg-neutral-800 text-white shadow-2xs'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                    title="현장 종이 체크시트(안방·방1~4·거실·주방·베란다 4단 표) 양식 그대로 입력"
+                  >
+                    <FileText size={12} />
+                    <span>📝 현장양식</span>
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setCbmInputMode('table')}
                     className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-md text-xs font-extrabold transition-all whitespace-nowrap ${
                       cbmInputMode === 'table'
@@ -3469,13 +3483,26 @@ export function EstimateForm({
               </div>
             )}
 
-            {/* 입력 뷰: 초고속 터치 모드 vs 상세 테이블 모드 */}
+            {/* 입력 뷰: 초고속 터치 모드 vs 현장 종이양식 모드 vs 상세 테이블 모드 */}
             {cbmInputMode === 'touch' ? (
               <QuickTouchCbmPanel
                 categories={displayedCategories}
                 availableCategoriesToAdd={availableCategoriesToAdd}
                 onAddCategory={handleAddCategory}
                 onRemoveCategory={handleRemoveCategory}
+                items={items}
+                setItems={setItems}
+                standardItems={standardItems}
+              />
+            ) : cbmInputMode === 'paper' ? (
+              <PaperSheetCbmPanel
+                categories={displayedCategories}
+                allCategories={allCategoriesWithUnassigned}
+                onActivateCategory={catId => {
+                  if (!activeCategoryIds.includes(catId)) {
+                    setActiveCategoryIds(prev => Array.from(new Set([...prev, catId])))
+                  }
+                }}
                 items={items}
                 setItems={setItems}
                 standardItems={standardItems}
