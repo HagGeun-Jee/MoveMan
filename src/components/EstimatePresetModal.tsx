@@ -149,6 +149,11 @@ export function EstimatePresetModal({
                   <span className="font-bold text-indigo-700">[{it.locationName}]</span>
                   <span className="font-medium">{it.name}</span>
                   <span className="text-gray-400">({it.spec})</span>
+                  {it.treatment && it.treatment !== '이동' && (
+                    <span className="px-1 py-0.5 rounded bg-slate-200 text-slate-700 font-bold text-[10px] leading-none">
+                      {it.treatment}
+                    </span>
+                  )}
                   <span className="font-extrabold text-blue-600">×{it.quantity}</span>
                   {it.locationName === '기타/미지정' && (
                     <UnassignedBoxTooltip variant="icon" />

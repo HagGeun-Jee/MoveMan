@@ -276,6 +276,55 @@ export async function ensureStandLampItems() {
       }
     }
 
+    // 4-2. '청소기' 품목에 '주방' 및 '베란다' 공간 연결 보장 + '수납선반 2단(60)' 베란다 연결 보장
+    const kitchenVerandaLocs = allLocationsAfterRename.filter(loc =>
+      ['거실', '주방', '베란다'].includes(loc.name)
+    )
+    if (kitchenVerandaLocs.length > 0) {
+      const vacuumItems = allStandardItems.filter(item => item.name === '청소기')
+      for (const vItem of vacuumItems) {
+        await prisma.standardItem.update({
+          where: { id: vItem.id },
+          data: {
+            locations: {
+              connect: kitchenVerandaLocs.map(l => ({ id: l.id }))
+            }
+          }
+        })
+      }
+    }
+
+    const shelfTargetLocs = allLocationsAfterRename.filter(loc =>
+      ['베란다', '팬트리', '주방', '드레스룸', '서재'].includes(loc.name)
+    )
+    if (shelfTargetLocs.length > 0) {
+      const existingShelf = allStandardItems.find(
+        item => item.name === '수납선반' && item.spec === '2단(60)'
+      )
+      if (existingShelf) {
+        await prisma.standardItem.update({
+          where: { id: existingShelf.id },
+          data: {
+            locations: {
+              connect: shelfTargetLocs.map(l => ({ id: l.id }))
+            }
+          }
+        })
+      } else {
+        await prisma.standardItem.create({
+          data: {
+            name: '수납선반',
+            spec: '2단(60)',
+            defaultCbm: 0.2,
+            defaultInnerCbm: 0.1,
+            locations: {
+              connect: shelfTargetLocs.map(l => ({ id: l.id }))
+            }
+          }
+        })
+      }
+    }
+
     // 5. 작업 동선 기준 공간 정렬 순서(order) 일괄 보정
     const preferredOrder = [
       '안방',
