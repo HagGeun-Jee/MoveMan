@@ -3,10 +3,12 @@ import Link from 'next/link'
 import prisma from '@/lib/prisma'
 import { getLocationCategories } from '@/app/actions/item'
 import { getCostStandards } from '@/app/actions/costStandards'
+import { isCurrentSessionAdminAccount } from '@/app/actions/estimate'
 import { calculatePackingMaterials, isExcludedMaterial, type PackingMaterialItem } from '@/lib/packingMaterialCalculator'
 import { format } from 'date-fns'
 import { MapPin, Phone } from 'lucide-react'
 import { PrintButton } from '@/components/PrintButton'
+import { DeleteEstimateButton } from '@/components/DeleteEstimateButton'
 import { formatPhoneNumber } from '@/lib/format'
 import { EstimateContractItemsView } from '@/components/EstimateContractItemsView'
 import { EstimatePackingMaterialsView } from '@/components/EstimatePackingMaterialsView'
@@ -49,7 +51,7 @@ const getItemEffectiveCbm = (item: any): number => {
 export default async function EstimateViewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   
-  const [estimate, locationCategories, costStandards, dbMaterials] = await Promise.all([
+  const [estimate, locationCategories, costStandards, dbMaterials, isAdmin] = await Promise.all([
     prisma.estimate.findUnique({
       where: { id }
     }),
@@ -57,7 +59,8 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
     getCostStandards(),
     prisma.materialItem.findMany({
       orderBy: { name: 'asc' }
-    }).catch(() => [])
+    }).catch(() => []),
+    isCurrentSessionAdminAccount(),
   ])
   
   if (!estimate) {
@@ -283,6 +286,13 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
           >
             수정
           </Link>
+          {isAdmin && (
+            <DeleteEstimateButton
+              estimateId={estimate.id}
+              customerName={estimate.customerName}
+              redirectAfter="/estimates"
+            />
+          )}
         </div>
       </div>
 

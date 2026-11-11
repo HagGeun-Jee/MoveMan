@@ -20,6 +20,7 @@ import {
   type SontaxTargetEstimate,
 } from '@/components/SontaxFilingModal'
 import type { PartnerCompanyItem } from '@/app/actions/partner'
+import { DeleteEstimateButton } from '@/components/DeleteEstimateButton'
 import {
   CalendarClock,
   BarChart3,
@@ -31,11 +32,14 @@ import {
 
 export function EstimatesClientView({
   initialEstimates,
-  initialPartners
+  initialPartners,
+  isAdmin = false,
 }: {
   initialEstimates: any[]
   initialPartners: PartnerCompanyItem[]
+  isAdmin?: boolean
 }) {
+  const [estimatesList, setEstimatesList] = useState<any[]>(initialEstimates)
   const [partners, setPartners] = useState<PartnerCompanyItem[]>(initialPartners)
   const [searchQuery, setSearchQuery] = useState('')
   const [movingTypeFilter, setMovingTypeFilter] = useState('')
@@ -48,12 +52,16 @@ export function EstimatesClientView({
   const [sontaxSingleTarget, setSontaxSingleTarget] = useState<SontaxTargetEstimate | null>(null)
   const [localTaxFilingMap, setLocalTaxFilingMap] = useState<Record<string, TaxFilingInfo>>({})
 
+  React.useEffect(() => {
+    setEstimatesList(initialEstimates)
+  }, [initialEstimates])
+
   // 견적 데이터 전처리 (environment, paymentPlan 파싱 및 의뢰업체 매칭)
   const parsedEstimates = useMemo(() => {
     const partnerByName = new Map(partners.map(p => [p.name, p]))
     const partnerById = new Map(partners.map(p => [p.id, p]))
 
-    return initialEstimates.map(est => {
+    return estimatesList.map(est => {
       let payPlanObj: any = {}
       try {
         if (est.paymentPlan) payPlanObj = JSON.parse(est.paymentPlan)
@@ -119,7 +127,7 @@ export function EstimatesClientView({
         taxFiling,
       }
     })
-  }, [initialEstimates, partners, localTaxFilingMap])
+  }, [estimatesList, partners, localTaxFilingMap])
 
   // 정산완료(잔금입금 완료) 건 중 손택스 미신고 건수 집계
   const unfiledBalancePaidCount = useMemo(() => {
@@ -404,12 +412,15 @@ export function EstimatesClientView({
                 <th className="p-3.5 font-bold whitespace-nowrap">이사예정일</th>
                 <th className="p-3.5 font-bold whitespace-nowrap">결제상태</th>
                 <th className="p-3.5 font-bold text-right whitespace-nowrap">공급가액 (VAT별도)</th>
+                {isAdmin && (
+                  <th className="p-3.5 font-bold text-center whitespace-nowrap">관리</th>
+                )}
               </tr>
             </thead>
             <tbody>
               {filteredEstimates.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="p-8 text-center text-gray-600 font-medium text-sm">
+                  <td colSpan={isAdmin ? 11 : 10} className="p-8 text-center text-gray-600 font-medium text-sm">
                     조건에 해당하는 견적이 없습니다.
                   </td>
                 </tr>
@@ -541,6 +552,21 @@ export function EstimatesClientView({
                       <td className="p-3.5 text-right font-bold text-gray-900 whitespace-nowrap">
                         {est.supplyAmount.toLocaleString()}원
                       </td>
+                      {isAdmin && (
+                        <td
+                          className="p-3.5 text-center whitespace-nowrap"
+                          onClick={ev => ev.stopPropagation()}
+                        >
+                          <DeleteEstimateButton
+                            estimateId={est.id}
+                            customerName={est.customerName}
+                            variant="row"
+                            onDeleted={deletedId =>
+                              setEstimatesList(prev => prev.filter(item => item.id !== deletedId))
+                            }
+                          />
+                        </td>
+                      )}
                     </EstimateRow>
                   )
                 })

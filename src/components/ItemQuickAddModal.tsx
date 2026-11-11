@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useMemo } from 'react'
-import { Search, X, Plus, Check, Sparkles, PackagePlus } from 'lucide-react'
+import { Search, X, Plus, Check, Sparkles, PackagePlus, MapPin } from 'lucide-react'
 import {
   CHOSUNG_BUTTONS,
   ChosungFilter,
@@ -19,6 +19,8 @@ interface ItemQuickAddModalProps {
   onClose: () => void
   categoryId: string
   categoryName: string
+  categories?: { id: string; name: string }[]
+  onSelectCategory?: (catId: string) => void
   standardItems: any[]
   currentCategoryItems: any[]
   onAddItem: (stdItem: any) => void
@@ -30,6 +32,8 @@ export function ItemQuickAddModal({
   onClose,
   categoryId,
   categoryName,
+  categories,
+  onSelectCategory,
   standardItems,
   currentCategoryItems,
   onAddItem,
@@ -154,28 +158,55 @@ export function ItemQuickAddModal({
         onClick={e => e.stopPropagation()}
       >
         {/* 모달 헤더 */}
-        <div className="px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2.5">
-            <PackagePlus size={19} className="text-amber-300 shrink-0" />
-            <div>
-              <h3 className="font-extrabold text-sm sm:text-base flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg bg-amber-300 text-slate-950 font-black text-sm sm:text-base border border-amber-100 shadow-sm tracking-tight">
-                  {categoryName || '기타/미지정'}
-                </span>
-                <span className="text-white">품목 빠른 검색·추가</span>
-              </h3>
-              <p className="text-[11px] text-blue-100 mt-0.5">
-                초성(ㄱ~ㅎ)·분류·검색으로 원하는 물품 규격을 탭하면 즉시 1개씩 추가됩니다.
-              </p>
+        <div className="px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex flex-col gap-2 shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <PackagePlus size={19} className="text-amber-300 shrink-0" />
+              <div>
+                <h3 className="font-extrabold text-sm sm:text-base flex flex-wrap items-center gap-1.5">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-300 text-slate-950 font-black text-sm sm:text-base border border-amber-100 shadow-sm tracking-tight">
+                    <MapPin size={14} className="text-rose-600 shrink-0" />
+                    <span>현재 위치: {categoryName || '기타/미지정'}</span>
+                  </span>
+                  <span className="text-white">품목 검색·추가</span>
+                </h3>
+                <p className="text-[11px] text-blue-100 mt-0.5">
+                  규격 버튼을 탭하면 <strong className="text-amber-200 underline">[{categoryName || '기타/미지정'}]</strong> 위치에 즉시 1개씩 추가됩니다.
+                </p>
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white transition-colors"
+            >
+              <X size={18} />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white transition-colors"
-          >
-            <X size={18} />
-          </button>
+
+          {/* 모달 내부에서도 작업 위치를 즉시 확인·전환할 수 있는 위치 바 */}
+          {categories && categories.length > 1 && onSelectCategory && (
+            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pt-1 border-t border-white/15">
+              <span className="text-[11px] font-bold text-blue-100 shrink-0 mr-1">작업 위치 전환:</span>
+              {categories.map(cat => {
+                const isCurrent = cat.id === categoryId
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => onSelectCategory(cat.id)}
+                    className={`px-2 py-0.5 rounded-md text-xs font-extrabold whitespace-nowrap transition-all shrink-0 ${
+                      isCurrent
+                        ? 'bg-amber-300 text-slate-950 shadow-2xs ring-2 ring-white'
+                        : 'bg-white/15 text-white/90 hover:bg-white/25'
+                    }`}
+                  >
+                    {isCurrent ? `📍 ${cat.name}` : cat.name}
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* 상단 검색 및 필터 바 */}
@@ -377,7 +408,10 @@ export function ItemQuickAddModal({
         <div className="p-3 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 shrink-0">
           {onAddCustomItem ? (
             <div className="flex flex-wrap items-center gap-1.5 flex-1">
-              <span className="text-xs font-bold text-gray-700 whitespace-nowrap">직접입력:</span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-100 text-blue-900 text-xs font-extrabold whitespace-nowrap border border-blue-200">
+                <MapPin size={11} className="text-blue-600" />
+                <span>[{categoryName}] 직접입력:</span>
+              </span>
               <input
                 type="text"
                 value={customName}
@@ -407,9 +441,9 @@ export function ItemQuickAddModal({
                 type="button"
                 onClick={handleAddCustom}
                 disabled={!customName.trim()}
-                className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white text-xs font-bold transition-colors"
+                className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white text-xs font-bold transition-colors whitespace-nowrap"
               >
-                + 직접 추가
+                + [{categoryName}] 직접 추가
               </button>
             </div>
           ) : (
@@ -421,7 +455,7 @@ export function ItemQuickAddModal({
             onClick={onClose}
             className="px-5 py-2 rounded-xl bg-gray-900 hover:bg-gray-800 text-white text-xs sm:text-sm font-extrabold transition-colors shrink-0"
           >
-            완료 / 닫기
+            [{categoryName}] 완료 / 닫기
           </button>
         </div>
       </div>

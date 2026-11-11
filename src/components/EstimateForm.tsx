@@ -31,6 +31,7 @@ import { EstimatePresetModal } from '@/components/EstimatePresetModal'
 import { QuickTouchCbmPanel } from '@/components/QuickTouchCbmPanel'
 import { PaperSheetCbmPanel } from '@/components/PaperSheetCbmPanel'
 import { ItemQuickAddModal } from '@/components/ItemQuickAddModal'
+import { DeleteEstimateButton } from '@/components/DeleteEstimateButton'
 import {
   CHOSUNG_BUTTONS,
   ChosungFilter,
@@ -114,6 +115,39 @@ const LEGACY_ROOM_NAME_MAP: Record<string, string> = {
   '방3': '작은방2',
   '방4': '서재',
   '드레스룸/서재': '서재',
+  '입구장': '입구방',
+  '현관': '신발장',
+}
+
+export const INITIAL_DEFAULT_SPACE_ORDER = [
+  '안방',
+  '입구방',
+  '작은방1',
+  '작은방2',
+  '거실',
+  '주방',
+  '베란다',
+  '팬트리',
+  '신발장',
+  '화장실',
+]
+
+export const PREFERRED_SPACE_ORDER = [
+  ...INITIAL_DEFAULT_SPACE_ORDER,
+  '드레스룸',
+  '서재',
+]
+
+export const sortLocationCategoriesByPreferredOrder = (cats: any[]): any[] => {
+  if (!Array.isArray(cats)) return []
+  return [...cats].sort((a, b) => {
+    const idxA = PREFERRED_SPACE_ORDER.indexOf(normalizeLocationName(a.name))
+    const idxB = PREFERRED_SPACE_ORDER.indexOf(normalizeLocationName(b.name))
+    const rankA = idxA >= 0 ? idxA : 99
+    const rankB = idxB >= 0 ? idxB : 99
+    if (rankA !== rankB) return rankA - rankB
+    return (a.order ?? 99) - (b.order ?? 99)
+  })
 }
 
 export const normalizeLocationName = (locName?: string): string => {
@@ -150,84 +184,303 @@ export const ensureItemUid = (item: any): any => {
 }
 
 /**
- * 특정 위치(catId)와 연결된 BOX 기준품목 규격 목록 조회 (규격 가나다순 정렬)
+ * 전체 BOX 기준품목 규격 목록 조회 (현장 선호 순서: 대 -> 중 -> 옷 -> 이불 -> 바구니 -> 책)
  */
-export const getConnectedBoxSpecsForLocation = (catId: string, stdItems: any[]): any[] => {
+const BOX_SPEC_PRIORITY: Record<string, number> = {
+  대: 1,
+  중: 2,
+  옷: 3,
+  이불: 4,
+  바구니: 5,
+  책: 6,
+}
+
+export const getAllStandardBoxSpecs = (stdItems: any[]): any[] => {
   if (!Array.isArray(stdItems)) return []
-  const connected = stdItems.filter(
-    (s: any) =>
-      isBoxItem(s.name) &&
-      (catId ? s.locations?.some((l: any) => l.id === catId) : !s.locations || s.locations.length === 0)
-  )
-  return [...connected].sort((a, b) => (a.spec || '').localeCompare(b.spec || '', 'ko'))
+  const boxes = stdItems.filter((s: any) => isBoxItem(s.name))
+  // 규격별 중복 제거
+  const specMap = new Map<string, any>()
+  boxes.forEach(b => {
+    const sp = b.spec || '기본'
+    if (!specMap.has(sp)) {
+      specMap.set(sp, b)
+    }
+  })
+  return Array.from(specMap.values()).sort((a, b) => {
+    const pa = BOX_SPEC_PRIORITY[a.spec || ''] ?? 99
+    const pb = BOX_SPEC_PRIORITY[b.spec || ''] ?? 99
+    if (pa !== pb) return pa - pb
+    return (a.spec || '').localeCompare(b.spec || '', 'ko')
+  })
+}
+
+export const getConnectedBoxSpecsForLocation = (catId: string, stdItems: any[]): any[] => {
+  return getAllStandardBoxSpecs(stdItems)
 }
 
 /**
- * 대상 위치 목록(targetCategories) 각각에 연결된 BOX 규격들을 수량 0으로 해당 위치 최상단에 기본 노출 보장
+ * 수량이 0인 빈 BOX 플레이스홀더 행을 정리 (자재박스는 모든 공간 하단 고정 카드바에서 제어)
  */
 export const ensureLocationConnectedBoxItems = (
   itemsList: any[],
-  targetCategories: { id: string; name: string }[],
-  stdItems: any[]
+  _targetCategories: { id: string; name: string }[],
+  _stdItems: any[]
 ): any[] => {
   if (!Array.isArray(itemsList)) return []
-  let result = [...itemsList]
+  return itemsList
+    .filter(it => !(isBoxItem(it.name) && (Number(it.quantity) || 0) <= 0))
+    .map(ensureItemUid)
+}
 
-  targetCategories.forEach(cat => {
-    const catId = cat.id || ''
-    const catName = cat.name || '기타/미지정'
-    const connectedBoxes = getConnectedBoxSpecsForLocation(catId, stdItems)
-    if (connectedBoxes.length === 0) return
+/**
+ * 물품정보(StandardItem) 기준 표준 품목명 정규화 매핑
+ * (과거 별칭이나 유사 명칭이 들어오더라도 물품정보의 공식 품목명으로 100% 일치시킴)
+ */
+export const CANONICAL_STANDARD_ITEM_NAME_MAP: Record<string, string> = {
+  쇼파: '소파',
+  쇼파테이블: '소파 테이블',
+  소파테이블: '소파 테이블',
+  테이블: '소파 테이블',
+  거실장: 'TV장',
+  코너장: '수납장/교구장',
+  정리함: '리빙박스',
+  콘솔: '화장대',
+  수납선반: '앵글',
+  렌지대: '수납장/교구장',
+  정수기: '주방가전',
+  전자레인지: '주방가전',
+  '캠핑/생활기타(빨래건조대)': '캠핑/생활기타',
+  '캠핑/생활기타(캠핑용품)': '캠핑/생활기타',
+  캠핑용품: '캠핑/생활기타',
+  시스템행거: '행거',
+  거울: '전신거울',
+  '컴퓨터 본체': '컴퓨터',
+  골프백: '운동기구',
+  비데: '욕실용품',
+}
 
-    // 규격이 비어있고 수량이 0인 구버전 빈 BOX 플레이스홀더 제거
-    result = result.filter(
-      it => !((it.locationId || '') === catId && isBoxItem(it.name) && !it.spec && (Number(it.quantity) || 0) === 0)
-    )
+export const resolveCanonicalItemName = (rawName: string, stdItems?: any[]): string => {
+  const trimmed = (rawName || '').trim()
+  if (!trimmed) return ''
+  if (Array.isArray(stdItems) && stdItems.length > 0) {
+    if (stdItems.some((s: any) => s.name === trimmed)) {
+      return trimmed
+    }
+  }
+  const mapped = CANONICAL_STANDARD_ITEM_NAME_MAP[trimmed]
+  if (mapped) return mapped
+  return trimmed
+}
 
-    const catExisting = result.filter(it => (it.locationId || '') === catId)
-    const missingBoxEntries: any[] = []
+export const getMatchingStandardSpecs = (itemName: string, stdItems: any[]): any[] => {
+  const list = Array.isArray(stdItems) ? stdItems : []
+  const canonicalName = resolveCanonicalItemName(itemName, list)
+  const matched = list.filter((s: any) => s.name === itemName || s.name === canonicalName)
 
-    connectedBoxes.forEach(bStd => {
-      const specVal = bStd.spec || ''
-      const alreadyHas = catExisting.some(
-        it => isBoxItem(it.name) && (it.spec || '') === specVal
-      )
-      if (!alreadyHas) {
-        missingBoxEntries.push(
-          ensureItemUid({
-            locationId: catId,
-            locationName: catName,
-            name: bStd.name,
-            spec: specVal,
-            quantity: 0,
-            treatment: '이동',
-            cbm: bStd.defaultCbm ?? 0,
-            innerBoxCbm: bStd.defaultInnerCbm ?? 0,
-          })
-        )
-      }
-    })
-
-    // 해당 위치의 물품 중 BOX를 최상단으로 배치
-    const combinedCatItems = [...missingBoxEntries, ...catExisting]
-    const catBoxes = combinedCatItems
-      .filter(it => isBoxItem(it.name))
-      .sort((a, b) => (a.spec || '').localeCompare(b.spec || '', 'ko'))
-    const catNonBoxes = combinedCatItems.filter(it => !isBoxItem(it.name))
-    const reorderedCatItems = [...catBoxes, ...catNonBoxes]
-
-    // result 내에서 해당 catId 품목들을 재정렬된 목록으로 교체 (기존 위치에 없으면 끝에 추가)
-    const firstIdx = result.findIndex(it => (it.locationId || '') === catId)
-    if (firstIdx >= 0) {
-      const withoutCat = result.filter(it => (it.locationId || '') !== catId)
-      withoutCat.splice(firstIdx, 0, ...reorderedCatItems)
-      result = withoutCat
-    } else {
-      result.push(...reorderedCatItems)
+  const specMap = new Map<string, any>()
+  matched.forEach((s: any) => {
+    const sp = s.spec || '기본'
+    if (!specMap.has(sp)) {
+      specMap.set(sp, s)
     }
   })
 
-  return result.map(ensureItemUid)
+  return Array.from(specMap.values()).sort((a, b) => (a.spec || '').localeCompare(b.spec || '', 'ko'))
+}
+
+/**
+ * 공간(방) 초기 로드 및 '+ 공간 추가' 시 물품정보(StandardItem)에 등록된 공식 품목명과 100% 일치시켜 기본 나열
+ * (수량 0, 모든 물품 초기 '규격 선택' 상태)
+ * - 안방 / 입구방 / 작은방1 / 작은방2: 장농, 침대, 화장대, 서랍장, 책상, 의자, 책장, TV, TV장, 행거, 붙박이장, 에어컨
+ * - 거실: TV, TV장, 소파, 소파 테이블, 장식장, 수납장/교구장, 책상, 의자, 책장, 앵글, 화장대, 에어컨, 리빙박스, 운동기구, 스타일러, 안마의자, 피아노
+ * - 주방: 냉장고, 김치냉장고, 식탁, 의자, 수납장/교구장, 식기세척기, 앵글, 주방가전, 싱크대살림
+ * - 베란다: 냉장고, 김치냉장고, 건조기, 세탁기, 화분, 항아리, 앵글, 캠핑/생활기타, 자전거
+ * - 팬트리: 팬트리선반, 캠핑/생활기타, 계절가전, 청소기
+ * - 신발장: 신발장, 유모차, 자전거, 운동기구, 앵글
+ * - 화장실: 욕실용품, 수납장/교구장
+ * - 드레스룸: 장농, 행거, 붙박이장, 서랍장, 화장대, 전신거울, 스타일러, 에어컨
+ * - 서재: 책상, 의자, 책장, 서랍장, 컴퓨터, 모니터, 소파, 에어컨
+ */
+export const getDefaultCuratedRoomItems = (
+  catId: string,
+  catName: string,
+  stdItems: any[]
+): any[] => {
+  const normName = normalizeLocationName(catName || '')
+
+  type CuratedTemplate = { name: string }
+
+  const BEDROOM_CORE_ITEMS: CuratedTemplate[] = [
+    { name: '장농' },
+    { name: '침대' },
+    { name: '화장대' },
+    { name: '서랍장' },
+    { name: '책상' },
+    { name: '의자' },
+    { name: '책장' },
+    { name: 'TV' },
+    { name: 'TV장' },
+    { name: '행거' },
+    { name: '붙박이장' },
+    { name: '에어컨' },
+  ]
+
+  const SPACE_CURATED_MAP: Record<string, CuratedTemplate[]> = {
+    거실: [
+      { name: 'TV' },
+      { name: 'TV장' },
+      { name: '소파' },
+      { name: '소파 테이블' },
+      { name: '장식장' },
+      { name: '수납장/교구장' },
+      { name: '책상' },
+      { name: '의자' },
+      { name: '책장' },
+      { name: '앵글' },
+      { name: '화장대' },
+      { name: '에어컨' },
+      { name: '리빙박스' },
+      { name: '운동기구' },
+      { name: '스타일러' },
+      { name: '안마의자' },
+      { name: '피아노' },
+    ],
+    주방: [
+      { name: '냉장고' },
+      { name: '김치냉장고' },
+      { name: '식탁' },
+      { name: '의자' },
+      { name: '수납장/교구장' },
+      { name: '식기세척기' },
+      { name: '앵글' },
+      { name: '주방가전' },
+      { name: '싱크대살림' },
+    ],
+    베란다: [
+      { name: '냉장고' },
+      { name: '김치냉장고' },
+      { name: '건조기' },
+      { name: '세탁기' },
+      { name: '화분' },
+      { name: '항아리' },
+      { name: '앵글' },
+      { name: '캠핑/생활기타' },
+      { name: '자전거' },
+    ],
+    팬트리: [
+      { name: '팬트리선반' },
+      { name: '캠핑/생활기타' },
+      { name: '계절가전' },
+      { name: '청소기' },
+    ],
+    신발장: [
+      { name: '신발장' },
+      { name: '유모차' },
+      { name: '자전거' },
+      { name: '운동기구' },
+      { name: '앵글' },
+    ],
+    현관: [
+      { name: '신발장' },
+      { name: '유모차' },
+      { name: '자전거' },
+      { name: '운동기구' },
+      { name: '앵글' },
+    ],
+    화장실: [
+      { name: '욕실용품' },
+      { name: '수납장/교구장' },
+    ],
+    드레스룸: [
+      { name: '장농' },
+      { name: '행거' },
+      { name: '붙박이장' },
+      { name: '서랍장' },
+      { name: '화장대' },
+      { name: '전신거울' },
+      { name: '스타일러' },
+      { name: '에어컨' },
+    ],
+    서재: [
+      { name: '책상' },
+      { name: '의자' },
+      { name: '책장' },
+      { name: '서랍장' },
+      { name: '컴퓨터' },
+      { name: '모니터' },
+      { name: '소파' },
+      { name: '에어컨' },
+    ],
+    창고: [
+      { name: '앵글' },
+      { name: '리빙박스' },
+      { name: '캠핑/생활기타' },
+      { name: '캐리어' },
+      { name: '운동기구' },
+      { name: '자전거' },
+      { name: '김치통/아이스박스' },
+    ],
+    다이닝룸: [
+      { name: '식탁' },
+      { name: '의자' },
+      { name: '장식장' },
+      { name: '김치냉장고' },
+      { name: '수납장/교구장' },
+      { name: '싱크대살림' },
+    ],
+  }
+
+  const isBedroom =
+    normName === '안방' ||
+    normName === '입구방' ||
+    normName.startsWith('작은방') ||
+    normName.startsWith('침실') ||
+    /^방\d*$/.test(normName)
+
+  const targetTemplates: CuratedTemplate[] | null = isBedroom
+    ? BEDROOM_CORE_ITEMS
+    : SPACE_CURATED_MAP[normName] || null
+
+  if (targetTemplates) {
+    const uniqueCanonicalNames = Array.from(
+      new Set(targetTemplates.map(tpl => resolveCanonicalItemName(tpl.name, stdItems)))
+    )
+    return uniqueCanonicalNames.map(canonicalName =>
+      ensureItemUid({
+        locationId: catId,
+        locationName: catName,
+        name: canonicalName,
+        spec: '',
+        quantity: 0,
+        treatment: '이동',
+        cbm: 0,
+        innerBoxCbm: 0,
+      })
+    )
+  }
+
+  // 기타 사용자 정의 공간인 경우 해당 공간 연결 품목 중 최대 12개만 노출 (모두 '규격 선택' 초기 세팅)
+  const fallbackItems = (Array.isArray(stdItems) ? stdItems : [])
+    .filter(
+      (item: any) =>
+        !isBoxItem(item.name) &&
+        (catId ? item.locations?.some((l: any) => l.id === catId) : !item.locations || item.locations.length === 0)
+    )
+    .sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '', 'ko'))
+
+  const uniqueNames = Array.from(new Set(fallbackItems.map((i: any) => i.name))).slice(0, 12)
+  return uniqueNames.map(name =>
+    ensureItemUid({
+      locationId: catId,
+      locationName: catName,
+      name,
+      spec: '',
+      quantity: 0,
+      treatment: '이동',
+      cbm: 0,
+      innerBoxCbm: 0,
+    })
+  )
 }
 
 const parseAndFilterCbmItems = (cbmItemsStr: string | null | undefined): any[] => {
@@ -256,13 +509,15 @@ export function EstimateForm({
   action, 
   title = "새 견적 작성",
   costStandards: initialCostStandards,
-  currentUserName = ''
+  currentUserName = '',
+  isAdmin = false,
 }: { 
   initialData?: any, 
   action: (formData: FormData) => Promise<void>,
   title?: string,
   costStandards?: CostStandardData,
-  currentUserName?: string
+  currentUserName?: string,
+  isAdmin?: boolean,
 }) {
   const envObj = safeJsonParse(initialData?.environment, {})
   const payPlanObj = safeJsonParse(initialData?.paymentPlan, {})
@@ -929,21 +1184,14 @@ export function EstimateForm({
     return allCategoriesWithUnassigned.filter((c: any) => !displayedIdSet.has(c.id))
   }, [allCategoriesWithUnassigned, displayedCategories])
 
-  // 공간 추가 핸들러 (템플릿 없이 위치 추가 시에도 연결된 BOX 및 표준 물품을 수량 0으로 기본 노출)
+  // 공간 추가 핸들러 (공간별 핵심 대표 물품만 수량 0으로 깔끔하게 노출, 자재박스는 하단 고정 바에서 추가)
   const handleAddCategory = (catId: string) => {
     const targetCat = allCategoriesWithUnassigned.find((c: any) => c.id === catId)
     if (!targetCat) return
 
     setActiveCategoryIds(prev => Array.from(new Set([...prev, catId])))
 
-    // 해당 공간의 일반 표준 물품들 (BOX는 ensureLocationConnectedBoxItems에서 규격별로 최상단 노출)
-    const catNonBoxStandardItems = standardItems
-      .filter(
-        (item: any) =>
-          !isBoxItem(item.name) &&
-          (catId ? item.locations?.some((l: any) => l.id === catId) : !item.locations || item.locations.length === 0)
-      )
-      .sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '', 'ko'))
+    const curatedDefaultItems = getDefaultCuratedRoomItems(catId, targetCat.name, standardItems)
 
     setItems(prevItems => {
       let nextItems = ensureLocationConnectedBoxItems(
@@ -955,21 +1203,10 @@ export function EstimateForm({
         nextItems.filter(i => (i.locationId || '') === catId).map(i => i.name)
       )
 
-      catNonBoxStandardItems.forEach((sItem: any) => {
-        if (!existingNames.has(sItem.name)) {
-          existingNames.add(sItem.name)
-          nextItems.push(
-            ensureItemUid({
-              locationId: catId,
-              locationName: targetCat.name,
-              name: sItem.name,
-              spec: '',
-              quantity: 0,
-              treatment: '이동',
-              cbm: 0,
-              innerBoxCbm: 0,
-            })
-          )
+      curatedDefaultItems.forEach((cItem: any) => {
+        if (!existingNames.has(cItem.name)) {
+          existingNames.add(cItem.name)
+          nextItems.push(cItem)
         }
       })
       return nextItems
@@ -1091,11 +1328,11 @@ export function EstimateForm({
   const handleApplyPreset = (presetItems: PresetItem[], mode: 'replace' | 'append') => {
     if (!presetItems || presetItems.length === 0) return
 
-    // 템플릿에 짐이 있는 공간들을 활성 공간 목록으로 설정
+    // 템플릿에 포함된 공간들을 활성 공간 목록으로 설정 (초기 수량 0 상태에서도 모두 탭 노출)
     const presetLocIds = Array.from(
       new Set(
         presetItems
-          .filter(p => !isBoxItem(p.name) && Number(p.quantity) > 0)
+          .filter(p => !isBoxItem(p.name))
           .map(p => {
             const locCat = categories.find(c => c.name === p.locationName)
             return locCat ? locCat.id : ''
@@ -1117,44 +1354,31 @@ export function EstimateForm({
       let nextList = mode === 'replace' ? [] : [...prevItems]
 
       presetItems.forEach(pItem => {
-        // 평형 템플릿 적용 시 BOX 수량은 사전 적용하지 않음 (수량 0으로 위치별 연결 BOX만 노출)
+        // 평형 템플릿 적용 시 BOX 수량은 사전 적용하지 않음
         if (isBoxItem(pItem.name)) return
 
+        const canonicalName = resolveCanonicalItemName(pItem.name, standardItems)
         const locCat = categories.find(c => c.name === pItem.locationName)
         const locId = locCat ? locCat.id : ''
         const locName = locCat ? locCat.name : pItem.locationName
 
-        // standardItems에서 해당 품목/규격의 최신 실측치(defaultCbm, defaultInnerCbm) 조회 (DB 실측치 우선 적용)
-        const stdMatch = standardItems.find(
-          s => s.name === pItem.name && (pItem.spec ? (s.spec || '기본') === pItem.spec : true)
-        )
-        const finalCbm = stdMatch
-          ? stdMatch.defaultCbm
-          : pItem.cbm !== undefined
-          ? pItem.cbm
-          : 0
-        const finalInnerCbm = stdMatch
-          ? stdMatch.defaultInnerCbm || 0
-          : pItem.innerBoxCbm !== undefined
-          ? pItem.innerBoxCbm
-          : 0
-
         const existingIdx = nextList.findIndex(
           it =>
             (it.locationId || '') === locId &&
-            it.name === pItem.name &&
-            (it.spec || '') === (pItem.spec || '')
+            it.name === canonicalName
         )
 
         if (existingIdx >= 0) {
           const cur = nextList[existingIdx]
           const currentQty = Number(cur.quantity) || 0
-          const newQty = mode === 'replace' ? pItem.quantity : currentQty + pItem.quantity
+          const newQty = mode === 'replace' ? 0 : currentQty
           nextList[existingIdx] = {
             ...cur,
+            name: canonicalName,
+            spec: mode === 'replace' || currentQty === 0 ? '' : cur.spec || '',
             quantity: newQty,
-            cbm: finalCbm,
-            innerBoxCbm: finalInnerCbm,
+            cbm: mode === 'replace' || currentQty === 0 ? 0 : cur.cbm || 0,
+            innerBoxCbm: mode === 'replace' || currentQty === 0 ? 0 : cur.innerBoxCbm || 0,
             treatment: pItem.treatment || cur.treatment || '이동',
           }
         } else {
@@ -1162,23 +1386,40 @@ export function EstimateForm({
             ensureItemUid({
               locationId: locId,
               locationName: locName,
-              name: pItem.name,
-              spec: pItem.spec || '',
-              quantity: pItem.quantity,
-              cbm: finalCbm,
-              innerBoxCbm: finalInnerCbm,
+              name: canonicalName,
+              spec: '',
+              quantity: 0,
+              cbm: 0,
+              innerBoxCbm: 0,
               treatment: pItem.treatment || '이동',
             })
           )
         }
       })
 
-      // 각 활성 위치에 연결된 BOX 규격들을 수량 0(수량 적용 없이)으로 최상단에 노출
+      // 각 방(안방, 입구방, 작은방1, 작은방2 등)이 항상 안방과 동일한 대표 물품 구성을 갖도록 보강
+      targetCatObjs.forEach(catObj => {
+        const curatedRoomItems = getDefaultCuratedRoomItems(catObj.id, catObj.name, standardItems)
+        const existingRoomNames = new Set(
+          nextList.filter(it => (it.locationId || '') === catObj.id).map(it => it.name)
+        )
+        curatedRoomItems.forEach(cItem => {
+          if (!existingRoomNames.has(cItem.name)) {
+            existingRoomNames.add(cItem.name)
+            nextList.push(cItem)
+          }
+        })
+      })
+
       return ensureLocationConnectedBoxItems(nextList, targetCatObjs, standardItems)
     })
 
     setActiveCategoryIds(nextActiveCatIds)
-    setExpandedCategories({})
+    const nextExpanded: Record<string, boolean> = {}
+    nextActiveCatIds.forEach(id => {
+      nextExpanded[id] = true
+    })
+    setExpandedCategories(nextExpanded)
   }
 
   const [cbmLength, setCbmLength] = useState<number | ''>('')
@@ -1600,7 +1841,20 @@ export function EstimateForm({
           else if (Array.isArray(envObj.labors) && envObj.labors.length > 0) setLabors(envObj.labors)
 
           if (draft.items && draft.items.length > 0) {
-            setItems(draft.items.map((i: any) => ensureItemUid({ ...i, treatment: i.treatment || '이동' })))
+            const restoredItems = initialData?.cbmItems
+              ? draft.items
+              : draft.items.filter((i: any) => (Number(i.quantity) || 0) > 0)
+            if (restoredItems.length > 0) {
+              setItems(
+                restoredItems.map((i: any) =>
+                  ensureItemUid({
+                    ...i,
+                    name: resolveCanonicalItemName(i.name, standardItems),
+                    treatment: i.treatment || '이동',
+                  })
+                )
+              )
+            }
           }
           if (envObj.deadSpaceRatio !== undefined) {
             setDeadSpaceRatio(Number(envObj.deadSpaceRatio))
@@ -1706,72 +1960,68 @@ export function EstimateForm({
       }
       setStandardVehicles(augmentedVehicles)
       setStandardLabors(laborsRes)
-      setCategories(catsRes)
+      const sortedCatsRes = sortLocationCategoriesByPreferredOrder(catsRes)
+      setCategories(sortedCatsRes)
       if (costStandardsRes) {
         setCostStandardsData(costStandardsRes)
       }
 
-      const defaultCat = catsRes.find((c: any) => c.name === '안방') || catsRes[0]
+      const defaultCat = sortedCatsRes.find((c: any) => c.name === '안방') || sortedCatsRes[0]
+      const initialDefaultCats = INITIAL_DEFAULT_SPACE_ORDER.map(name =>
+        sortedCatsRes.find((c: any) => normalizeLocationName(c.name) === name)
+      ).filter(Boolean)
+      const effectiveInitialCats =
+        initialDefaultCats.length > 0 ? initialDefaultCats : defaultCat ? [defaultCat] : []
 
       if (!initialData?.cbmItems) {
-        const initialItems: any[] = []
-        const grouped: Record<string, boolean> = {}
+        let initialItems: any[] = []
 
-        // 기본 활성 공간(안방)의 일반 표준 물품들 초기 목록 세팅 (수량 0, BOX는 ensureLocationConnectedBoxItems로 최상단 노출)
-        if (defaultCat) {
-          const catStandardItems = sortedStandardItems
-            .filter(
-              (item: any) =>
-                !isBoxItem(item.name) &&
-                item.locations &&
-                item.locations.some((l: any) => l.id === defaultCat.id)
-            )
-            .sort((a: any, b: any) => {
-              const nameComp = (a.name || '').localeCompare(b.name || '', 'ko')
-              if (nameComp !== 0) return nameComp
-              return (a.spec || '').localeCompare(b.spec || '', 'ko')
-            })
+        // 초기 10개 기본 공간(안방, 입구방, 작은방1, 작은방2, 거실, 주방, 베란다, 팬트리, 신발장, 화장실)의 핵심 대표 물품 세팅 (수량 0)
+        effectiveInitialCats.forEach((cat: any) => {
+          const roomItems = getDefaultCuratedRoomItems(cat.id, cat.name, sortedStandardItems)
+          initialItems.push(...roomItems)
+        })
 
-          catStandardItems.forEach((item: any) => {
-            const key = `${defaultCat.id}_${item.name}`
-            if (!grouped[key]) {
-              grouped[key] = true
-              initialItems.push(
-                ensureItemUid({
-                  locationId: defaultCat.id,
-                  locationName: defaultCat.name,
-                  name: item.name,
-                  spec: '',
-                  quantity: 0,
-                  treatment: '이동',
-                  cbm: 0,
-                  innerBoxCbm: 0,
-                })
-              )
-            }
-          })
-        }
-
-        // draft items가 저장되어 있는지 검사하여 병합 (작성 중이던 수량 및 추가 품목 유지)
-        let finalItems = initialItems
-        let loadedActiveCats = defaultCat ? [defaultCat.id] : []
+        // draft items가 저장되어 있는지 검사하여 병합 (실제 수량 > 0 인 작성 중 품목은 유지하되, 모든 방의 기본 물품 세팅은 동일하게 보장)
+        let finalItems = [...initialItems]
+        let loadedActiveCats = effectiveInitialCats.map((c: any) => c.id)
 
         try {
           const saved = localStorage.getItem(storageKey)
           if (saved) {
             const draft = JSON.parse(saved)
-            if (draft.items && draft.items.length > 0) {
-              finalItems = draft.items.map((i: any) => ensureItemUid({ ...i, treatment: i.treatment || '이동' }))
-              const draftCatIds = Array.from(new Set(finalItems.map((i: any) => i.locationId || ''))) as string[]
-              if (draftCatIds.length > 0) {
-                loadedActiveCats = draftCatIds
-              }
+            const draftItemsWithQty = Array.isArray(draft?.items)
+              ? draft.items.filter((i: any) => (Number(i.quantity) || 0) > 0)
+              : []
+
+            if (draftItemsWithQty.length > 0) {
+              draftItemsWithQty.forEach((dItem: any) => {
+                const locId = dItem.locationId || ''
+                if (!loadedActiveCats.includes(locId)) {
+                  loadedActiveCats.push(locId)
+                }
+                const matchIdx = finalItems.findIndex(
+                  fi =>
+                    (fi.locationId || '') === locId &&
+                    fi.name === dItem.name &&
+                    ((fi.spec || '') === (dItem.spec || '') || (Number(fi.quantity) || 0) === 0)
+                )
+                if (matchIdx >= 0) {
+                  finalItems[matchIdx] = ensureItemUid({
+                    ...finalItems[matchIdx],
+                    ...dItem,
+                    treatment: dItem.treatment || '이동',
+                  })
+                } else {
+                  finalItems.push(ensureItemUid({ ...dItem, treatment: dItem.treatment || '이동' }))
+                }
+              })
             }
           }
         } catch {}
 
         const activeCatObjs = loadedActiveCats.map(id => {
-          const found = catsRes.find((c: any) => c.id === id)
+          const found = sortedCatsRes.find((c: any) => c.id === id)
           return { id, name: found ? found.name : '기타/미지정' }
         })
         finalItems = ensureLocationConnectedBoxItems(finalItems, activeCatObjs, sortedStandardItems)
@@ -1780,7 +2030,7 @@ export function EstimateForm({
         setActiveCategoryIds(loadedActiveCats)
 
         const initialExpanded: Record<string, boolean> = {}
-        catsRes.forEach((c: any) => {
+        sortedCatsRes.forEach((c: any) => {
           const catItems = finalItems.filter((i: any) => (i.locationId || '') === c.id)
           initialExpanded[c.id] = c.name === '안방' || catItems.some(i => (i.quantity || 0) > 0)
         })
@@ -2141,15 +2391,24 @@ export function EstimateForm({
     <div className="w-full max-w-5xl mx-auto space-y-3 sm:space-y-4 pb-20 px-1 sm:px-2 md:px-3">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{title}</h1>
-        {draftRestoredTime && (
-          <button
-            type="button"
-            onClick={handleClearDraft}
-            className="text-xs text-gray-500 hover:text-red-600 underline transition-colors"
-          >
-            {initialData?.id ? '임시저장 비우고 서버 원본 불러오기' : '임시 저장 비우고 새로 쓰기'}
-          </button>
-        )}
+        <div className="flex items-center gap-2.5 self-end sm:self-auto">
+          {draftRestoredTime && (
+            <button
+              type="button"
+              onClick={handleClearDraft}
+              className="text-xs text-gray-500 hover:text-red-600 underline transition-colors"
+            >
+              {initialData?.id ? '임시저장 비우고 서버 원본 불러오기' : '임시 저장 비우고 새로 쓰기'}
+            </button>
+          )}
+          {isAdmin && initialData?.id && (
+            <DeleteEstimateButton
+              estimateId={initialData.id}
+              customerName={customerName || initialData.customerName}
+              redirectAfter="/estimates"
+            />
+          )}
+        </div>
       </div>
 
       {/* 임시 저장 복원 알림 배너 */}
@@ -3712,22 +3971,7 @@ export function EstimateForm({
                                 <td className="px-1.5 sm:px-2 py-1">
                                   {(() => {
                                     // 해당 품목명(name)을 가진 기준정보 항목들을 찾음 (규격순 정렬, BOX는 위치 연결 규격 우선)
-                                    const allSpecsForName = standardItems
-                                      .filter(i => i.name === item.name)
-                                      .sort((a, b) => (a.spec || '').localeCompare(b.spec || '', 'ko'))
-                                    const locSpecsForName = allSpecsForName.filter(s =>
-                                      cat.id
-                                        ? s.locations?.some((l: any) => l.id === cat.id)
-                                        : !s.locations || s.locations.length === 0
-                                    )
-                                    const availableSpecs =
-                                      isBoxItem(item.name) && locSpecsForName.length > 0
-                                        ? allSpecsForName.filter(
-                                            s =>
-                                              locSpecsForName.some(ls => ls.id === s.id) ||
-                                              (item.spec && (s.spec || '기본') === item.spec)
-                                          )
-                                        : allSpecsForName
+                                    const availableSpecs = getMatchingStandardSpecs(item.name, standardItems)
                                     
                                     if (availableSpecs.length > 0) {
                                       return (
@@ -3738,14 +3982,20 @@ export function EstimateForm({
                                             const newItems = [...items]
                                             newItems[idx].spec = e.target.value
                                             
-                                            // 선택된 규격에 해당하는 CBM 정보 가져오기
-                                            const matched = availableSpecs.find(s => (s.spec || '기본') === e.target.value)
-                                            if (matched) {
-                                              newItems[idx].cbm = matched.defaultCbm
-                                              newItems[idx].innerBoxCbm = matched.defaultInnerCbm
-                                              // 규격을 처음 선택할 때 수량이 0이면 1로 자동 변경 (편의성)
-                                              if (newItems[idx].quantity === 0) {
-                                                newItems[idx].quantity = 1
+                                            if (!e.target.value) {
+                                              newItems[idx].cbm = 0
+                                              newItems[idx].innerBoxCbm = 0
+                                              newItems[idx].quantity = 0
+                                            } else {
+                                              // 선택된 규격에 해당하는 CBM 정보 가져오기
+                                              const matched = availableSpecs.find(s => (s.spec || '기본') === e.target.value)
+                                              if (matched) {
+                                                newItems[idx].cbm = matched.defaultCbm
+                                                newItems[idx].innerBoxCbm = matched.defaultInnerCbm
+                                                // 규격을 처음 선택할 때 수량이 0이면 1로 자동 변경 (편의성)
+                                                if (newItems[idx].quantity === 0) {
+                                                  newItems[idx].quantity = 1
+                                                }
                                               }
                                             }
                                             setItems(newItems)
@@ -3893,13 +4143,17 @@ export function EstimateForm({
                           <tr className="bg-gray-50/80 border-t border-gray-200">
                             <td colSpan={7} className="px-2 sm:px-3 py-2">
                               <div className="flex flex-wrap gap-1.5 sm:gap-2 items-center">
+                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-100 text-blue-900 border border-blue-200 text-xs font-extrabold shrink-0">
+                                  <MapPin size={12} className="text-blue-600" />
+                                  <span>{cat.name}</span>
+                                </span>
                                 <button
                                   type="button"
                                   onClick={() => setQuickAddModalCat({ id: cat.id, name: cat.name })}
                                   className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-extrabold flex items-center gap-1 shadow-2xs transition-all active:scale-95"
                                 >
                                   <PackagePlus size={14} />
-                                  <span>+ 품목 빠른 검색·추가</span>
+                                  <span>+ [{cat.name}] 품목 검색·추가</span>
                                 </button>
 
                                 <select 
@@ -3909,7 +4163,7 @@ export function EstimateForm({
                                     setSelectedItemNames(prev => ({ ...prev, [cat.id]: e.target.value }))
                                   }}
                                 >
-                                  <option value="">+ 드롭다운 선택</option>
+                                  <option value="">+ [{cat.name}] 드롭다운 선택</option>
                                   {(() => {
                                     // 1. 현재 위치(카테고리)와 일치하는 품목명 목록 (BOX 최상단 우선, 그 외 가나다순 정렬)
                                     const matchedNames = Array.from(new Set(
@@ -3990,7 +4244,7 @@ export function EstimateForm({
                                   onClick={() => setItems([...items, ensureItemUid({ locationId: cat.id, locationName: cat.name, name: '', spec: '', quantity: 1, treatment: '이동', cbm: 0, innerBoxCbm: 0 })])}
                                   className="text-blue-600 hover:text-blue-800 text-xs sm:text-sm font-semibold px-2.5 sm:px-3 py-1.5 bg-white border border-blue-200 rounded-lg shadow-2xs hover:bg-blue-50 transition-colors"
                                 >
-                                  + 직접입력 추가
+                                  + [{cat.name}] 직접입력 추가
                                 </button>
                               </div>
                             </td>
@@ -4034,6 +4288,11 @@ export function EstimateForm({
                   onClose={() => setQuickAddModalCat(null)}
                   categoryId={quickAddModalCat.id}
                   categoryName={quickAddModalCat.name}
+                  categories={displayedCategories}
+                  onSelectCategory={(catId) => {
+                    const found = displayedCategories.find((c: any) => c.id === catId)
+                    if (found) setQuickAddModalCat({ id: found.id, name: found.name })
+                  }}
                   standardItems={standardItems}
                   currentCategoryItems={items.filter(i => (i.locationId || '') === quickAddModalCat.id)}
                   onAddItem={(stdItem) => handleAddStandardItemToCategory(quickAddModalCat.id, quickAddModalCat.name, stdItem)}

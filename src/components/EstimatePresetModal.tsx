@@ -59,7 +59,7 @@ export function EstimatePresetModal({
                 </span>
               </h3>
               <p className="text-[11px] sm:text-xs text-white/80">
-                주택 평형 및 가구 규모를 선택하면 표준 이삿짐이 각 방별로 자동 구성됩니다.
+                주택 평형을 선택하면 표준 이삿짐 목록이 각 방별로(초기 수량 0) 자동 세팅됩니다.
               </p>
             </div>
           </div>
@@ -78,7 +78,6 @@ export function EstimatePresetModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
             {ESTIMATE_PRESETS.map((preset) => {
               const isSelected = selectedPreset.id === preset.id
-              const totalItems = preset.items.reduce((sum, it) => sum + it.quantity, 0)
 
               return (
                 <div
@@ -116,7 +115,7 @@ export function EstimatePresetModal({
                   <div className="mt-2.5 pt-2 border-t border-gray-200/80 flex items-center justify-between text-xs text-gray-500">
                     <span className="flex items-center gap-1 font-semibold text-gray-700">
                       <Layers size={13} className="text-indigo-600" />
-                      총 {preset.items.length}개 품목 ({totalItems}점)
+                      총 {preset.items.length}개 기본 품목 세팅 (수량 미적용)
                     </span>
                     {isSelected && (
                       <span className="flex items-center gap-1 text-xs font-bold text-indigo-600">
@@ -137,7 +136,7 @@ export function EstimatePresetModal({
                 선택된 템플릿 포함 품목 미리보기 ({selectedPreset.name})
               </span>
               <span className="text-xs text-gray-500 font-medium">
-                총 {selectedPreset.items.length}종류 자동 배치
+                총 {selectedPreset.items.length}종류 기본 배치 (수량 0)
               </span>
             </div>
             <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1 bg-white rounded-lg border border-gray-200 text-xs">
@@ -154,7 +153,6 @@ export function EstimatePresetModal({
                       {it.treatment}
                     </span>
                   )}
-                  <span className="font-extrabold text-blue-600">×{it.quantity}</span>
                   {it.locationName === '기타/미지정' && (
                     <UnassignedBoxTooltip variant="icon" />
                   )}

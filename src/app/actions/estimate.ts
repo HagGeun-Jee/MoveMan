@@ -427,3 +427,48 @@ export async function saveEstimateTaxFiling(estimateId: string, taxFiling: any) 
     return { success: false, error: '손택스/세무신고 상태 저장 중 오류가 발생했습니다.' }
   }
 }
+
+export async function isCurrentSessionAdminAccount(): Promise<boolean> {
+  try {
+    const cookieStore = await cookies()
+    const cookie = cookieStore.get('session')?.value
+    const session = await decrypt(cookie)
+    if (!session?.userId) return false
+    if (
+      String(session.loginId || '').toLowerCase() === 'admin' ||
+      String(session.userId || '').toLowerCase() === 'admin'
+    ) {
+      return true
+    }
+    const adminRow = await prisma.admin.findUnique({
+      where: { id: String(session.userId) },
+      select: { userId: true },
+    })
+    return adminRow?.userId?.toLowerCase() === 'admin'
+  } catch {
+    return false
+  }
+}
+
+export async function deleteEstimate(estimateId: string): Promise<{ success: boolean; error?: string }> {
+  const isAdmin = await isCurrentSessionAdminAccount()
+  if (!isAdmin) {
+    return { success: false, error: 'admin 계정으로 로그인했을 때만 견적을 삭제할 수 있습니다.' }
+  }
+  if (!estimateId) {
+    return { success: false, error: '삭제할 견적 식별번호가 필요합니다.' }
+  }
+
+  try {
+    await prisma.estimate.delete({
+      where: { id: estimateId },
+    })
+    revalidatePath('/estimates')
+    revalidatePath('/calendar')
+    revalidatePath('/')
+    return { success: true }
+  } catch (err: any) {
+    console.error('deleteEstimate error:', err)
+    return { success: false, error: '견적 삭제 중 오류가 발생했습니다.' }
+  }
+}
