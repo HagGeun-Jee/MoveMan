@@ -911,7 +911,7 @@ export function QuickTouchCbmPanel({
 
       {/* 5. 하단 고정 자재박스(BOX) 1줄 카드 바 (어느 공간에서든 즉시 추가·증감, CBM 미표시) */}
       {allBoxSpecs.length > 0 && (
-        <div className="sticky bottom-0 z-20 bg-amber-50/95 backdrop-blur-xs -mx-2.5 sm:-mx-4 px-2.5 sm:px-4 py-2 border-t-2 border-amber-300 rounded-b-xl shadow-sm space-y-1.5">
+        <div className="sticky bottom-14 sm:bottom-16 z-20 bg-amber-50/95 backdrop-blur-xs -mx-2.5 sm:-mx-4 px-2.5 sm:px-4 py-2 border-t-2 border-amber-300 rounded-b-xl shadow-sm space-y-1.5">
           <div className="flex items-center justify-between gap-2 text-xs">
             <span className="font-extrabold text-amber-950 flex items-center gap-1">
               <span>📦 자재박스 빠른 추가</span>

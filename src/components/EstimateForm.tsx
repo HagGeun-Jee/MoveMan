@@ -4990,7 +4990,7 @@ export function EstimateForm({
           </div>
         </div>
 
-        <div className="fixed bottom-0 left-0 right-0 lg:left-64 bg-white border-t p-2.5 sm:p-3 shadow-lg flex justify-end gap-2.5 sm:gap-3 z-20">
+        <div className="fixed bottom-0 left-0 right-0 lg:left-64 h-14 sm:h-16 bg-white border-t px-2.5 sm:px-4 shadow-lg flex items-center justify-end gap-2.5 sm:gap-3 z-30">
           <button 
             type="button" 
             onClick={() => {
