@@ -15,15 +15,23 @@ const prismaClientSingleton = () => {
 
 declare global {
   var prismaGlobal: undefined | ReturnType<typeof prismaClientSingleton>
+  var prismaGlobalSchemaRev: undefined | string
 }
 
+const PRISMA_SCHEMA_REV = '2026-11-13-space-orders-v2'
+
 const getPrismaInstance = () => {
-  // 캐시된 인스턴스가 있고 최신 모델(costStandardMaster)이 정상 포함되어 있으면 재사용
-  if (globalThis.prismaGlobal && (globalThis.prismaGlobal as any).costStandardMaster) {
+  // 캐시된 인스턴스가 있고 최신 스키마 리비전 및 모델(costStandardMaster)이 일치하면 재사용
+  if (
+    globalThis.prismaGlobal &&
+    globalThis.prismaGlobalSchemaRev === PRISMA_SCHEMA_REV &&
+    (globalThis.prismaGlobal as any).costStandardMaster
+  ) {
     return globalThis.prismaGlobal
   }
   const client = prismaClientSingleton()
   globalThis.prismaGlobal = client
+  globalThis.prismaGlobalSchemaRev = PRISMA_SCHEMA_REV
   return client
 }
 

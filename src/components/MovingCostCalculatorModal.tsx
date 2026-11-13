@@ -18,6 +18,7 @@ import {
 import KoreanLunarCalendar from 'korean-lunar-calendar'
 import {
   calculateTonnageDistanceFare,
+  extractBaseTruckSpecs,
   type TonnageTierKey,
 } from '@/lib/distanceFare'
 import {
@@ -168,6 +169,11 @@ interface MovingCostCalculatorModalProps {
   isOpen: boolean
   onClose: () => void
   currentCbm: number
+  rawCbm?: number
+  deadSpaceRatio?: number
+  recommendedTierKey?: TonnageTierKey
+  recommendedSummary?: string
+  standardVehicles?: any[]
   movingDate: Date | null
   currentMovingCost: number
   distanceKm?: number
@@ -181,6 +187,7 @@ interface MovingCostCalculatorModalProps {
   isFromLadder?: boolean
   isToLadder?: boolean
   ladderTonnage?: string
+  isLadderTonnageExplicit?: boolean
   ladderFares?: LadderFareItem[]
   appliedLadderCost?: number
   onApply: (
@@ -195,6 +202,7 @@ interface MovingCostCalculatorModalProps {
       equipmentApplyMode: EquipmentApplyMode
       totalSimulatedQuote: number
       summaryText: string
+      ladderTonnage?: string
     }
   ) => void
 }
@@ -203,6 +211,11 @@ export function MovingCostCalculatorModal({
   isOpen,
   onClose,
   currentCbm,
+  rawCbm,
+  deadSpaceRatio = 0,
+  recommendedTierKey,
+  recommendedSummary,
+  standardVehicles,
   movingDate,
   currentMovingCost,
   distanceKm = 0,
@@ -215,10 +228,24 @@ export function MovingCostCalculatorModal({
   isFromLadder = false,
   isToLadder = false,
   ladderTonnage = '5',
+  isLadderTonnageExplicit = false,
   ladderFares = [],
   appliedLadderCost = 0,
   onApply,
 }: MovingCostCalculatorModalProps) {
+  // 차량 기준정보(VehicleMaster) 제원과 100% 일치하는 동적 CBM 구간 가이드 생성
+  const tierGuides = useMemo<CbmTierGuide[]>(() => {
+    const { bounds } = extractBaseTruckSpecs(standardVehicles)
+    const round2 = (n: number) => Math.round(n * 100) / 100
+    return CBM_TIER_GUIDES.map(g => {
+      if (g.tierKey === '1') return { ...g, minCbm: 0, maxCbm: bounds.c1 }
+      if (g.tierKey === '2.5') return { ...g, minCbm: round2(bounds.c1 + 0.01), maxCbm: bounds.c25 }
+      if (g.tierKey === '5') return { ...g, minCbm: round2(bounds.c25 + 0.01), maxCbm: bounds.c5 }
+      if (g.tierKey === '6') return { ...g, minCbm: round2(bounds.c5 + 0.01), maxCbm: bounds.c6 }
+      if (g.tierKey === '7.5') return { ...g, minCbm: round2(bounds.c6 + 0.01), maxCbm: bounds.c75 }
+      return { ...g, minCbm: round2(bounds.c75 + 0.01), maxCbm: 999.0 }
+    })
+  }, [standardVehicles])
   // 로컬 날짜 YYYY-MM-DD 포맷 헬퍼
   const formatLocalYMD = (dateVal?: Date | string | null): string => {
     if (!dateVal) return ''
@@ -402,13 +429,17 @@ export function MovingCostCalculatorModal({
     setApplyHoliday(isHol)
   }
 
-  // 모달 열릴 때 초기화 및 견적서 데이터 연동
+  // 모달 열릴 때 초기화 및 최적 차량 추천 톤수 · 사다리차(톤수×층수) 연동
   useEffect(() => {
     if (!isOpen) return
 
+    const matchedByRecommended = recommendedTierKey
+      ? tierGuides.find(t => t.tierKey === recommendedTierKey)
+      : undefined
     const matched =
-      CBM_TIER_GUIDES.find(t => currentCbm >= t.minCbm && currentCbm <= t.maxCbm) ||
-      (currentCbm > 0 ? CBM_TIER_GUIDES[CBM_TIER_GUIDES.length - 1] : CBM_TIER_GUIDES[2])
+      matchedByRecommended ||
+      tierGuides.find(t => currentCbm >= t.minCbm && currentCbm <= t.maxCbm) ||
+      (currentCbm > 0 ? tierGuides[tierGuides.length - 1] : tierGuides[2])
 
     setSelectedTierId(matched.id)
     setBaseCost(matched.defaultPrice)
@@ -425,8 +456,9 @@ export function MovingCostCalculatorModal({
     setSeasonSign(1)
     setSeasonAbsCost(0)
 
-    // 장비비(사다리차) 초기화
-    const effectiveTon = ladderTonnage || matched.tierKey || '5'
+    // 장비비(사다리차) 초기화: 수동 지정한 톤수가 없으면 최적 차량 추천 톤수(matched.tierKey)에 자동 연동
+    const effectiveTon =
+      isLadderTonnageExplicit && ladderTonnage ? ladderTonnage : matched.tierKey || '5'
     setSimLadderTonnage(effectiveTon)
     setUseFromLadder(isFromLadder)
     setUseToLadder(isToLadder)
@@ -448,6 +480,8 @@ export function MovingCostCalculatorModal({
   }, [
     isOpen,
     currentCbm,
+    recommendedTierKey,
+    tierGuides,
     movingDate,
     currentMovingCost,
     distanceKm,
@@ -457,13 +491,22 @@ export function MovingCostCalculatorModal({
     isFromLadder,
     isToLadder,
     ladderTonnage,
+    isLadderTonnageExplicit,
     ladderFares,
     appliedLadderCost,
   ])
 
   const selectedTier = useMemo(() => {
-    return CBM_TIER_GUIDES.find(t => t.id === selectedTierId) || CBM_TIER_GUIDES[2]
-  }, [selectedTierId])
+    return tierGuides.find(t => t.id === selectedTierId) || tierGuides[2]
+  }, [tierGuides, selectedTierId])
+
+  // 선택된 차량 톤수 구간에 맞는 배차 대수 산출 (원가기반 시뮬레이터와 대수 일치)
+  const effectiveVehicleCount = useMemo(() => {
+    if (recommendedTierKey && selectedTier.tierKey === recommendedTierKey && vehicleCount > 0) {
+      return vehicleCount
+    }
+    return ['6', '7.5', '10'].includes(selectedTier.tierKey) ? 2 : 1
+  }, [selectedTier.tierKey, recommendedTierKey, vehicleCount])
 
   // 이사일자 기반 시즌 자동 감지 결과
   const detectedSeason = useMemo(() => {
@@ -490,19 +533,15 @@ export function MovingCostCalculatorModal({
     applyCalendarFlagsForDateStr(nextYmd)
   }
 
-  // 사다리차 기준 톤수 변경 시 출발지/도착지 사다리차 표준운임 자동 갱신
+  // 사다리차 기준 톤수 변경 시 출발지/도착지 사다리차 표준운임(톤수×층수) 자동 갱신
   const handleChangeLadderTonnage = (nextTon: string) => {
     setSimLadderTonnage(nextTon)
     const fCalc = computeLadderFeeFromFares(simFromFloor, nextTon, ladderFares)
     const tCalc = computeLadderFeeFromFares(simToFloor, nextTon, ladderFares)
-    if (fCalc.floorNum > 1) {
-      setSimFromLadderCost(fCalc.cost)
-      setSimFromLadderTier(fCalc.tier)
-    }
-    if (tCalc.floorNum > 1) {
-      setSimToLadderCost(tCalc.cost)
-      setSimToLadderTier(tCalc.tier)
-    }
+    setSimFromLadderCost(fCalc.cost)
+    setSimFromLadderTier(fCalc.tier)
+    setSimToLadderCost(tCalc.cost)
+    setSimToLadderTier(tCalc.tier)
   }
 
   // 출발지 층수 변경 시 사다리차 운임 자동 재계산
@@ -565,7 +604,7 @@ export function MovingCostCalculatorModal({
 
   // 차량 톤수별 거리 할증 계산 결과
   const distanceCalc = useMemo(() => {
-    const totalRoundToll = (Number(roundTollFare) || 0) * Math.max(1, vehicleCount)
+    const totalRoundToll = (Number(roundTollFare) || 0) * Math.max(1, effectiveVehicleCount)
     return calculateTonnageDistanceFare({
       tierKey: selectedTier.tierKey,
       distanceKm: simDistanceKm,
@@ -584,7 +623,7 @@ export function MovingCostCalculatorModal({
     customUltraLongFee,
     includeTollOver30Km,
     roundTollFare,
-    vehicleCount,
+    effectiveVehicleCount,
     applyWaypointFee,
     waypointCount,
     waypointFeeAmount,
@@ -597,7 +636,7 @@ export function MovingCostCalculatorModal({
   const driverExtraDistKm = Math.max(0, simDistanceKm - driverBaseDistKm)
   const driverExtraSteps = driverExtraDistKm > 0 ? Math.ceil(driverExtraDistKm / driverStepDistKm) : 0
   const driverDistanceExtraCost = applyDriverDistanceExtra
-    ? driverExtraSteps * driverStepAllowance * Math.max(1, vehicleCount)
+    ? driverExtraSteps * driverStepAllowance * Math.max(1, effectiveVehicleCount)
     : 0
 
   const rawDistancePlusDriverCost = distanceCalc.totalExtraCost + driverDistanceExtraCost
@@ -702,6 +741,7 @@ export function MovingCostCalculatorModal({
       equipmentApplyMode,
       totalSimulatedQuote,
       summaryText: breakdownItems.join(' / '),
+      ladderTonnage: simLadderTonnage,
     })
     onClose()
   }
@@ -723,11 +763,11 @@ export function MovingCostCalculatorModal({
                   이사비용 산출 시뮬레이터
                 </h2>
                 <span className="bg-blue-100 text-blue-800 text-[11px] font-bold px-2 py-0.5 rounded-full">
-                  CBM · 거리할증 · 시즌(성수기/비수기) · 장비비 통합
+                  최적 차량 추천 톤수 · 거리할증 · 시즌 · 사다리(톤수×층수) 통합
                 </span>
               </div>
               <p className="text-xs text-gray-500 mt-0.5">
-                물량(CBM)별 기본운임, 초과거리 할증, 이사일자 기반 시즌(성수기·비수기)·캘린더 옵션 및 장비비 내역을 종합 산출합니다.
+                최적 차량 추천 톤수({selectedTier.tonnage}, {effectiveVehicleCount}대) 기준 기본운임, 거리할증, 시즌 옵션 및 차량톤수·층수별 사다리비용을 종합 산출합니다.
               </p>
             </div>
           </div>
@@ -751,26 +791,39 @@ export function MovingCostCalculatorModal({
                 </span>
                 <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
                   <Truck size={16} className="text-blue-600" />
-                  <span>CBM별 물량 · 차량 톤수 기본운임 가이드</span>
+                  <span>최적 차량 추천 톤수 · CBM별 기본운임 가이드</span>
                 </h3>
               </div>
 
-              {/* 현재 산출 CBM 뱃지 */}
-              <div className="flex items-center gap-2 text-xs bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-200">
-                <span className="text-gray-500 font-medium">현재 견적서 물량:</span>
+              {/* 현재 산출 CBM 및 최적 차량 추천 연동 뱃지 */}
+              <div className="flex flex-wrap items-center gap-1.5 text-xs bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-200">
+                <span className="text-gray-500 font-medium">필요 적재물량:</span>
                 <span className="font-black text-blue-700">{currentCbm.toFixed(2)} CBM</span>
-                {currentCbm > 0 && (
+                {deadSpaceRatio > 0 && rawCbm !== undefined && (
+                  <span className="text-[10px] text-gray-500">
+                    (순수 {rawCbm.toFixed(1)} + 여유 {deadSpaceRatio}%)
+                  </span>
+                )}
+                {recommendedSummary && (
+                  <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                    최적추천: {recommendedSummary}
+                  </span>
+                )}
+                {(currentCbm > 0 || recommendedTierKey) && (
                   <button
                     type="button"
                     onClick={() => {
-                      const matched = CBM_TIER_GUIDES.find(
-                        t => currentCbm >= t.minCbm && currentCbm <= t.maxCbm
-                      )
+                      const matched =
+                        (recommendedTierKey
+                          ? tierGuides.find(t => t.tierKey === recommendedTierKey)
+                          : undefined) ||
+                        tierGuides.find(t => currentCbm >= t.minCbm && currentCbm <= t.maxCbm) ||
+                        tierGuides[tierGuides.length - 1]
                       if (matched) handleSelectTier(matched)
                     }}
-                    className="ml-1 text-[11px] bg-blue-600 text-white font-bold px-2 py-0.5 rounded hover:bg-blue-700 transition-colors"
+                    className="ml-0.5 text-[11px] bg-blue-600 text-white font-bold px-2 py-0.5 rounded hover:bg-blue-700 transition-colors"
                   >
-                    현재 물량 자동매칭
+                    최적 추천톤수 매칭
                   </button>
                 )}
               </div>
@@ -778,9 +831,11 @@ export function MovingCostCalculatorModal({
 
             {/* CBM 톤수별 6개 구간 카드 그리드 */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
-              {CBM_TIER_GUIDES.map(tier => {
+              {tierGuides.map(tier => {
                 const isSelected = selectedTierId === tier.id
-                const isCurrentRange = currentCbm >= tier.minCbm && currentCbm <= tier.maxCbm
+                const isCurrentRange = recommendedTierKey
+                  ? tier.tierKey === recommendedTierKey && currentCbm > 0
+                  : currentCbm > 0 && currentCbm >= tier.minCbm && currentCbm <= tier.maxCbm
 
                 return (
                   <button
@@ -795,7 +850,7 @@ export function MovingCostCalculatorModal({
                   >
                     {isCurrentRange && (
                       <span className="absolute -top-2 right-2 bg-amber-500 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full shadow-xs">
-                        물량 적합
+                        최적 차량 추천
                       </span>
                     )}
 
@@ -813,7 +868,7 @@ export function MovingCostCalculatorModal({
                       <p className="text-[11px] text-gray-500 mt-1">
                         권장 구간:{' '}
                         {tier.minCbm === 0
-                          ? '7 CBM 이하'
+                          ? `${tier.maxCbm} CBM 이하`
                           : `${tier.minCbm}~${tier.maxCbm > 100 ? '이상' : tier.maxCbm} CBM`}
                       </p>
                       <div className="flex items-center justify-between text-[11px] text-gray-600 mt-1">
@@ -1062,7 +1117,7 @@ export function MovingCostCalculatorModal({
                   </span>
                   {driverExtraSteps > 0 && (
                     <span className="text-[10px] bg-amber-200 text-amber-950 px-1.5 py-0.2 rounded font-extrabold">
-                      +{driverExtraSteps}구간 × 차량 {Math.max(1, vehicleCount)}대
+                      +{driverExtraSteps}구간 × 차량 {Math.max(1, effectiveVehicleCount)}대
                     </span>
                   )}
                 </label>
@@ -1604,10 +1659,10 @@ export function MovingCostCalculatorModal({
                   : 'bg-gray-50/70 border-gray-200'
               }`}
             >
-              {/* 사다리차 기준 톤수 선택 바 */}
+              {/* 사다리차 기준 톤수 선택 바 (차량 톤수 자동 연동) */}
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="font-bold text-gray-700">사다리차 기준 물량(톤수):</span>
+                  <span className="font-bold text-gray-700">사다리차 차량 톤수:</span>
                   {LADDER_TONNAGE_OPTIONS.map(opt => (
                     <button
                       key={opt.value}
@@ -1622,6 +1677,19 @@ export function MovingCostCalculatorModal({
                       {opt.label}
                     </button>
                   ))}
+                  {simLadderTonnage === selectedTier.tierKey ? (
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                      차량 톤수({selectedTier.tierKey}톤) 자동연동됨
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleChangeLadderTonnage(selectedTier.tierKey)}
+                      className="text-[10px] font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 px-1.5 py-0.5 rounded border border-purple-200"
+                    >
+                      차량 톤수({selectedTier.tierKey}톤)로 맞추기
+                    </button>
+                  )}
                 </div>
                 {appliedLadderCost > 0 && (
                   <span className="text-[11px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
@@ -1645,13 +1713,21 @@ export function MovingCostCalculatorModal({
                       <input
                         type="checkbox"
                         checked={useFromLadder}
-                        onChange={e => setUseFromLadder(e.target.checked)}
+                        onChange={e => {
+                          const checked = e.target.checked
+                          setUseFromLadder(checked)
+                          if (checked && simFromLadderCost === 0 && simFromFloor) {
+                            const fCalc = computeLadderFeeFromFares(simFromFloor, simLadderTonnage, ladderFares)
+                            setSimFromLadderCost(fCalc.cost)
+                            setSimFromLadderTier(fCalc.tier)
+                          }
+                        }}
                         className="w-4 h-4 text-purple-600 rounded"
                       />
                       <span>출발지 사다리차</span>
                       {simFromLadderTier && (
                         <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-purple-100 text-purple-800">
-                          {simFromLadderTier}
+                          {simLadderTonnage}톤 · {simFromLadderTier}
                         </span>
                       )}
                     </label>
@@ -1669,7 +1745,9 @@ export function MovingCostCalculatorModal({
                   </div>
                   <div className="flex items-center justify-between pt-1 border-t border-gray-100">
                     <span className="text-[11px] text-gray-500">
-                      {simLadderTonnage}톤 기준 표준운임 자동연동 (수동 수정 가능)
+                      {parseInt(String(simFromFloor || '').replace(/[^0-9]/g, ''), 10) >= 2
+                        ? `${simLadderTonnage}톤 × ${simFromFloor}층 표준단가 자동산출`
+                        : '2층 이상 입력 시 차량톤수·층수별 자동산출'}
                     </span>
                     <div className="flex items-center gap-1">
                       <span className="text-gray-400">+</span>
@@ -1702,13 +1780,21 @@ export function MovingCostCalculatorModal({
                       <input
                         type="checkbox"
                         checked={useToLadder}
-                        onChange={e => setUseToLadder(e.target.checked)}
+                        onChange={e => {
+                          const checked = e.target.checked
+                          setUseToLadder(checked)
+                          if (checked && simToLadderCost === 0 && simToFloor) {
+                            const tCalc = computeLadderFeeFromFares(simToFloor, simLadderTonnage, ladderFares)
+                            setSimToLadderCost(tCalc.cost)
+                            setSimToLadderTier(tCalc.tier)
+                          }
+                        }}
                         className="w-4 h-4 text-purple-600 rounded"
                       />
                       <span>도착지 사다리차</span>
                       {simToLadderTier && (
                         <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-purple-100 text-purple-800">
-                          {simToLadderTier}
+                          {simLadderTonnage}톤 · {simToLadderTier}
                         </span>
                       )}
                     </label>
@@ -1726,7 +1812,9 @@ export function MovingCostCalculatorModal({
                   </div>
                   <div className="flex items-center justify-between pt-1 border-t border-gray-100">
                     <span className="text-[11px] text-gray-500">
-                      {simLadderTonnage}톤 기준 표준운임 자동연동 (수동 수정 가능)
+                      {parseInt(String(simToFloor || '').replace(/[^0-9]/g, ''), 10) >= 2
+                        ? `${simLadderTonnage}톤 × ${simToFloor}층 표준단가 자동산출`
+                        : '2층 이상 입력 시 차량톤수·층수별 자동산출'}
                     </span>
                     <div className="flex items-center gap-1">
                       <span className="text-gray-400">+</span>

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import {
   createStandardItem,
   deleteStandardItem,
@@ -86,6 +86,7 @@ export default function ItemsPage() {
   const [isSpaceOrderModalOpen, setIsSpaceOrderModalOpen] = useState(false)
   const [spaceOrderCatId, setSpaceOrderCatId] = useState<string>('')
   const [spaceOrderedNames, setSpaceOrderedNames] = useState<string[]>([])
+  const spaceOrderedNamesRef = useRef<string[]>([])
   const [spaceOrderDirty, setSpaceOrderDirty] = useState(false)
   const [addSpaceItemQuery, setAddSpaceItemQuery] = useState<string>('')
   const [addSpaceItemPosition, setAddSpaceItemPosition] = useState<string>('')
@@ -449,8 +450,10 @@ export default function ItemsPage() {
       alert('먼저 위치 카테고리를 등록해주세요.')
       return
     }
+    const initialNames = [...(spaceOrderedNamesMap[resolvedId] || [])]
+    spaceOrderedNamesRef.current = initialNames
     setSpaceOrderCatId(resolvedId)
-    setSpaceOrderedNames([...(spaceOrderedNamesMap[resolvedId] || [])])
+    setSpaceOrderedNames(initialNames)
     setSpaceOrderDirty(false)
     setAddSpaceItemQuery('')
     setAddSpaceItemPosition('')
@@ -465,8 +468,10 @@ export default function ItemsPage() {
         return
       }
     }
+    const nextNames = [...(spaceOrderedNamesMap[nextCatId] || [])]
+    spaceOrderedNamesRef.current = nextNames
     setSpaceOrderCatId(nextCatId)
-    setSpaceOrderedNames([...(spaceOrderedNamesMap[nextCatId] || [])])
+    setSpaceOrderedNames(nextNames)
     setSpaceOrderDirty(false)
     setAddSpaceItemQuery('')
     setAddSpaceItemPosition('')
@@ -474,11 +479,13 @@ export default function ItemsPage() {
   }
 
   const handleMoveSpaceItem = (idx: number, direction: -1 | 1) => {
+    const base = spaceOrderedNamesRef.current
     const targetIdx = idx + direction
-    if (targetIdx < 0 || targetIdx >= spaceOrderedNames.length) return
-    const next = [...spaceOrderedNames]
+    if (targetIdx < 0 || targetIdx >= base.length) return
+    const next = [...base]
     const [moved] = next.splice(idx, 1)
     next.splice(targetIdx, 0, moved)
+    spaceOrderedNamesRef.current = next
     setSpaceOrderedNames(next)
     setSpaceOrderDirty(true)
   }
@@ -486,18 +493,21 @@ export default function ItemsPage() {
   const handleJumpSpaceItemToOrder = (idx: number, rawOrder: string) => {
     const num = parseInt(rawOrder, 10)
     if (isNaN(num)) return
-    const clampedIdx = Math.max(0, Math.min(spaceOrderedNames.length - 1, num - 1))
+    const base = spaceOrderedNamesRef.current
+    const clampedIdx = Math.max(0, Math.min(base.length - 1, num - 1))
     if (clampedIdx === idx) return
-    const next = [...spaceOrderedNames]
+    const next = [...base]
     const [moved] = next.splice(idx, 1)
     next.splice(clampedIdx, 0, moved)
+    spaceOrderedNamesRef.current = next
     setSpaceOrderedNames(next)
     setSpaceOrderDirty(true)
   }
 
   const handleAddItemNameToSpaceModal = (nameToAdd: string) => {
-    if (!nameToAdd || spaceOrderedNames.includes(nameToAdd)) return
-    const next = [...spaceOrderedNames]
+    const base = spaceOrderedNamesRef.current
+    if (!nameToAdd || base.includes(nameToAdd)) return
+    const next = [...base]
     const posNum = parseInt(addSpaceItemPosition, 10)
     if (!isNaN(posNum) && posNum > 0) {
       const insertIdx = Math.max(0, Math.min(next.length, posNum - 1))
@@ -505,6 +515,7 @@ export default function ItemsPage() {
     } else {
       next.push(nameToAdd)
     }
+    spaceOrderedNamesRef.current = next
     setSpaceOrderedNames(next)
     setSpaceOrderDirty(true)
     setAddSpaceItemQuery('')
@@ -512,7 +523,9 @@ export default function ItemsPage() {
   }
 
   const handleRemoveItemNameFromSpaceModal = (nameToRemove: string) => {
-    setSpaceOrderedNames(prev => prev.filter(n => n !== nameToRemove))
+    const next = spaceOrderedNamesRef.current.filter(n => n !== nameToRemove)
+    spaceOrderedNamesRef.current = next
+    setSpaceOrderedNames(next)
     setSpaceOrderDirty(true)
   }
 
@@ -528,7 +541,7 @@ export default function ItemsPage() {
 
       const res = await updateSpaceItemOrders({
         categoryId: spaceOrderCatId,
-        orderedItemNames: spaceOrderedNames,
+        orderedItemNames: spaceOrderedNamesRef.current,
         alsoApplyToCategoryIds: bedroomCatIds,
       })
       if (res?.error) {

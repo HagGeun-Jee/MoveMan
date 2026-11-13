@@ -177,58 +177,64 @@ export function detectSeasonByMovingDate(dateVal?: Date | string | null): Detect
   }
 }
 
+// 사다리차 기준정보 미로드/오프라인 대비 표준 사다리차 운임 폴백 테이블 (LadderTruckMaster 동일 단가)
+export const STANDARD_LADDER_FARES_FALLBACK: Omit<LadderFareItem, 'id'>[] = [
+  { floorName: '2~5층', minFloor: 2, maxFloor: 5, cost1Ton: 120000, cost2_5Ton: 130000, cost5Ton: 150000, cost6Ton: 180000, cost7_5Ton: 210000, cost10Ton: 240000, order: 1, note: '저층 기본요금' },
+  { floorName: '6~7층', minFloor: 6, maxFloor: 7, cost1Ton: 130000, cost2_5Ton: 140000, cost5Ton: 160000, cost6Ton: 190000, cost7_5Ton: 220000, cost10Ton: 250000, order: 2, note: '' },
+  { floorName: '8~9층', minFloor: 8, maxFloor: 9, cost1Ton: 140000, cost2_5Ton: 150000, cost5Ton: 170000, cost6Ton: 200000, cost7_5Ton: 230000, cost10Ton: 260000, order: 3, note: '' },
+  { floorName: '10~11층', minFloor: 10, maxFloor: 11, cost1Ton: 150000, cost2_5Ton: 160000, cost5Ton: 180000, cost6Ton: 210000, cost7_5Ton: 240000, cost10Ton: 270000, order: 4, note: '' },
+  { floorName: '12~13층', minFloor: 12, maxFloor: 13, cost1Ton: 160000, cost2_5Ton: 170000, cost5Ton: 190000, cost6Ton: 220000, cost7_5Ton: 250000, cost10Ton: 280000, order: 5, note: '' },
+  { floorName: '14층', minFloor: 14, maxFloor: 14, cost1Ton: 170000, cost2_5Ton: 180000, cost5Ton: 200000, cost6Ton: 230000, cost7_5Ton: 260000, cost10Ton: 290000, order: 6, note: '38m 장비' },
+  { floorName: '15층', minFloor: 15, maxFloor: 15, cost1Ton: 180000, cost2_5Ton: 190000, cost5Ton: 210000, cost6Ton: 240000, cost7_5Ton: 270000, cost10Ton: 300000, order: 7, note: '' },
+  { floorName: '16층', minFloor: 16, maxFloor: 16, cost1Ton: 190000, cost2_5Ton: 200000, cost5Ton: 220000, cost6Ton: 250000, cost7_5Ton: 280000, cost10Ton: 310000, order: 8, note: '45m 장비' },
+  { floorName: '17층', minFloor: 17, maxFloor: 17, cost1Ton: 200000, cost2_5Ton: 210000, cost5Ton: 230000, cost6Ton: 260000, cost7_5Ton: 290000, cost10Ton: 320000, order: 9, note: '' },
+  { floorName: '18층', minFloor: 18, maxFloor: 18, cost1Ton: 220000, cost2_5Ton: 230000, cost5Ton: 250000, cost6Ton: 280000, cost7_5Ton: 310000, cost10Ton: 340000, order: 10, note: '' },
+  { floorName: '19층', minFloor: 19, maxFloor: 19, cost1Ton: 230000, cost2_5Ton: 240000, cost5Ton: 260000, cost6Ton: 290000, cost7_5Ton: 320000, cost10Ton: 350000, order: 11, note: '' },
+  { floorName: '20층', minFloor: 20, maxFloor: 20, cost1Ton: 250000, cost2_5Ton: 260000, cost5Ton: 280000, cost6Ton: 310000, cost7_5Ton: 340000, cost10Ton: 370000, order: 12, note: '54m 고층장비' },
+  { floorName: '21층', minFloor: 21, maxFloor: 21, cost1Ton: 280000, cost2_5Ton: 290000, cost5Ton: 310000, cost6Ton: 340000, cost7_5Ton: 370000, cost10Ton: 400000, order: 13, note: '고층 특수작업' },
+  { floorName: '22층', minFloor: 22, maxFloor: 22, cost1Ton: 310000, cost2_5Ton: 320000, cost5Ton: 340000, cost6Ton: 370000, cost7_5Ton: 400000, cost10Ton: 430000, order: 14, note: '고층 특수작업' },
+  { floorName: '23층', minFloor: 23, maxFloor: 23, cost1Ton: 340000, cost2_5Ton: 350000, cost5Ton: 370000, cost6Ton: 400000, cost7_5Ton: 430000, cost10Ton: 460000, order: 15, note: '65m 초고층장비' },
+  { floorName: '24층', minFloor: 24, maxFloor: 24, cost1Ton: 370000, cost2_5Ton: 380000, cost5Ton: 400000, cost6Ton: 430000, cost7_5Ton: 460000, cost10Ton: 490000, order: 16, note: '초고층' },
+  { floorName: '25층', minFloor: 25, maxFloor: 25, cost1Ton: 400000, cost2_5Ton: 420000, cost5Ton: 440000, cost6Ton: 480000, cost7_5Ton: 520000, cost10Ton: 550000, order: 17, note: '초고층' },
+  { floorName: '26층 이상', minFloor: 26, maxFloor: 99, cost1Ton: 450000, cost2_5Ton: 480000, cost5Ton: 500000, cost6Ton: 550000, cost7_5Ton: 600000, cost10Ton: 650000, order: 18, note: '현장 협의 / 70m급' },
+]
+
 /**
- * 층수 문자열과 톤수 기준 사다리차 표준 요금 산출
+ * 층수 문자열과 차량 톤수 기준 사다리차 표준 요금 산출
+ * - 1톤 / 2.5톤 / 5톤 / 6톤 / 7.5톤 / 10톤 × 2~26층+ 전 구간 정밀 매칭
  */
 export function computeLadderFeeFromFares(
   floorStr: string,
   tonnage: string | number,
   ladderFares: LadderFareItem[] = []
 ): { cost: number; tier: string; floorNum: number } {
-  const floorNum = parseInt(String(floorStr || '').replace(/[^0-9]/g, ''), 10) || 0
+  const raw = String(floorStr || '').trim()
+  if (!raw || /^(b|지하|-)/i.test(raw)) {
+    return { cost: 0, tier: '', floorNum: 0 }
+  }
+
+  const floorNum = parseInt(raw.replace(/[^0-9]/g, ''), 10) || 0
   if (floorNum <= 1) return { cost: 0, tier: '', floorNum }
 
   const ton = typeof tonnage === 'number' ? tonnage : parseFloat(String(tonnage)) || 5
+  const table: Omit<LadderFareItem, 'id'>[] =
+    ladderFares && ladderFares.length > 0 ? ladderFares : STANDARD_LADDER_FARES_FALLBACK
 
-  if (ladderFares.length > 0) {
-    const matched =
-      ladderFares.find(f => floorNum >= f.minFloor && floorNum <= f.maxFloor) ||
-      ladderFares.find(f => floorNum <= f.maxFloor) ||
-      ladderFares[ladderFares.length - 1]
+  const matched =
+    table.find(f => floorNum >= f.minFloor && floorNum <= f.maxFloor) ||
+    table.find(f => floorNum <= f.maxFloor) ||
+    table[table.length - 1]
 
-    if (matched) {
-      let cost = matched.cost5Ton
-      if (ton <= 1.0) cost = matched.cost1Ton
-      else if (ton <= 2.5) cost = matched.cost2_5Ton
-      else if (ton <= 5.0) cost = matched.cost5Ton
-      else if (ton <= 6.0) cost = matched.cost6Ton
-      else if (ton <= 7.5) cost = matched.cost7_5Ton
-      else cost = matched.cost10Ton
+  if (!matched) return { cost: 0, tier: '', floorNum }
 
-      return { cost, tier: matched.floorName, floorNum }
-    }
-  }
+  let cost = matched.cost5Ton
+  if (ton <= 1.5) cost = matched.cost1Ton
+  else if (ton <= 3.5) cost = matched.cost2_5Ton
+  else if (ton <= 5.4) cost = matched.cost5Ton
+  else if (ton <= 6.5) cost = matched.cost6Ton
+  else if (ton <= 8.5) cost = matched.cost7_5Ton
+  else cost = matched.cost10Ton
 
-  // DB 운임표 미로드 시 표준 사다리차 기본 가이드 폴백
-  const base5Ton =
-    floorNum <= 5
-      ? 120000
-      : floorNum <= 7
-        ? 130000
-        : floorNum <= 10
-          ? 150000
-          : floorNum <= 13
-            ? 170000
-            : floorNum <= 16
-              ? 190000
-              : floorNum <= 20
-                ? 220000
-                : 250000
-  const mult = ton <= 1 ? 0.75 : ton <= 2.5 ? 0.85 : ton <= 5 ? 1.0 : ton <= 6 ? 1.15 : ton <= 7.5 ? 1.3 : 1.6
-  return {
-    cost: Math.round((base5Ton * mult) / 10000) * 10000,
-    tier: `${floorNum}층 기준`,
-    floorNum,
-  }
+  return { cost, tier: matched.floorName, floorNum }
 }
 

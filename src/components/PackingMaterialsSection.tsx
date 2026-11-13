@@ -19,6 +19,7 @@ interface PackingMaterialsSectionProps {
   registeredMaterials: RegisteredMaterialCatalogItem[]
   costStandards?: CostStandardData
   validItemCount: number
+  defaultExpanded?: boolean
 }
 
 const CATEGORY_META: Record<
@@ -66,8 +67,9 @@ export function PackingMaterialsSection({
   registeredMaterials,
   costStandards,
   validItemCount,
+  defaultExpanded = true,
 }: PackingMaterialsSectionProps) {
-  const [isExpanded, setIsExpanded] = useState(true)
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded)
   const [selectedAddCode, setSelectedAddCode] = useState('')
   const [activeCategoryTab, setActiveCategoryTab] = useState<'ALL' | PackingMaterialItem['category']>('ALL')
   const [expandedCats, setExpandedCats] = useState<Record<PackingMaterialItem['category'], boolean>>({
@@ -201,7 +203,12 @@ export function PackingMaterialsSection({
     <div className="pt-3 border-t border-gray-100">
       <div className="bg-slate-50/70 rounded-xl border border-slate-200/90 overflow-hidden">
         {/* 헤더 바 */}
-        <div className="px-3 py-2.5 sm:px-4 sm:py-3 bg-white border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div
+          onClick={() => setIsExpanded(prev => !prev)}
+          className={`px-3 py-2.5 sm:px-4 sm:py-3 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-2 cursor-pointer hover:bg-slate-50/60 transition-colors ${
+            isExpanded ? 'border-b border-slate-200/80' : ''
+          }`}
+        >
           <div className="flex items-center gap-2 flex-wrap">
             <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-2xs shrink-0">
               <Package size={15} />
@@ -217,17 +224,25 @@ export function PackingMaterialsSection({
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
                   옷걸이박스 제외
                 </span>
+                {!isExpanded && packingMaterials.length > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-800 border border-slate-300">
+                    총 {packingMaterials.length}종 · 박스 {summary.boxTotal}개 · 바구니 {summary.basketTotal}개 · 커버 {summary.coverTotal}개 · 테이프 {summary.tapeRolls}롤
+                  </span>
+                )}
               </div>
-              <p className="text-[11px] text-gray-500 mt-0.5">
-                견적 물품·내품 CBM 및 투입차량 기준으로 자동 산출되며, OPP 박스테이프는 원가기준정보(5톤 {tape5T}롤 / 2.5톤 {tape2_5T}롤 / 1톤 {tape1T}롤)를 참조합니다.
-              </p>
+              {isExpanded && (
+                <p className="text-[11px] text-gray-500 mt-0.5">
+                  견적 물품·내품 CBM 및 투입차량 기준으로 자동 산출되며, OPP 박스테이프는 원가기준정보(5톤 {tape5T}롤 / 2.5톤 {tape2_5T}롤 / 1톤 {tape1T}롤)를 참조합니다.
+                </p>
+              )}
             </div>
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
             <button
               type="button"
-              onClick={() => {
+              onClick={e => {
+                e.stopPropagation()
                 onToggleAutoSync(true)
                 onRecalculate()
               }}
@@ -239,7 +254,10 @@ export function PackingMaterialsSection({
             </button>
             <button
               type="button"
-              onClick={() => setIsExpanded(prev => !prev)}
+              onClick={e => {
+                e.stopPropagation()
+                setIsExpanded(prev => !prev)
+              }}
               className="px-2 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold flex items-center gap-0.5 border border-gray-300 whitespace-nowrap cursor-pointer"
             >
               <span>{isExpanded ? '접기' : '펼치기'}</span>
@@ -248,7 +266,8 @@ export function PackingMaterialsSection({
           </div>
         </div>
 
-        {/* 분류별 필터 탭 & 요약 바 */}
+        {/* 분류별 필터 탭 & 요약 바 (펼쳐졌을 때만 노출하여 접은 상태에서 깔끔하게 축소) */}
+        {isExpanded && (
         <div className="px-3 py-2 sm:px-4 bg-slate-100/70 border-b border-slate-200/70 flex flex-wrap items-center justify-between gap-2 text-xs">
           <div className="flex flex-wrap items-center gap-1.5">
             <button
@@ -315,6 +334,7 @@ export function PackingMaterialsSection({
             )}
           </div>
         </div>
+        )}
 
         {/* 상세 리스트 (종류별 아코디언) */}
         {isExpanded && (

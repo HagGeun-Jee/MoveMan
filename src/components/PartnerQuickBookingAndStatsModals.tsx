@@ -168,6 +168,15 @@ const DEFAULT_QUICK_VISIT_SMS_TEMPLATES: QuickVisitSmsTemplateItem[] = [
 
 약속된 시간에 맞춰 출발 예정입니다.
 주차 안내나 현관 호출 방법 등 참고사항이 있으시면 편하게 문자 남겨주세요. 감사합니다!`
+  },
+  {
+    id: 'tpl_missed_call',
+    title: '통화 부재중 안내',
+    isDefault: false,
+    content: `안녕하세요, {고객명} 고객님!
+{의뢰업체} 통해 이사 방문견적 일정 상담차 연락드렸으나 통화가 어려워 문자 남깁니다.
+
+편하신 통화 시간이나 희망하시는 방문일시를 문자로 남겨주시면 확인 후 다시 연락드리겠습니다. 감사합니다!`
   }
 ]
 
@@ -353,14 +362,28 @@ export function QuickVisitBookingModal({
       }
     })
 
+    const upgradeStockTemplates = (list: QuickVisitSmsTemplateItem[]) => {
+      const ids = list.map(t => t.id)
+      const isInitialThree =
+        list.length === 3 &&
+        ids.includes('tpl_visit_confirm') &&
+        ids.includes('tpl_platform_assign') &&
+        ids.includes('tpl_before_depart')
+      if (isInitialThree && DEFAULT_QUICK_VISIT_SMS_TEMPLATES[3]) {
+        return [...list, { ...DEFAULT_QUICK_VISIT_SMS_TEMPLATES[3] }]
+      }
+      return list
+    }
+
     // 1) localStorage 즉시 로드
     try {
       const cached = localStorage.getItem(QUICK_VISIT_SMS_STORAGE_KEY)
       if (cached) {
         const parsed = JSON.parse(cached)
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setSmsTemplates(parsed)
-          const def = parsed.find((t: QuickVisitSmsTemplateItem) => t.isDefault) || parsed[0]
+          const upgraded = upgradeStockTemplates(parsed)
+          setSmsTemplates(upgraded)
+          const def = upgraded.find((t: QuickVisitSmsTemplateItem) => t.isDefault) || upgraded[0]
           if (def) setSelectedTemplateId(def.id)
         }
       }
@@ -371,13 +394,14 @@ export function QuickVisitBookingModal({
     // 2) 서버 DB 저장 템플릿 동기화
     getQuickVisitSmsTemplates().then(serverList => {
       if (serverList && serverList.length > 0) {
-        setSmsTemplates(serverList)
-        const def = serverList.find(t => t.isDefault) || serverList[0]
+        const upgraded = upgradeStockTemplates(serverList)
+        setSmsTemplates(upgraded)
+        const def = upgraded.find(t => t.isDefault) || upgraded[0]
         setSelectedTemplateId(prev =>
-          serverList.some(t => t.id === prev) ? prev : def.id
+          upgraded.some(t => t.id === prev) ? prev : def.id
         )
         try {
-          localStorage.setItem(QUICK_VISIT_SMS_STORAGE_KEY, JSON.stringify(serverList))
+          localStorage.setItem(QUICK_VISIT_SMS_STORAGE_KEY, JSON.stringify(upgraded))
         } catch {
           // ignore
         }
@@ -1011,6 +1035,19 @@ export function QuickVisitBookingModal({
     const now = new Date()
     setSmsRawText('')
     setParseFeedback(null)
+    if (partners.length > 0) {
+      setSelectedPartnerId(partners[0].id)
+      setSelectedPartnerName(partners[0].name)
+      setSelectedPartnerShortName(partners[0].shortName || partners[0].name.slice(0, 4))
+      setSelectedPartnerColor(partners[0].color || 'blue')
+    } else {
+      setSelectedPartnerId('')
+      setSelectedPartnerName('')
+      setSelectedPartnerShortName('')
+      setSelectedPartnerColor('blue')
+    }
+    setIsAddingNewPartner(false)
+    setNewPartnerName('')
     setCustomerName('')
     setContact('')
     setMovingType('P')
@@ -1023,16 +1060,28 @@ export function QuickVisitBookingModal({
     setToAddress('')
     setSpecialNotes('')
     setRegisteredBookingId(null)
+    const defTpl = smsTemplates.find(t => t.isDefault) || smsTemplates[0]
+    if (defTpl) {
+      setSelectedTemplateId(defTpl.id)
+    }
     setIsSmsManualEdited(false)
     setManualSmsText('')
     setIsTemplateManagerOpen(false)
     prevCleanCustNameRef.current = ''
   }
 
+  const hasAnyEnteredField = Boolean(
+    smsRawText.trim() ||
+      customerName.trim() ||
+      contact.trim() ||
+      movingDatePart ||
+      fromAddress.trim() ||
+      toAddress.trim() ||
+      specialNotes.trim()
+  )
+
   const handleCloseModal = () => {
-    if (registeredBookingId) {
-      resetFormFields()
-    }
+    resetFormFields()
     onClose()
   }
 
@@ -1197,7 +1246,7 @@ export function QuickVisitBookingModal({
   }
 
   const handleResetDefaultTemplates = async () => {
-    if (!confirm('문자 템플릿 목록을 초기 기본 템플릿 3종으로 복원하시겠습니까?')) return
+    if (!confirm('문자 템플릿 목록을 초기 기본 템플릿 4종으로 복원하시겠습니까?')) return
     const defaults = DEFAULT_QUICK_VISIT_SMS_TEMPLATES.map(t => ({ ...t }))
     setSelectedTemplateId(defaults[0].id)
     setEditingTplId(defaults[0].id)
@@ -1586,14 +1635,27 @@ export function QuickVisitBookingModal({
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={handleCloseModal}
-            aria-label="닫기"
-            className="p-1 text-white/80 hover:text-white rounded-lg shrink-0"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {!registeredBookingId && (
+              <button
+                type="button"
+                onClick={resetFormFields}
+                title="연락 부재 등으로 접수 보류 시 입력 내용 전체 초기화"
+                className="px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-extrabold flex items-center gap-1 border border-white/25 transition-colors"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>초기화</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleCloseModal}
+              aria-label="닫기"
+              className="p-1 text-white/80 hover:text-white rounded-lg shrink-0"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {registeredBookingId ? (
@@ -1768,16 +1830,15 @@ export function QuickVisitBookingModal({
                     <ClipboardPaste className="w-3 h-3" />
                     <span>클립보드 붙여넣기</span>
                   </button>
-                  {smsRawText && (
+                  {hasAnyEnteredField && (
                     <button
                       type="button"
-                      onClick={() => {
-                        setSmsRawText('')
-                        setParseFeedback(null)
-                      }}
-                      className="text-[11px] text-gray-500 hover:text-red-600 font-semibold"
+                      onClick={resetFormFields}
+                      className="px-2 py-0.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-[11px] font-extrabold flex items-center gap-1"
+                      title="연락 부재 시 문자 및 추출된 고객·주소·일정 전체 초기화"
                     >
-                      지우기
+                      <RotateCcw className="w-3 h-3" />
+                      <span>전체 초기화</span>
                     </button>
                   )}
                 </div>
@@ -2135,32 +2196,44 @@ export function QuickVisitBookingModal({
             {renderSmsTemplateComposerSection(false)}
 
             {/* 하단 버튼 */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-3 border-t border-gray-200">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-3 border-t border-gray-200">
               <button
                 type="button"
-                onClick={handleCloseModal}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200"
+                onClick={resetFormFields}
+                title="연락 부재 등으로 접수 보류 시 입력한 모든 항목을 초기화합니다"
+                className="px-3.5 py-2 rounded-xl text-xs font-extrabold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 flex items-center justify-center gap-1.5 transition-colors"
               >
-                취소
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>입력 초기화 (연락부재)</span>
               </button>
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={() => handleSaveBooking(false)}
-                className="px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs flex items-center justify-center gap-1.5"
-              >
-                <Check className="w-4 h-4" />
-                <span>{submitting ? '등록 중...' : '방문예약 등록 완료 (문자발송)'}</span>
-              </button>
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={() => handleSaveBooking(true)}
-                className="px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold text-white bg-blue-600 hover:bg-blue-700 shadow-xs flex items-center justify-center gap-1.5"
-              >
-                <span>등록 후 바로 견적서 열기</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200"
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => handleSaveBooking(false)}
+                  className="px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs flex items-center justify-center gap-1.5"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>{submitting ? '등록 중...' : '방문예약 등록 완료 (문자발송)'}</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => handleSaveBooking(true)}
+                  className="px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold text-white bg-blue-600 hover:bg-blue-700 shadow-xs flex items-center justify-center gap-1.5"
+                >
+                  <span>등록 후 바로 견적서 열기</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         )}

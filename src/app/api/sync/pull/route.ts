@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { ensureStandLampItems } from '@/app/actions/item'
+import { getLocationCategories, getStandardItems } from '@/app/actions/item'
+import { getVehicles } from '@/app/actions/vehicle'
 import { verifyActiveAdmin } from '@/lib/adminSchema'
 import { cookies } from 'next/headers'
 import { decrypt } from '@/lib/session'
@@ -30,11 +31,10 @@ export async function GET(request: Request) {
     const sinceStr = searchParams.get('since')
     const sinceDate = sinceStr ? new Date(sinceStr) : null
 
-    // 1. 기준정보 마스터 데이터 순차 조회 (DB 커넥션 풀 고갈 방지)
-    await ensureStandLampItems()
-    const categories = await prisma.locationCategory.findMany({ orderBy: { order: 'asc' } })
-    const standardItems = await prisma.standardItem.findMany({ include: { locations: true } })
-    const vehicles = await prisma.vehicleMaster.findMany()
+    // 1. 기준정보 마스터 데이터 순차 조회 (DB 커넥션 풀 고갈 및 구형 DMMF 불일치 방지)
+    const categories = await getLocationCategories()
+    const standardItems = await getStandardItems()
+    const vehicles = await getVehicles()
     const labors = await prisma.laborMaster.findMany()
     const ladders = await prisma.ladderTruckMaster.findMany({ orderBy: { order: 'asc' } })
     const rawMaterials = await prisma.materialItem.findMany({ orderBy: { name: 'asc' } })

@@ -53,8 +53,10 @@ import {
   resolveTonnageTierKey,
   calculateTonnageDistanceFare,
   adjustTollForHeavyTruck,
+  computeOptimalVehiclePlan,
   type TonnageTierKey,
 } from '@/lib/distanceFare'
+import { computeLadderFeeFromFares } from '@/lib/movingSeason'
 import {
   sortCategoriesByDisplayOrder,
   getOrderedItemNamesForSpace,
@@ -591,33 +593,21 @@ export function EstimateForm({
   const [distanceCalcError, setDistanceCalcError] = useState<string | null>(null)
   const [distanceNotice, setDistanceNotice] = useState<string | null>(null)
   
-  // 사다리차 표준 운임표 관련 상태
+  // 사다리차 표준 운임표 관련 상태 (차량 톤수 및 층수 감안 자동 연동)
   const [ladderFares, setLadderFares] = useState<LadderFareItem[]>([])
   const [ladderTonnage, setLadderTonnage] = useState<string>(envObj.ladderTonnage || '5')
+  const [isLadderTonnageManuallyEdited, setIsLadderTonnageManuallyEdited] = useState<boolean>(
+    Boolean(envObj.isLadderTonnageManuallyEdited)
+  )
 
   useEffect(() => {
     getLadderFares().then(setLadderFares)
   }, [])
 
-  // 층수와 톤수에 따른 사다리차 요금 계산
+  // 층수와 차량 톤수에 따른 사다리차 요금 계산 (DB 운임표 우선, 로딩 전·오프라인 시 표준 기본단가표 폴백)
   const calculateLadderFee = (floorStr: string, tonnage: string): { cost: number, tier: string } => {
-    const floor = parseInt(floorStr) || 0
-    if (floor <= 1 || ladderFares.length === 0) return { cost: 0, tier: '' }
-    const ton = parseFloat(tonnage) || 5
-    const matched = ladderFares.find(f => floor >= f.minFloor && floor <= f.maxFloor)
-      || ladderFares.find(f => floor <= f.maxFloor)
-      || ladderFares[ladderFares.length - 1]
-    if (!matched) return { cost: 0, tier: '' }
-    
-    let cost = matched.cost5Ton
-    if (ton <= 1.0) cost = matched.cost1Ton
-    else if (ton <= 2.5) cost = matched.cost2_5Ton
-    else if (ton <= 5.0) cost = matched.cost5Ton
-    else if (ton <= 6.0) cost = matched.cost6Ton
-    else if (ton <= 7.5) cost = matched.cost7_5Ton
-    else cost = matched.cost10Ton
-
-    return { cost, tier: matched.floorName }
+    const res = computeLadderFeeFromFares(floorStr, tonnage, ladderFares)
+    return { cost: res.cost, tier: res.tier }
   }
 
   const isFromLadder = fromWorkTypes.includes('사다리차')
@@ -681,6 +671,8 @@ export function EstimateForm({
   
   const [vehicles, setVehicles] = useState<any[]>(envObj.vehicles || [])
   const [standardVehicles, setStandardVehicles] = useState<any[]>([])
+  const [isVehiclesManuallyEdited, setIsVehiclesManuallyEdited] = useState<boolean>(false)
+  const [isAutoVehicleSync, setIsAutoVehicleSync] = useState<boolean>(false)
 
   // 이삿날 배차 호차 및 담당 팀장 상태
   const [dispatchInfo, setDispatchInfo] = useState<any>(() => ({
@@ -758,16 +750,6 @@ export function EstimateForm({
     setLongRatePerKm(spec.longExtraRate)
     setCustomUltraLongFee(spec.ultraLongSurcharge)
   }
-
-  // 투입 차량이 변경되면 해당 차량 톤수 규격의 표준 거리 단가로 자동 연동
-  useEffect(() => {
-    if (vehicles && vehicles.length > 0) {
-      const detectedKey = resolveTonnageTierKey(vehicles, 0)
-      if (detectedKey !== distanceTierKey) {
-        handleSelectDistanceTier(detectedKey)
-      }
-    }
-  }, [vehicles])
 
   const [tollFare, setTollFare] = useState<number>(Number(envObj.tollFare) || 0)
   const [roundTollFare, setRoundTollFare] = useState<number>(
@@ -1389,158 +1371,132 @@ export function EstimateForm({
 
   const [vehicleRecommendationReason, setVehicleRecommendationReason] = useState<string>('')
 
-  const handleRecommendVehicles = () => {
-    // 5톤, 2.5톤, 1톤 3종 차량을 우선 조합 대상으로 필터링 (부족한 톤수가 있으면 표준 스펙 자동 보완)
-    let valid = standardVehicles.filter(v => 
-      (v.name.includes('5톤') || v.name.includes('2.5톤') || v.name.includes('1톤')) && (v.maxCbm || 0) > 0
+  // 최적 차량 추천 마스터 플랜 (최적 차량 추천 · 원가기반 이사비용 · 이사비용산출 3곳 단일 기준 통합)
+  const optimalVehiclePlan = useMemo(
+    () => computeOptimalVehiclePlan(requiredCbm, standardVehicles),
+    [requiredCbm, standardVehicles]
+  )
+
+  // 비용 산출 모달(원가기반 / 이사비용산출) 및 사다리차·거리할증에 공통 적용할 유효 차량 플랜
+  const effectiveVehiclePlanForCalc = useMemo(() => {
+    if (!isVehiclesManuallyEdited && requiredCbm > 0) {
+      return {
+        tierKey: optimalVehiclePlan.tierKey,
+        vehicles: optimalVehiclePlan.vehicles,
+        totalCount: optimalVehiclePlan.totalCount,
+        summaryDesc: optimalVehiclePlan.summaryDesc,
+      }
+    }
+    if (vehicles && vehicles.length > 0) {
+      const detectedTier = resolveTonnageTierKey(vehicles, requiredCbm, standardVehicles)
+      const countSum = vehicles.reduce((sum, v) => sum + (Number(v.count) || 1), 0) || 1
+      const manualDesc = vehicles
+        .map((v: any) => `${v.name} ${v.count || 1}대`)
+        .join(' + ')
+      return {
+        tierKey: detectedTier,
+        vehicles,
+        totalCount: countSum,
+        summaryDesc: manualDesc || optimalVehiclePlan.summaryDesc,
+      }
+    }
+    return {
+      tierKey: optimalVehiclePlan.tierKey,
+      vehicles: optimalVehiclePlan.vehicles,
+      totalCount: optimalVehiclePlan.totalCount,
+      summaryDesc: optimalVehiclePlan.summaryDesc,
+    }
+  }, [isVehiclesManuallyEdited, requiredCbm, optimalVehiclePlan, vehicles, standardVehicles])
+
+  // 최적/유효 차량 톤수가 바뀌면 사다리차 산출 기준 화물 톤수도 자동 연동 (사용자가 수동 고정하지 않은 경우)
+  useEffect(() => {
+    if (!isLadderTonnageManuallyEdited && effectiveVehiclePlanForCalc.tierKey !== ladderTonnage) {
+      setLadderTonnage(effectiveVehiclePlanForCalc.tierKey)
+    }
+  }, [effectiveVehiclePlanForCalc.tierKey, isLadderTonnageManuallyEdited, ladderTonnage])
+
+  // 거리 단가 기준 톤수도 유효 차량 플랜(최적 차량 추천 또는 수동 배차 차량)과 자동 동기화
+  useEffect(() => {
+    if (requiredCbm > 0 || (vehicles && vehicles.length > 0)) {
+      if (effectiveVehiclePlanForCalc.tierKey !== distanceTierKey) {
+        handleSelectDistanceTier(effectiveVehiclePlanForCalc.tierKey)
+      }
+    }
+  }, [effectiveVehiclePlanForCalc.tierKey, requiredCbm, vehicles])
+
+  // [최적 차량 추천]을 실행한 이후 물품 CBM이 변동되면 배차 차량 목록도 최적 조합으로 자동 갱신
+  useEffect(() => {
+    if (!isAutoVehicleSync || isVehiclesManuallyEdited) return
+    if (requiredCbm <= 0) {
+      setVehicles([])
+      return
+    }
+    setVehicles(optimalVehiclePlan.vehicles)
+    setVehicleRecommendationReason(
+      `필요 적재량 ${requiredCbm.toFixed(2)} CBM (데드스페이스 ${deadSpaceRatio}%) → ${optimalVehiclePlan.summaryDesc} [총 적재용량 ${optimalVehiclePlan.totalProvidedCbm} CBM] 최적 배차 자동 연동`
     )
-    if (!valid.some(v => v.name.includes('5톤'))) {
-      valid.push({ id: 'std_vehicle_5t', name: '5톤 탑차', defaultCost: 400000, maxCbm: 31, tonnage: 5 } as any)
-    }
-    if (!valid.some(v => v.name.includes('2.5톤'))) {
-      valid.push({ id: 'std_vehicle_2_5t', name: '2.5톤 탑차', defaultCost: 250000, maxCbm: 15, tonnage: 2.5 } as any)
-    }
-    if (!valid.some(v => v.name.includes('1톤') && !v.name.includes('11톤'))) {
-      valid.push({ id: 'std_vehicle_1t', name: '1톤 탑차', defaultCost: 150000, maxCbm: 7, tonnage: 1 } as any)
-    }
-    
-    const target = Math.ceil(requiredCbm * 100)
-    if (target <= 0) {
+  }, [isAutoVehicleSync, isVehiclesManuallyEdited, requiredCbm, deadSpaceRatio, optimalVehiclePlan])
+
+  const handleRecommendVehicles = () => {
+    setIsVehiclesManuallyEdited(false)
+    setIsAutoVehicleSync(true)
+    setIsLadderTonnageManuallyEdited(false)
+
+    if (requiredCbm <= 0) {
       setVehicles([])
       setVehicleRecommendationReason('필요 적재 CBM이 0이므로 투입 차량이 초기화되었습니다.')
       return
     }
-    
-    // DP: Find the combination of vehicles that minimizes total defaultCost while providing at least 'target' capacity
-    const maxVehicleCap = Math.max(...valid.map(v => Math.ceil((v.maxCbm || 0) * 100)))
-    const maxCapacity = target + maxVehicleCap
-    
-    // Safety check for extreme edge cases (e.g. requiredCbm > 1000)
-    if (maxCapacity > 100000) {
-      alert("산출 CBM이 너무 큽니다. 추천 기능을 사용할 수 없습니다.")
+
+    if (requiredCbm > 1000) {
+      alert('산출 CBM이 너무 큽니다. 추천 기능을 사용할 수 없습니다.')
       return
     }
-    
-    const dp = new Array(maxCapacity + 1).fill(Infinity)
-    const counts = new Array(maxCapacity + 1).fill(0)
-    const choice = new Array(maxCapacity + 1).fill(null)
-    
-    dp[0] = 0
-    
-    for (let i = 0; i <= maxCapacity; i++) {
-      if (dp[i] === Infinity) continue;
-      for (const v of valid) {
-        const cap = Math.ceil(v.maxCbm * 100)
-        const nextCap = i + cap
-        const cost = dp[i] + (v.defaultCost || 0)
-        
-        if (nextCap <= maxCapacity) {
-          if (cost < dp[nextCap]) {
-            dp[nextCap] = cost
-            counts[nextCap] = counts[i] + 1
-            choice[nextCap] = v
-          } else if (cost === dp[nextCap] && counts[i] + 1 < counts[nextCap]) {
-            // Tie-breaker: prefer fewer vehicles if costs are equal
-            counts[nextCap] = counts[i] + 1
-            choice[nextCap] = v
-          }
-        }
-      }
-    }
-    
-    // Find the min cost for any capacity >= target
-    let bestCap = target
-    let minCost = Infinity
-    for (let i = target; i <= maxCapacity; i++) {
-      if (dp[i] < minCost) {
-        minCost = dp[i]
-        bestCap = i
-      } else if (dp[i] === minCost && counts[i] < counts[bestCap]) {
-        bestCap = i
-      }
-    }
-    
-    if (minCost === Infinity) {
-      alert("추천할 수 있는 차량 조합이 없습니다.")
-      return
-    }
-    
-    // Backtrack to find chosen vehicles
-    const recommendationMap: Record<string, any> = {}
-    let curr = bestCap
-    while (curr > 0 && choice[curr]) {
-      const v = choice[curr]
-      if (!recommendationMap[v.id]) {
-        recommendationMap[v.id] = { id: v.id, name: v.name, cost: v.defaultCost, count: 0, maxCbm: v.maxCbm }
-      }
-      recommendationMap[v.id].count += 1
-      curr -= Math.ceil(v.maxCbm * 100)
-    }
 
-    const recommendedList = Object.values(recommendationMap).sort((a: any, b: any) => (b.maxCbm || 0) - (a.maxCbm || 0))
-    setVehicles(recommendedList)
-
-    const totalProvidedCbm = recommendedList.reduce((acc: number, v: any) => acc + (v.maxCbm || 0) * (v.count || 1), 0)
-    const summaryDesc = recommendedList.map((v: any) => `${v.name} ${v.count}대(${(v.maxCbm || 0) * v.count} CBM)`).join(' + ')
+    setVehicles(optimalVehiclePlan.vehicles)
+    setLadderTonnage(optimalVehiclePlan.tierKey)
+    handleSelectDistanceTier(optimalVehiclePlan.tierKey)
     setVehicleRecommendationReason(
-      `필요 적재량 ${requiredCbm.toFixed(2)} CBM (데드스페이스 ${deadSpaceRatio}%) → ${summaryDesc} [총 적재용량 ${totalProvidedCbm} CBM] 최적 배차 추천 완료`
+      `필요 적재량 ${requiredCbm.toFixed(2)} CBM (데드스페이스 ${deadSpaceRatio}%) → ${optimalVehiclePlan.summaryDesc} [총 적재용량 ${optimalVehiclePlan.totalProvidedCbm} CBM] 최적 배차 추천 완료`
     )
   }
 
   const [laborRecommendationReason, setLaborRecommendationReason] = useState<string>('')
 
-  const handleRecommendLabors = () => {
-    if (standardLabors.length === 0) {
-      alert("인건비 기초정보에 등록된 인력이 없습니다. 인건비정보 관리에서 먼저 등록해주세요.")
-      return
-    }
-
-    // 인원 산출 기준: 필요 적재 CBM (데드스페이스 기본 0% 적용 시 순수 물품 CBM과 동일)
-    const cbm = requiredCbm
+  // 최적 차량 추천 톤수 구간(bounds)과 동기화된 권장 인원수 산출 헬퍼
+  const computeRecommendedLaborCounts = (cbm: number) => {
     if (cbm <= 0) {
-      setLabors([])
-      setLaborRecommendationReason('적재 물품 CBM이 0이므로 작업 인원이 초기화되었습니다.')
-      return
+      return { baseMale: 0, baseFemale: 0, extraMale: 0, totalMale: 0, totalFemale: 0, reasons: [] as string[] }
     }
-
-    // 1. 기본 인원 산출 (데드스페이스 0% 기준 차량 톤수별 최대 적재 CBM과 매칭)
+    const { c1, c25, c5, c6, c75, c10 } = optimalVehiclePlan.bounds
     const isPacking = movingType === 'P' || (movingType === 'K' && organizeStatus === '정리')
     let baseMale = 0
     let baseFemale = 0
 
-    if (cbm <= 7.0) {
-      // 1톤 1대 (원룸 / 소형, ~7 CBM)
+    if (cbm <= c1) {
       baseMale = 1
       baseFemale = 0
-    } else if (cbm <= 15.0) {
-      // 2.5톤 1대 (투룸 / 신혼, ~15 CBM)
+    } else if (cbm <= c25) {
       baseMale = 2
       baseFemale = isPacking ? 1 : 0
-    } else if (cbm <= 31.0) {
-      // 5톤 1대 (20~30평형 표준 가정, ~31 CBM)
+    } else if (cbm <= c5) {
       baseMale = 3
       baseFemale = isPacking ? 1 : 0
-    } else if (cbm <= 38.0) {
-      // 5톤 1대 + 1톤 1대 [6톤] (32~34평형, ~38 CBM)
-      // 양쪽 사다리차 또는 한쪽 사다리차 사용 시 남3+여1, 미사용 시 남4+여1
+    } else if (cbm <= c6) {
       const hasAnyLadder = fromWorkTypes.includes('사다리차') || toWorkTypes.includes('사다리차')
       baseMale = hasAnyLadder ? 3 : 4
       baseFemale = isPacking ? 1 : 0
-    } else if (cbm <= 46.0) {
-      // 5톤 1대 + 2.5톤 1대 [7.5톤] (34평 짐 많음 / 40평형, ~46 CBM)
+    } else if (cbm <= c75) {
       baseMale = 4
       baseFemale = isPacking ? 1 : 0
-    } else if (cbm <= 62.0) {
-      // 5톤 2대 [10톤] (45평형 이상 대형, ~62 CBM)
+    } else if (cbm <= c10) {
       baseMale = 5
       baseFemale = isPacking ? 2 : 1
     } else {
-      // 5톤 2대 초과 초대형 (62 CBM 초과)
-      baseMale = 5 + Math.ceil((cbm - 62.0) / 15)
+      baseMale = 5 + Math.ceil((cbm - c10) / Math.max(12, c25))
       baseFemale = isPacking ? 2 : 1
     }
 
-    // 2. 작업환경(계단, 수작업, 층수 등) 가산 요인
     const hasStairsOrManualFrom = fromWorkTypes.includes('수작업') || fromWorkTypes.includes('계단')
     const hasStairsOrManualTo = toWorkTypes.includes('수작업') || toWorkTypes.includes('계단')
     const fromFloorNum = parseInt((fromFloor || '').replace(/[^0-9]/g, '')) || 0
@@ -1559,7 +1515,6 @@ export function EstimateForm({
         reasons.push('도착지 계단/수작업(+1명)')
       }
 
-      // 3층 이상 고층 계단/수작업이며 CBM이 18 이상인 경우 추가 인력
       if ((hasStairsOrManualFrom && fromFloorNum >= 3) || (hasStairsOrManualTo && toFloorNum >= 3)) {
         if (cbm >= 18) {
           extraMale += 1
@@ -1568,15 +1523,38 @@ export function EstimateForm({
       }
     }
 
-    // 사다리차 없이 엘리베이터로만 진행하는 대형 이사(35 CBM 이상) 동선 가산
-    const isNoLadderAndElevator = (!fromWorkTypes.includes('사다리차') && fromWorkTypes.includes('엘리베이터')) || (!toWorkTypes.includes('사다리차') && toWorkTypes.includes('엘리베이터'))
-    if (isNoLadderAndElevator && cbm >= 35 && extraMale === 0) {
+    const isNoLadderAndElevator =
+      (!fromWorkTypes.includes('사다리차') && fromWorkTypes.includes('엘리베이터')) ||
+      (!toWorkTypes.includes('사다리차') && toWorkTypes.includes('엘리베이터'))
+    if (isNoLadderAndElevator && cbm >= c6 && extraMale === 0) {
       extraMale += 1
       reasons.push('사다리차 미사용 엘리베이터 동선 고려(+1명)')
     }
 
-    const totalMale = baseMale + extraMale
-    const totalFemale = baseFemale
+    return {
+      baseMale,
+      baseFemale,
+      extraMale,
+      totalMale: baseMale + extraMale,
+      totalFemale: baseFemale,
+      reasons,
+    }
+  }
+
+  const handleRecommendLabors = () => {
+    if (standardLabors.length === 0) {
+      alert("인건비 기초정보에 등록된 인력이 없습니다. 인건비정보 관리에서 먼저 등록해주세요.")
+      return
+    }
+
+    const cbm = requiredCbm
+    if (cbm <= 0) {
+      setLabors([])
+      setLaborRecommendationReason('적재 물품 CBM이 0이므로 작업 인원이 초기화되었습니다.')
+      return
+    }
+
+    const { baseMale, baseFemale, totalMale, totalFemale, reasons } = computeRecommendedLaborCounts(cbm)
 
     // standardLabors 매핑 (남성/여성 명칭 매칭 또는 순차 매칭)
     const maleLabor = standardLabors.find(l => l.name.includes('남')) || standardLabors[0]
@@ -2177,6 +2155,7 @@ export function EstimateForm({
     extraDistanceKm,
     distanceExtraCost: calculatedExtraCost,
     ladderTonnage,
+    isLadderTonnageManuallyEdited,
     ladderFromCost: fromLadderCalc.cost,
     ladderToCost: toLadderCalc.cost,
     ladderTotalCost: totalLadderCost,
@@ -2838,20 +2817,38 @@ export function EstimateForm({
                         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                           <span className="text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap">화물 기준 톤수:</span>
                           <div className="flex flex-wrap items-center gap-1">
-                            {['1', '2.5', '5', '6', '7.5', '10'].map(ton => (
+                            {['1', '2.5', '5', '6', '7.5', '10'].map(ton => {
+                              const isRecommendedTon = ton === effectiveVehiclePlanForCalc.tierKey
+                              return (
+                                <button
+                                  key={ton}
+                                  type="button"
+                                  onClick={() => {
+                                    setLadderTonnage(ton)
+                                    setIsLadderTonnageManuallyEdited(ton !== effectiveVehiclePlanForCalc.tierKey)
+                                  }}
+                                  className={`px-2 sm:px-2.5 py-0.5 sm:py-1 text-xs font-bold rounded-md border transition-all ${
+                                    ladderTonnage === ton
+                                      ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+                                      : 'bg-gray-50 text-gray-700 border-gray-300 hover:bg-gray-100'
+                                  }`}
+                                >
+                                  {ton}톤{isRecommendedTon ? ' (추천차량)' : ''}
+                                </button>
+                              )
+                            })}
+                            {isLadderTonnageManuallyEdited && (
                               <button
-                                key={ton}
                                 type="button"
-                                onClick={() => setLadderTonnage(ton)}
-                                className={`px-2 sm:px-2.5 py-0.5 sm:py-1 text-xs font-bold rounded-md border transition-all ${
-                                  ladderTonnage === ton
-                                    ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
-                                    : 'bg-gray-50 text-gray-700 border-gray-300 hover:bg-gray-100'
-                                }`}
+                                onClick={() => {
+                                  setIsLadderTonnageManuallyEdited(false)
+                                  setLadderTonnage(effectiveVehiclePlanForCalc.tierKey)
+                                }}
+                                className="px-2 py-0.5 text-[11px] font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-md transition-colors"
                               >
-                                {ton}톤 {ton === '5' ? '(기본)' : ''}
+                                추천차량({effectiveVehiclePlanForCalc.tierKey}톤) 자동연동
                               </button>
-                            ))}
+                            )}
                           </div>
                         </div>
 
@@ -4424,12 +4421,19 @@ export function EstimateForm({
                           <td className="px-2 py-1">
                             <input type="number" min="1" value={vehicle.count} onChange={e => {
                               const newVehicles = [...vehicles]
-                              newVehicles[idx].count = parseInt(e.target.value) || 1
+                              newVehicles[idx] = { ...newVehicles[idx], count: parseInt(e.target.value) || 1 }
+                              setIsVehiclesManuallyEdited(true)
+                              setIsAutoVehicleSync(false)
                               setVehicles(newVehicles)
                             }} onFocus={handleSelectAllOnFocus} className="w-full rounded border border-gray-300 bg-white px-1.5 py-0.5 text-xs sm:text-sm outline-none focus:border-blue-500 text-right" />
                           </td>
                           <td className="px-1 py-1 text-center">
-                            <button type="button" onClick={() => setVehicles(vehicles.filter((_, i) => i !== idx))} className="text-red-500 hover:text-red-700 font-bold text-xs">✕</button>
+                            <button type="button" onClick={() => {
+                              const nextVehicles = vehicles.filter((_, i) => i !== idx)
+                              setIsVehiclesManuallyEdited(nextVehicles.length > 0)
+                              setIsAutoVehicleSync(false)
+                              setVehicles(nextVehicles)
+                            }} className="text-red-500 hover:text-red-700 font-bold text-xs">✕</button>
                           </td>
                         </tr>
                       ))}
@@ -4443,7 +4447,19 @@ export function EstimateForm({
                   if(!e.target.value) return;
                   const item = standardVehicles.find(i => i.id === e.target.value)
                   if(item && !vehicles.find(v => v.id === item.id)) {
-                    setVehicles([...vehicles, { id: item.id, name: item.name, cost: item.defaultCost, count: 1, maxCbm: item.maxCbm }])
+                    setIsVehiclesManuallyEdited(true)
+                    setIsAutoVehicleSync(false)
+                    setVehicles([
+                      ...vehicles,
+                      {
+                        id: item.id,
+                        name: item.name,
+                        cost: item.defaultCost,
+                        count: 1,
+                        maxCbm: item.maxCbm,
+                        tonnage: item.tonnage,
+                      },
+                    ])
                   }
                   e.target.value = ''
                 }}
@@ -4588,6 +4604,7 @@ export function EstimateForm({
             registeredMaterials={registeredMaterials}
             costStandards={costStandardsData}
             validItemCount={items.filter(it => (Number(it.quantity) || 0) > 0).length}
+            defaultExpanded={!initialData?.id}
           />
         </div>
 
@@ -5012,12 +5029,17 @@ export function EstimateForm({
         <MovingCostCalculatorModal
           isOpen={isCostModalOpen}
           onClose={() => setIsCostModalOpen(false)}
-          currentCbm={totalCbm}
+          currentCbm={requiredCbm}
+          rawCbm={totalCbm}
+          deadSpaceRatio={deadSpaceRatio}
+          recommendedTierKey={effectiveVehiclePlanForCalc.tierKey}
+          recommendedSummary={effectiveVehiclePlanForCalc.summaryDesc}
+          standardVehicles={standardVehicles}
           movingDate={movingDate}
           currentMovingCost={movingCost}
           distanceKm={distance}
           roundTollFare={roundTollFare}
-          vehicleCount={vehicles.reduce((sum, v) => sum + (Number(v.count) || 0), 0) || 1}
+          vehicleCount={effectiveVehiclePlanForCalc.totalCount}
           waypointCount={waypointCount}
           costStandards={costStandardsData}
           fromFloor={fromFloor}
@@ -5025,11 +5047,17 @@ export function EstimateForm({
           isFromLadder={isFromLadder}
           isToLadder={isToLadder}
           ladderTonnage={ladderTonnage}
+          isLadderTonnageExplicit={isLadderTonnageManuallyEdited}
           ladderFares={ladderFares}
           appliedLadderCost={appliedLadderCost}
           onApply={(calculatedCost, details) => {
             setMovingCost(calculatedCost)
             setIsCostEdited(true)
+
+            if (details.ladderTonnage && details.equipmentCost > 0) {
+              setLadderTonnage(details.ladderTonnage)
+              setIsLadderTonnageManuallyEdited(details.ladderTonnage !== effectiveVehiclePlanForCalc.tierKey)
+            }
 
             let nextAdditional = additionalCost
             if (details.equipmentApplyMode === 'MOVING_COST' && details.equipmentCost > 0 && appliedLadderCost > 0) {
@@ -5054,9 +5082,9 @@ export function EstimateForm({
 
             const equipLine =
               details.equipmentApplyMode === 'ADDITIONAL_COST' && details.equipmentCost > 0
-                ? `\n· 가산비용 장비비 반영: +${details.equipmentCost.toLocaleString()}원`
+                ? `\n· 가산비용 장비비(${details.ladderTonnage}톤 기준) 반영: +${details.equipmentCost.toLocaleString()}원`
                 : details.equipmentApplyMode === 'MOVING_COST' && details.equipmentCost > 0
-                  ? `\n· 기본 이사비용 내 장비비 포함: +${details.equipmentCost.toLocaleString()}원`
+                  ? `\n· 기본 이사비용 내 장비비(${details.ladderTonnage}톤 기준) 포함: +${details.equipmentCost.toLocaleString()}원`
                   : ''
             alert(
               `산출된 이사비용 (${calculatedCost.toLocaleString()}원)이 반영되었습니다!${equipLine}\n(결제대상[${paymentTarget === 'supply' ? '공급가액' : '공급대가'}]: ${newTarget.toLocaleString()}원 / 계약금 10%: ${newDown.toLocaleString()}원 / 잔금: ${newBalance.toLocaleString()}원)`
@@ -5071,7 +5099,7 @@ export function EstimateForm({
         const dbMaleLabor = standardLabors.find((l: any) => (l.name || '').includes('남')) || standardLabors[0]
         const dbFemaleLabor = standardLabors.find((l: any) => (l.name || '').includes('여') || (l.name || '').includes('주방')) || standardLabors.find((l: any) => l.id !== dbMaleLabor?.id)
 
-        // 현재 견적서 설정 인력(labors)에서 단가 및 인원수 추출 (직접 수정한 경우 최우선 반영)
+        // 현재 견적서 설정 인력(labors)에서 단가 및 인원수 추출 (직접 설정한 경우 우선, 미설정 시 최적 차량 추천 톤수 기준 권장 인원 자동 적용)
         const hasLabors = labors && labors.length > 0
         const currentMaleLabor = hasLabors ? labors.find((l: any) => (l.name || '').includes('남') || (l.name || '').includes('팀장')) : undefined
         const currentFemaleLabor = hasLabors ? labors.find((l: any) => (l.name || '').includes('여') || (l.name || '').includes('도우미') || (l.name || '').includes('주방')) : undefined
@@ -5079,24 +5107,13 @@ export function EstimateForm({
         const menUnitPrice = currentMaleLabor?.cost || costStandardsData?.maleLaborCost || dbMaleLabor?.defaultCost || 190000
         const womenUnitPrice = currentFemaleLabor?.cost || costStandardsData?.femaleLaborCost || dbFemaleLabor?.defaultCost || 170000
 
+        const recommendedLaborForCalc = computeRecommendedLaborCounts(requiredCbm)
         const menCount = hasLabors
           ? labors.filter((l: any) => (l.name || '').includes('남') || (l.name || '').includes('팀장')).reduce((sum: number, cur: any) => sum + (Number(cur.count) || 0), 0)
-          : 3
+          : (requiredCbm > 0 ? recommendedLaborForCalc.totalMale : 3)
         const womenCount = hasLabors
           ? labors.filter((l: any) => (l.name || '').includes('여') || (l.name || '').includes('도우미') || (l.name || '').includes('주방')).reduce((sum: number, cur: any) => sum + (Number(cur.count) || 0), 0)
-          : 1
-
-        // 현재 견적서 설정 차량(vehicles)이 아직 비어있다면 현재 적재 물량(requiredCbm)에 맞춰 기본 배차 차량을 자동 구성하여 원가산출에 전달
-        const effectiveVehiclesForCostCalc = (() => {
-          if (vehicles && vehicles.length > 0) return vehicles
-          if (requiredCbm <= 0) return []
-          if (requiredCbm <= 7.0) return [{ name: '1톤 탑차', count: 1, tonnage: 1 }]
-          if (requiredCbm <= 15.0) return [{ name: '2.5톤 탑차', count: 1, tonnage: 2.5 }]
-          if (requiredCbm <= 31.0) return [{ name: '5톤 탑차', count: 1, tonnage: 5 }]
-          if (requiredCbm <= 38.0) return [{ name: '5톤 탑차', count: 1, tonnage: 5 }, { name: '1톤 탑차', count: 1, tonnage: 1 }]
-          if (requiredCbm <= 46.0) return [{ name: '5톤 탑차', count: 1, tonnage: 5 }, { name: '2.5톤 탑차', count: 1, tonnage: 2.5 }]
-          return [{ name: '5톤 탑차', count: 2, tonnage: 5 }]
-        })()
+          : (requiredCbm > 0 ? recommendedLaborForCalc.totalFemale : 1)
 
         return (
           <CostCalculatorModal
@@ -5112,7 +5129,16 @@ export function EstimateForm({
             womenCount={womenCount}
             menUnitPrice={menUnitPrice}
             womenUnitPrice={womenUnitPrice}
-            vehicles={effectiveVehiclesForCostCalc}
+            vehicles={effectiveVehiclePlanForCalc.vehicles}
+            requiredCbm={requiredCbm}
+            recommendedTierKey={effectiveVehiclePlanForCalc.tierKey}
+            recommendedSummary={effectiveVehiclePlanForCalc.summaryDesc}
+            isFromLadder={isFromLadder}
+            isToLadder={isToLadder}
+            ladderTonnage={ladderTonnage}
+            isLadderTonnageExplicit={isLadderTonnageManuallyEdited}
+            ladderFares={ladderFares}
+            appliedLadderCost={appliedLadderCost}
             ladderTotalCost={totalLadderCost}
             fromFloor={fromFloor}
             toFloor={toFloor}

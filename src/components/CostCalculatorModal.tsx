@@ -32,13 +32,25 @@ import { calculate5TonTruckDuration } from '@/lib/distance'
 import {
   resolveTonnageTierKey,
   calculateTonnageDistanceFare,
-  adjustTollForHeavyTruck
+  adjustTollForHeavyTruck,
+  type TonnageTierKey,
 } from '@/lib/distanceFare'
 import {
   SEASON_OPTIONS,
   detectSeasonByMovingDate,
+  computeLadderFeeFromFares,
   type SeasonOptionKey,
 } from '@/lib/movingSeason'
+import type { LadderFareItem } from '@/types/ladder'
+
+const COST_LADDER_TONNAGE_OPTIONS: { value: string; label: string }[] = [
+  { value: '1', label: '1톤' },
+  { value: '2.5', label: '2.5톤' },
+  { value: '5', label: '5톤' },
+  { value: '6', label: '6톤' },
+  { value: '7.5', label: '7.5톤' },
+  { value: '10', label: '10톤' },
+]
 
 interface CostCalculatorModalProps {
   isOpen: boolean
@@ -55,9 +67,18 @@ interface CostCalculatorModalProps {
   menUnitPrice?: number // 남성 일당 (기본 190,000)
   womenUnitPrice?: number // 여성 일당 (기본 170,000)
   vehicles?: { name: string; count: number; tonnage?: number }[] // 투입 차량 목록
+  requiredCbm?: number
+  recommendedTierKey?: TonnageTierKey
+  recommendedSummary?: string
   ladderTotalCost?: number
   fromFloor?: string
   toFloor?: string
+  isFromLadder?: boolean
+  isToLadder?: boolean
+  ladderTonnage?: string
+  isLadderTonnageExplicit?: boolean
+  ladderFares?: LadderFareItem[]
+  appliedLadderCost?: number
   fromLadderCost?: number
   toLadderCost?: number
   waypointCount?: number // 경유 품목 수
@@ -130,9 +151,18 @@ export function CostCalculatorModal({
   menUnitPrice = 190000,
   womenUnitPrice = 170000,
   vehicles = [],
+  requiredCbm = 0,
+  recommendedTierKey,
+  recommendedSummary,
   ladderTotalCost = 0,
   fromFloor = '',
   toFloor = '',
+  isFromLadder = false,
+  isToLadder = false,
+  ladderTonnage = '5',
+  isLadderTonnageExplicit = false,
+  ladderFares = [],
+  appliedLadderCost = 0,
   fromLadderCost = 0,
   toLadderCost = 0,
   waypointCount = 0,
@@ -281,41 +311,48 @@ export function CostCalculatorModal({
     const list: DispatchedTruckItem[] = []
     let idx = 1
 
+    const pushTruck = (ton: 5 | 2.5 | 1) => {
+      const isFirstTruck = list.length === 0
+      const opType: 'OWN' | 'CARGO' = isFirstTruck ? 'OWN' : 'CARGO'
+      list.push({
+        id: `truck_${idx++}_${Date.now()}`,
+        tonnage: ton,
+        operationType: opType,
+        fuelCost: opType === 'OWN' ? getDefaultFuelForTonnage(ton, distOverride) : 0,
+        charteredCost:
+          opType === 'OWN' ? 0 : getDefaultCharteredCostForTonnage(ton, opType, fareObj, distOverride),
+      })
+    }
+
     vehicles.forEach(v => {
       const name = v.name || ''
       const count = Number(v.count) || 0
       if (count <= 0) return
 
-      let ton: 5 | 2.5 | 1 = 5
-      if (name.includes('5톤') || (v.tonnage && v.tonnage >= 5)) {
-        ton = 5
-      } else if (name.includes('2.5톤') || (v.tonnage && v.tonnage >= 2)) {
-        ton = 2.5
-      } else if (name.includes('1톤') || (v.tonnage && v.tonnage >= 1)) {
-        ton = 1
+      const explicitTon = Number(v.tonnage) || 0
+      let unitTons: (5 | 2.5 | 1)[] = [5]
+
+      if (explicitTon >= 9.5 || name.includes('10톤')) {
+        unitTons = [5, 5]
+      } else if (explicitTon >= 7.0 || name.includes('7.5톤')) {
+        unitTons = [5, 2.5]
+      } else if (explicitTon >= 5.8 || name.includes('6톤')) {
+        unitTons = [5, 1]
+      } else if (explicitTon >= 4.5 || name.includes('5톤')) {
+        unitTons = [5]
+      } else if (explicitTon >= 2.0 || name.includes('2.5톤')) {
+        unitTons = [2.5]
+      } else if (explicitTon >= 0.8 || (name.includes('1톤') && !name.includes('11톤'))) {
+        unitTons = [1]
       }
 
       for (let i = 0; i < count; i++) {
-        const isFirstTruck = list.length === 0
-        const opType: 'OWN' | 'CARGO' = isFirstTruck ? 'OWN' : 'CARGO'
-        list.push({
-          id: `truck_${idx++}_${Date.now()}`,
-          tonnage: ton,
-          operationType: opType,
-          fuelCost: opType === 'OWN' ? getDefaultFuelForTonnage(ton, distOverride) : 0,
-          charteredCost: opType === 'OWN' ? 0 : getDefaultCharteredCostForTonnage(ton, opType, fareObj, distOverride)
-        })
+        unitTons.forEach(t => pushTruck(t))
       }
     })
 
     if (list.length === 0) {
-      list.push({
-        id: `truck_1_${Date.now()}`,
-        tonnage: 5,
-        operationType: 'OWN',
-        fuelCost: getDefaultFuelForTonnage(5, distOverride),
-        charteredCost: 0
-      })
+      pushTruck(5)
     }
 
     return list
@@ -482,10 +519,17 @@ export function CostCalculatorModal({
   const [tapeUnitPrice, setTapeUnitPrice] = useState<number>(standards.tapeUnitPrice)
   const [tapeRolls, setTapeRolls] = useState<number>(0)
 
-  // 4. 장비비 내역 (출발지·도착지 사다리차 및 기타 장비)
+  // 4. 장비비 내역 (출발지·도착지 사다리차[차량톤수×층수 자동연동] 및 기타 장비)
   const [includeLadderCost, setIncludeLadderCost] = useState<boolean>(false)
+  const [simLadderTonnage, setSimLadderTonnage] = useState<string>(ladderTonnage || '5')
+  const [useFromLadder, setUseFromLadder] = useState<boolean>(Boolean(isFromLadder))
+  const [simFromFloor, setSimFromFloor] = useState<string>(fromFloor || '')
   const [simFromLadderCost, setSimFromLadderCost] = useState<number>(fromLadderCost || 0)
+  const [simFromLadderTier, setSimFromLadderTier] = useState<string>('')
+  const [useToLadder, setUseToLadder] = useState<boolean>(Boolean(isToLadder))
+  const [simToFloor, setSimToFloor] = useState<string>(toFloor || '')
   const [simToLadderCost, setSimToLadderCost] = useState<number>(toLadderCost || 0)
+  const [simToLadderTier, setSimToLadderTier] = useState<string>('')
   const [extraEquipmentCost, setExtraEquipmentCost] = useState<number>(
     Math.max(0, (ladderTotalCost || 0) - (fromLadderCost || 0) - (toLadderCost || 0))
   )
@@ -695,6 +739,19 @@ export function CostCalculatorModal({
     setRoundTollFare(calcTotalTollForTrucks(nextTrucks))
     const rolls = c5 * standards.tapeRolls5Ton + c25 * standards.tapeRolls2_5Ton + c1 * standards.tapeRolls1Ton
     setTapeRolls(rolls > 0 ? rolls : 3)
+
+    // 5) 차량 톤수 변경 시 사다리차 기준 톤수 및 층수별 사다리 요금 자동 재산출
+    setSimLadderTonnage(nextTierKey)
+    const fCalc = computeLadderFeeFromFares(simFromFloor, nextTierKey, ladderFares)
+    setSimFromLadderTier(fCalc.tier)
+    if (useFromLadder) {
+      setSimFromLadderCost(fCalc.cost)
+    }
+    const tCalc = computeLadderFeeFromFares(simToFloor, nextTierKey, ladderFares)
+    setSimToLadderTier(tCalc.tier)
+    if (useToLadder) {
+      setSimToLadderCost(tCalc.cost)
+    }
   }
 
   // 개별 차량 추가 (1톤 / 2.5톤 / 5톤) — 1호차는 자사운행('OWN'), 2호차부터는 카고용차('CARGO') 기본 선택
@@ -887,12 +944,74 @@ export function CostCalculatorModal({
     setTapeRolls(rolls > 0 ? rolls : 3)
     setTapeUnitPrice(standards.tapeUnitPrice)
 
-    setIncludeLadderCost(false)
-    setSimFromLadderCost(fromLadderCost || 0)
-    setSimToLadderCost(toLadderCost || 0)
-    setExtraEquipmentCost(Math.max(0, (ladderTotalCost || 0) - (fromLadderCost || 0) - (toLadderCost || 0)))
+    // 사다리차 비용: 최적/배차 차량 톤수(initTierKey) 및 출발·도착 층수 감안 자동 산출
+    const initLadderTon = (isLadderTonnageExplicit && ladderTonnage) ? ladderTonnage : initTierKey
+    setSimLadderTonnage(initLadderTon)
+    const initUseFrom = Boolean(isFromLadder)
+    const initUseTo = Boolean(isToLadder)
+    const initFromFl = fromFloor || ''
+    const initToFl = toFloor || ''
+    setUseFromLadder(initUseFrom)
+    setUseToLadder(initUseTo)
+    setSimFromFloor(initFromFl)
+    setSimToFloor(initToFl)
+
+    const fCalc = computeLadderFeeFromFares(initFromFl, initLadderTon, ladderFares)
+    const tCalc = computeLadderFeeFromFares(initToFl, initLadderTon, ladderFares)
+    const resolvedFromCost = initUseFrom ? (fCalc.cost > 0 ? fCalc.cost : (fromLadderCost || 0)) : 0
+    const resolvedToCost = initUseTo ? (tCalc.cost > 0 ? tCalc.cost : (toLadderCost || 0)) : 0
+    setSimFromLadderCost(resolvedFromCost)
+    setSimFromLadderTier(fCalc.tier)
+    setSimToLadderCost(resolvedToCost)
+    setSimToLadderTier(tCalc.tier)
+
+    const initExtraEquip = Math.max(0, (ladderTotalCost || 0) - (fromLadderCost || 0) - (toLadderCost || 0))
+    setExtraEquipmentCost(initExtraEquip)
+    // 사다리차를 사용하는데 아직 견적서 별도 사다리비 칸(appliedLadderCost)에 반영되지 않은 경우 기본 체크
+    const shouldAutoIncludeEquip = Boolean(
+      (initUseFrom || initUseTo) &&
+      (appliedLadderCost || 0) === 0 &&
+      (resolvedFromCost + resolvedToCost + initExtraEquip) > 0
+    )
+    setIncludeLadderCost(shouldAutoIncludeEquip)
     setMarginRate(standards.defaultMarginRate || 20.0)
     setDiscountAmount(0)
+  }
+
+  const handleChangeCostLadderTonnage = (newTon: string) => {
+    setSimLadderTonnage(newTon)
+    const fCalc = computeLadderFeeFromFares(simFromFloor, newTon, ladderFares)
+    setSimFromLadderTier(fCalc.tier)
+    if (useFromLadder) {
+      setSimFromLadderCost(fCalc.cost)
+      if (fCalc.cost > 0 && (appliedLadderCost || 0) === 0) setIncludeLadderCost(true)
+    }
+    const tCalc = computeLadderFeeFromFares(simToFloor, newTon, ladderFares)
+    setSimToLadderTier(tCalc.tier)
+    if (useToLadder) {
+      setSimToLadderCost(tCalc.cost)
+      if (tCalc.cost > 0 && (appliedLadderCost || 0) === 0) setIncludeLadderCost(true)
+    }
+  }
+
+  const handleChangeCostFromFloor = (nextFloor: string) => {
+    setSimFromFloor(nextFloor)
+    const fCalc = computeLadderFeeFromFares(nextFloor, simLadderTonnage, ladderFares)
+    setSimFromLadderTier(fCalc.tier)
+    if (useFromLadder) {
+      setSimFromLadderCost(fCalc.cost)
+      if (fCalc.cost > 0 && (appliedLadderCost || 0) === 0) setIncludeLadderCost(true)
+    }
+  }
+
+  const handleChangeCostToFloor = (nextFloor: string) => {
+    setSimToFloor(nextFloor)
+    const tCalc = computeLadderFeeFromFares(nextFloor, simLadderTonnage, ladderFares)
+    setSimToLadderTier(tCalc.tier)
+    if (useToLadder) {
+      setSimToLadderCost(tCalc.cost)
+      if (tCalc.cost > 0 && (appliedLadderCost || 0) === 0) setIncludeLadderCost(true)
+    }
   }
 
   const applyCalendarFlagsForYmd = (ymdStr: string) => {
@@ -967,7 +1086,34 @@ export function CostCalculatorModal({
     if (isOpen) {
       resetToRecommended()
     }
-  }, [isOpen, distanceKm, tollFare, perTruckRoundToll, tollFareByClass, vehicles, standards, menCount, womenCount, menUnitPrice, womenUnitPrice, ladderTotalCost, waypointCount, movingDate])
+  }, [
+    isOpen,
+    distanceKm,
+    tollFare,
+    perTruckRoundToll,
+    tollFareByClass,
+    vehicles,
+    recommendedTierKey,
+    requiredCbm,
+    standards,
+    menCount,
+    womenCount,
+    menUnitPrice,
+    womenUnitPrice,
+    isFromLadder,
+    isToLadder,
+    fromFloor,
+    toFloor,
+    ladderTonnage,
+    isLadderTonnageExplicit,
+    ladderFares,
+    fromLadderCost,
+    toLadderCost,
+    ladderTotalCost,
+    appliedLadderCost,
+    waypointCount,
+    movingDate,
+  ])
 
   // 총 인원 수
   const totalWorkers = menNum + womenNum
@@ -1001,7 +1147,10 @@ export function CostCalculatorModal({
   const totalMaterialCost = tapeRolls * tapeUnitPrice
 
   // 4. 장비비 내역 합계 (출발지 사다리차 + 도착지 사다리차 + 기타 장비)
-  const rawEquipmentSum = (Number(simFromLadderCost) || 0) + (Number(simToLadderCost) || 0) + (Number(extraEquipmentCost) || 0)
+  const rawEquipmentSum =
+    (useFromLadder ? (Number(simFromLadderCost) || 0) : 0) +
+    (useToLadder ? (Number(simToLadderCost) || 0) : 0) +
+    (Number(extraEquipmentCost) || 0)
   const totalEquipmentCost = includeLadderCost ? rawEquipmentSum : 0
 
   // 5. 시즌(성수기/비수기) 옵션 및 일자별 캘린더 할증 합계 계산
@@ -1053,6 +1202,9 @@ export function CostCalculatorModal({
                 </span>
               </h2>
               <p className="text-xs text-amber-100/90">
+                {requiredCbm !== undefined && requiredCbm > 0
+                  ? `필요 적재물량 ${requiredCbm.toFixed(2)} CBM (최적 차량 추천 연동) · `
+                  : ''}
                 주행거리 {simDistanceKm}km, 차량 {vehicleStats.totalCount}대({standardTableCalc.rule.label}), 작업원 {totalWorkers}명 기준 자동 추천
               </p>
             </div>
@@ -2000,22 +2152,25 @@ export function CostCalculatorModal({
               </div>
             </div>
 
-            {/* 4. 장비비 내역 (출발지·도착지 사다리차 및 기타 장비 — 체크 시 기본원가에 합산) */}
+            {/* 4. 장비비 내역 (출발지·도착지 사다리차[차량톤수×층수 자동산출] 및 기타 장비 — 체크 시 기본원가에 합산) */}
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-2xs">
-              <div className="px-3.5 py-2 bg-purple-50/70 border-b border-purple-100 flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
+              <div className="px-3.5 py-2 bg-purple-50/70 border-b border-purple-100 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <Layers className="w-3.5 h-3.5 text-purple-600" />
                   <span className="font-bold text-purple-900 text-xs">4. 장비비 내역 (사다리차 · 기타 장비)</span>
+                  <span className="text-[10px] font-semibold bg-white text-purple-700 px-1.5 py-0.5 rounded border border-purple-200">
+                    차량톤수·층수 자동산출
+                  </span>
                 </div>
-                <span className="font-bold text-purple-800 text-xs">{totalEquipmentCost.toLocaleString()} 원</span>
+                <span className="font-bold text-purple-800 text-xs shrink-0">{totalEquipmentCost.toLocaleString()} 원</span>
               </div>
               <div className="p-3">
                 <div className={`p-2.5 rounded-lg space-y-2 text-xs transition-all ${
                   totalEquipmentCost > 0
                     ? 'border-2 border-purple-500 bg-purple-50/50 ring-2 ring-purple-500/15 shadow-2xs'
-                    : 'border border-dashed border-gray-200 bg-gray-50/50 opacity-80'
+                    : 'border border-dashed border-gray-200 bg-gray-50/50 opacity-90'
                 }`}>
-                  <label className="flex items-center justify-between gap-2 cursor-pointer pb-1 border-b border-purple-100/80">
+                  <label className="flex items-center justify-between gap-2 cursor-pointer pb-1.5 border-b border-purple-100/80">
                     <span className="flex items-center gap-2">
                       <input
                         type="checkbox"
@@ -2029,38 +2184,130 @@ export function CostCalculatorModal({
                       합계 {rawEquipmentSum.toLocaleString()}원
                     </span>
                   </label>
-                  <div className="flex items-center justify-between pt-0.5">
-                    <span className="text-gray-600">
-                      출발지 사다리차{fromFloor ? ` (${fromFloor}층)` : ''}:
-                    </span>
-                    <div className="flex items-center gap-1">
+
+                  {/* 사다리 기준 차량 톤수 선택 */}
+                  <div className="flex items-center justify-between gap-1.5 flex-wrap pt-0.5">
+                    <span className="text-[11px] font-bold text-purple-900">사다리 차량 톤수:</span>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {COST_LADDER_TONNAGE_OPTIONS.map((opt) => {
+                        const active = simLadderTonnage === opt.value
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => handleChangeCostLadderTonnage(opt.value)}
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors ${
+                              active
+                                ? 'bg-purple-600 text-white border-purple-600 shadow-2xs'
+                                : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300 hover:text-purple-700'
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 출발지 사다리차 (체크박스 + 층수 + 단가구간 + 금액) */}
+                  <div className="flex items-center justify-between gap-1.5 pt-0.5 flex-wrap">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <input
+                        type="checkbox"
+                        checked={useFromLadder}
+                        onChange={(e) => {
+                          const next = e.target.checked
+                          setUseFromLadder(next)
+                          if (next) {
+                            const fCalc = computeLadderFeeFromFares(simFromFloor, simLadderTonnage, ladderFares)
+                            setSimFromLadderTier(fCalc.tier)
+                            setSimFromLadderCost(fCalc.cost)
+                            if (fCalc.cost > 0 && (appliedLadderCost || 0) === 0) setIncludeLadderCost(true)
+                          }
+                        }}
+                        className="w-3.5 h-3.5 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
+                      />
+                      <span className="text-gray-700 font-semibold">출발지 사다리</span>
+                      <div className="inline-flex items-center gap-0.5 bg-white border border-gray-200 rounded px-1 py-0.5">
+                        <input
+                          type="text"
+                          value={simFromFloor}
+                          onChange={(e) => handleChangeCostFromFloor(e.target.value)}
+                          placeholder="층"
+                          className="w-8 text-center text-[11px] font-bold text-gray-800 focus:outline-none"
+                        />
+                        <span className="text-[10px] text-gray-400">층</span>
+                      </div>
+                      {simFromLadderTier && (
+                        <span className="text-[10px] font-semibold text-purple-700 bg-purple-100/80 px-1.5 py-0.5 rounded">
+                          {simLadderTonnage}톤·{simFromLadderTier}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 ml-auto">
                       <FormattedModalNumberInput
-                        value={simFromLadderCost}
+                        value={useFromLadder ? simFromLadderCost : 0}
                         onChange={(val) => {
+                          setUseFromLadder(true)
                           setSimFromLadderCost(val)
-                          if (val > 0) setIncludeLadderCost(true)
+                          if (val > 0 && (appliedLadderCost || 0) === 0) setIncludeLadderCost(true)
                         }}
                         className="w-24 px-1.5 py-0.5 text-right font-bold bg-white border border-gray-200 rounded text-xs"
                       />
                       <span>원</span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">
-                      도착지 사다리차{toFloor ? ` (${toFloor}층)` : ''}:
-                    </span>
-                    <div className="flex items-center gap-1">
+
+                  {/* 도착지 사다리차 (체크박스 + 층수 + 단가구간 + 금액) */}
+                  <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <input
+                        type="checkbox"
+                        checked={useToLadder}
+                        onChange={(e) => {
+                          const next = e.target.checked
+                          setUseToLadder(next)
+                          if (next) {
+                            const tCalc = computeLadderFeeFromFares(simToFloor, simLadderTonnage, ladderFares)
+                            setSimToLadderTier(tCalc.tier)
+                            setSimToLadderCost(tCalc.cost)
+                            if (tCalc.cost > 0 && (appliedLadderCost || 0) === 0) setIncludeLadderCost(true)
+                          }
+                        }}
+                        className="w-3.5 h-3.5 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
+                      />
+                      <span className="text-gray-700 font-semibold">도착지 사다리</span>
+                      <div className="inline-flex items-center gap-0.5 bg-white border border-gray-200 rounded px-1 py-0.5">
+                        <input
+                          type="text"
+                          value={simToFloor}
+                          onChange={(e) => handleChangeCostToFloor(e.target.value)}
+                          placeholder="층"
+                          className="w-8 text-center text-[11px] font-bold text-gray-800 focus:outline-none"
+                        />
+                        <span className="text-[10px] text-gray-400">층</span>
+                      </div>
+                      {simToLadderTier && (
+                        <span className="text-[10px] font-semibold text-purple-700 bg-purple-100/80 px-1.5 py-0.5 rounded">
+                          {simLadderTonnage}톤·{simToLadderTier}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 ml-auto">
                       <FormattedModalNumberInput
-                        value={simToLadderCost}
+                        value={useToLadder ? simToLadderCost : 0}
                         onChange={(val) => {
+                          setUseToLadder(true)
                           setSimToLadderCost(val)
-                          if (val > 0) setIncludeLadderCost(true)
+                          if (val > 0 && (appliedLadderCost || 0) === 0) setIncludeLadderCost(true)
                         }}
                         className="w-24 px-1.5 py-0.5 text-right font-bold bg-white border border-gray-200 rounded text-xs"
                       />
                       <span>원</span>
                     </div>
                   </div>
+
+                  {/* 기타 장비 */}
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600">기타 장비(스카이차 등):</span>
                     <div className="flex items-center gap-1">
@@ -2075,9 +2322,16 @@ export function CostCalculatorModal({
                       <span>원</span>
                     </div>
                   </div>
-                  <p className="text-[10px] text-gray-400">
-                    * 장비비를 가산비용 칸으로 별도 청구할 경우 체크 해제 유지
-                  </p>
+
+                  {appliedLadderCost > 0 ? (
+                    <p className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                      * 현재 견적서의 별도 &apos;사다리차 비용&apos; 칸에 {appliedLadderCost.toLocaleString()}원이 입력되어 있어 중복 청구 방지를 위해 기본 체크 해제됨
+                    </p>
+                  ) : (
+                    <p className="text-[10px] text-gray-400">
+                      * 배차 톤수 변경 시 사다리 기준 톤수·요금도 함께 갱신됩니다. 별도 청구 시 체크 해제 유지
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
