@@ -545,8 +545,23 @@ export function PaperSheetCbmPanel({
     return found || { id: '', name: locName }
   }
 
-  // 특정 위치(locName) + 행(rowDef)에 해당하는 현재 items 내 항목 찾기
+  // 특정 위치(locName) + 행(rowDef)에 해당하는 현재 items 내 수량 > 0 항목 전체 찾기 (복수 규격 대응)
+  const findActiveMatchingItems = (locName: string, rowDef: PaperRowDef) => {
+    const cat = getCategoryByLocName(locName)
+    return items.filter(it => {
+      const sameLoc = cat.id
+        ? (it.locationId || '') === cat.id || it.locationName === locName
+        : it.locationName === locName
+      if (!sameLoc) return false
+      if (!rowDef.matchNames.some(mn => (it.name || '').trim() === mn)) return false
+      return (Number(it.quantity) || 0) > 0
+    })
+  }
+
+  // 특정 위치(locName) + 행(rowDef)에 해당하는 대표 항목 찾기 (수량 > 0 우선)
   const findMatchingItem = (locName: string, rowDef: PaperRowDef) => {
+    const activeList = findActiveMatchingItems(locName, rowDef)
+    if (activeList.length > 0) return activeList[0]
     const cat = getCategoryByLocName(locName)
     return items.find(it => {
       const sameLoc = cat.id
@@ -578,7 +593,7 @@ export function PaperSheetCbmPanel({
     }
   }
 
-  // 괄호 안의 옵션을 클릭했을 때 동그라미 선택 + 이미 체크된 해당 행의 규격/CBM도 즉시 업데이트
+  // 괄호 안의 옵션을 클릭했을 때 동그라미 선택 + 단일 규격으로 체크된 해당 행의 규격/CBM 업데이트 (다중 규격 복사등록 건은 보존)
   const handleSelectSubOption = (
     rowDef: PaperRowDef,
     opt: SubOptionDef,
@@ -586,24 +601,37 @@ export function PaperSheetCbmPanel({
   ) => {
     setSelectedOptions(prev => ({ ...prev, [rowDef.id]: opt }))
 
-    setItems(prev =>
-      prev.map(it => {
-        const isTargetLoc = targetLocNames.some(ln => {
+    setItems(prev => {
+      // 동일 공간에 이미 2개 이상 서로 다른 규격이 등록된 공간은 덮어쓰지 않고 보존
+      const multiSpecLocSet = new Set<string>()
+      targetLocNames.forEach(ln => {
+        const cat = getCategoryByLocName(ln)
+        const activeInLoc = prev.filter(it => {
+          const sameLoc = (cat.id && it.locationId === cat.id) || it.locationName === ln
+          return sameLoc && rowDef.matchNames.includes((it.name || '').trim()) && (Number(it.quantity) || 0) > 0
+        })
+        if (activeInLoc.length > 1) {
+          multiSpecLocSet.add(ln)
+        }
+      })
+
+      return prev.map(it => {
+        const matchedLocName = targetLocNames.find(ln => {
           const cat = getCategoryByLocName(ln)
           return (cat.id && it.locationId === cat.id) || it.locationName === ln
         })
-        if (!isTargetLoc) return it
+        if (!matchedLocName || multiSpecLocSet.has(matchedLocName)) return it
         if (!rowDef.matchNames.includes((it.name || '').trim())) return it
         if ((Number(it.quantity) || 0) <= 0) return it
 
         return {
           ...it,
-          spec: opt.spec,
+          spec: rowDef.id === 'bed' && selectedBedSize ? `${selectedBedSize}(${opt.spec})` : opt.spec,
           cbm: opt.cbm,
           innerBoxCbm: opt.innerBoxCbm ?? it.innerBoxCbm ?? 0,
         }
       })
-    )
+    })
   }
 
   // 셀 클릭 시 펜 모드(MOVE / DOWN / DISPOSE / WAYPOINT / ERASE)에 따라 즉시 마킹/수량 증감
@@ -623,18 +651,28 @@ export function PaperSheetCbmPanel({
         : opt.spec
 
     setItems(prev => {
-      const idx = prev.findIndex(it => {
+      const isSameLocAndRow = (it: any) => {
         const sameLoc = cat.id
           ? (it.locationId || '') === cat.id || it.locationName === locName
           : it.locationName === locName
         return sameLoc && rowDef.matchNames.includes((it.name || '').trim())
-      })
+      }
 
       if (penMode === 'ERASE') {
-        if (idx < 0) return prev
-        const next = [...prev]
-        next[idx] = { ...next[idx], quantity: 0, treatment: '이동' }
-        return next
+        if (!prev.some(isSameLocAndRow)) return prev
+        return prev.map(it =>
+          isSameLocAndRow(it) ? { ...it, quantity: 0, treatment: '이동' } : it
+        )
+      }
+
+      // 1순위: 동일 규격 행, 2순위: 수량 0인 빈 행, 3순위: 옵션 미지정 시 기존 단일 행
+      const hasExplicitOption = Boolean(selectedOptions[rowDef.id] || rowDef.id === 'bed')
+      let idx = prev.findIndex(it => isSameLocAndRow(it) && (it.spec || '') === (finalSpec || ''))
+      if (idx < 0) {
+        idx = prev.findIndex(it => isSameLocAndRow(it) && (Number(it.quantity) || 0) <= 0)
+      }
+      if (idx < 0 && !hasExplicitOption) {
+        idx = prev.findIndex(isSameLocAndRow)
       }
 
       const targetTreatment =
@@ -779,13 +817,55 @@ export function PaperSheetCbmPanel({
     })
   }
 
-  // 셀 내부에 종이양식 필기 기호(V, 숫자, Q2, ↓, X) 렌더링
+  // 셀 내부에 종이양식 필기 기호(V, 숫자, Q2, Q1·S1, ↓, X) 렌더링 (다중 규격 복사등록 호환)
   const renderCellMark = (locName: string, rowDef: PaperRowDef) => {
-    const matched = findMatchingItem(locName, rowDef)
-    const qty = Number(matched?.quantity) || 0
-    if (!matched || qty <= 0) {
+    const activeMatches = findActiveMatchingItems(locName, rowDef)
+    if (activeMatches.length === 0) {
       return <span className="text-[10px] text-gray-300 select-none">·</span>
     }
+
+    if (activeMatches.length > 1) {
+      const isBed = rowDef.id === 'bed'
+      const summaryTooltip = activeMatches
+        .map(m => `${m.spec || '기본'}×${m.quantity}${m.treatment && m.treatment !== '이동' ? `(${m.treatment})` : ''}`)
+        .join(', ')
+      const totalQty = activeMatches.reduce((acc, m) => acc + (Number(m.quantity) || 0), 0)
+      const bedMultiLabel = isBed
+        ? activeMatches
+            .map(m => {
+              const sp = (m.spec || '').toUpperCase()
+              const pfx = sp.includes('킹') || sp.startsWith('K')
+                ? 'K'
+                : sp.includes('싱글') || sp.startsWith('S')
+                ? 'S'
+                : sp.includes('더블') || sp.startsWith('D')
+                ? 'D'
+                : 'Q'
+              return `${pfx}${m.quantity}`
+            })
+            .join('·')
+        : `${totalQty}`
+
+      return (
+        <div className="relative w-full h-full flex items-center justify-center group" title={summaryTooltip}>
+          <span className="text-[10px] sm:text-xs font-black text-indigo-700 bg-indigo-50 px-1 py-0.2 rounded border border-indigo-200 leading-none tracking-tight select-none">
+            {bedMultiLabel}
+            {!isBed && <span className="text-[9px] text-indigo-500 ml-0.5">({activeMatches.length}규격)</span>}
+          </span>
+          <button
+            type="button"
+            onClick={e => handleClearCell(e, locName, rowDef)}
+            className="hidden group-hover:flex absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-gray-700 text-white items-center justify-center text-[9px]"
+            title="지우기"
+          >
+            ×
+          </button>
+        </div>
+      )
+    }
+
+    const matched = activeMatches[0]
+    const qty = Number(matched?.quantity) || 0
 
     const treatment = matched.treatment || '이동'
 

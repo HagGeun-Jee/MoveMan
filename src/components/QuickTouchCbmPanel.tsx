@@ -5,6 +5,7 @@ import {
   Plus,
   Minus,
   Trash2,
+  Copy,
   Sparkles,
   Search,
   X,
@@ -136,7 +137,7 @@ export function QuickTouchCbmPanel({
   const filteredCategoryItems = useMemo(() => {
     let list = currentNonBoxItems.filter(it => {
       const qty = Number(it.quantity) || 0
-      if (midCategory === 'selected' && qty <= 0) return false
+      if (midCategory === 'selected' && qty <= 0 && !it._isCopiedRow) return false
       if (
         midCategory !== 'all' &&
         midCategory !== 'selected' &&
@@ -155,8 +156,8 @@ export function QuickTouchCbmPanel({
 
     if (selectedFirst) {
       list = [...list].sort((a, b) => {
-        const aHas = (Number(a.quantity) || 0) > 0 ? 1 : 0
-        const bHas = (Number(b.quantity) || 0) > 0 ? 1 : 0
+        const aHas = (Number(a.quantity) || 0) > 0 || a._isCopiedRow ? 1 : 0
+        const bHas = (Number(b.quantity) || 0) > 0 || b._isCopiedRow ? 1 : 0
         if (aHas !== bHas) return bHas - aHas
         return 0
       })
@@ -210,11 +211,25 @@ export function QuickTouchCbmPanel({
           let nextInnerCbm = Number(it.innerBoxCbm) || 0
           let nextSpec = it.spec || ''
 
-          // 수량을 올리는데 cbm과 innerBoxCbm이 0이면 standardItems에서 자동 보강
+          // 수량을 올리는데 cbm과 innerBoxCbm이 0이면 standardItems에서 자동 보강 (동일 공간 미선택 규격 우선)
           if (nextQty > 0 && nextCbm === 0 && nextInnerCbm === 0) {
             const candidates = findSpecsForItemName(it.name)
+            const usedSpecsInSpace = new Set(
+              prev
+                .filter(
+                  other =>
+                    other._uid !== itemUid &&
+                    (other.locationId || '') === (it.locationId || '') &&
+                    other.name === it.name &&
+                    (Number(other.quantity) || 0) > 0 &&
+                    other.spec
+                )
+                .map(other => other.spec)
+            )
             const matched =
-              candidates.find(s => (nextSpec ? (s.spec || '기본') === nextSpec : true)) ||
+              (nextSpec
+                ? candidates.find(s => (s.spec || '기본') === nextSpec)
+                : candidates.find(s => !usedSpecsInSpace.has(s.spec || '기본'))) ||
               candidates[0]
             if (matched) {
               nextCbm = matched.defaultCbm
@@ -264,6 +279,80 @@ export function QuickTouchCbmPanel({
         }
         return it
       })
+    })
+  }
+
+  // 직접입력 품목의 규격 텍스트 변경 함수
+  const handleUpdateCustomSpec = (itemUid: string, newSpec: string) => {
+    setItems(prev =>
+      prev.map(it => (it._uid === itemUid ? { ...it, spec: newSpec } : it))
+    )
+  }
+
+  // 같은 공간에 동일 품목(다른 규격) 복사등록 핸들러
+  const handleDuplicateItem = (itemUid: string) => {
+    setItems(prev => {
+      const srcIdx = prev.findIndex(it => it._uid === itemUid)
+      if (srcIdx < 0) return prev
+      const src = prev[srcIdx]
+      const availableSpecs = findSpecsForItemName(src.name)
+
+      let copiedItem: any
+      if (availableSpecs.length >= 2) {
+        copiedItem = ensureItemUid({
+          locationId: src.locationId,
+          locationName: src.locationName,
+          name: src.name,
+          spec: '',
+          quantity: 0,
+          cbm: 0,
+          innerBoxCbm: 0,
+          treatment: src.treatment || '이동',
+          _isCopiedRow: true,
+        })
+      } else if (availableSpecs.length === 1) {
+        const onlySpec = availableSpecs[0]
+        copiedItem = ensureItemUid({
+          locationId: src.locationId,
+          locationName: src.locationName,
+          name: src.name,
+          spec: onlySpec.spec || '기본',
+          quantity: 1,
+          cbm: onlySpec.defaultCbm ?? src.cbm ?? 0,
+          innerBoxCbm: onlySpec.defaultInnerCbm ?? src.innerBoxCbm ?? 0,
+          treatment: src.treatment || '이동',
+          _isCopiedRow: true,
+        })
+      } else {
+        copiedItem = ensureItemUid({
+          locationId: src.locationId,
+          locationName: src.locationName,
+          name: src.name,
+          spec: '',
+          quantity: 1,
+          cbm: Number(src.cbm) || 0,
+          innerBoxCbm: Number(src.innerBoxCbm) || 0,
+          treatment: src.treatment || '이동',
+          _isCopiedRow: true,
+        })
+      }
+
+      // 동일 공간 + 동일 품목명의 마지막 행 바로 아래에 삽입하여 나란히 배치
+      let insertAfterIdx = srcIdx
+      for (let i = srcIdx + 1; i < prev.length; i++) {
+        if (
+          (prev[i].locationId || '') === (src.locationId || '') &&
+          prev[i].name === src.name
+        ) {
+          insertAfterIdx = i
+        } else if ((prev[i].locationId || '') === (src.locationId || '')) {
+          break
+        }
+      }
+
+      const next = [...prev]
+      next.splice(insertAfterIdx + 1, 0, copiedItem)
+      return next
     })
   }
 
@@ -341,12 +430,13 @@ export function QuickTouchCbmPanel({
   const handleAddFromStandardObj = (stdItem: any) => {
     if (!stdItem) return
     setItems(prev => {
-      // 1. 동일 공간 + 동일 품목명 + 동일 규격이 이미 있는지 확인
+      // 1. 동일 공간 + 동일 품목명 + 동일 규격 + 이동 처리인 항목이 이미 있는지 확인
       const exactIdx = prev.findIndex(
         it =>
           (it.locationId || '') === activeCategoryId &&
           it.name === stdItem.name &&
-          (it.spec || '') === (stdItem.spec || '')
+          (it.spec || '') === (stdItem.spec || '') &&
+          (it.treatment || '이동') === '이동'
       )
       if (exactIdx >= 0) {
         const next = [...prev]
@@ -381,20 +471,31 @@ export function QuickTouchCbmPanel({
         return next
       }
 
-      // 3. 없으면 신규 카드 추가
-      return [
-        ...prev,
-        ensureItemUid({
-          locationId: activeCategoryId,
-          locationName: activeCategory?.name || '기타/미지정',
-          name: stdItem.name,
-          spec: stdItem.spec || '',
-          quantity: 1,
-          cbm: stdItem.defaultCbm ?? 0.5,
-          innerBoxCbm: stdItem.defaultInnerCbm ?? 0,
-          treatment: '이동',
-        }),
-      ]
+      // 3. 동일 품목명이 이미 현재 공간에 있으면 해당 품목 바로 뒤에 삽입하여 그룹화
+      const newCard = ensureItemUid({
+        locationId: activeCategoryId,
+        locationName: activeCategory?.name || '기타/미지정',
+        name: stdItem.name,
+        spec: stdItem.spec || '',
+        quantity: 1,
+        cbm: stdItem.defaultCbm ?? 0.5,
+        innerBoxCbm: stdItem.defaultInnerCbm ?? 0,
+        treatment: '이동',
+      })
+
+      let lastSameNameIdx = -1
+      for (let i = 0; i < prev.length; i++) {
+        if ((prev[i].locationId || '') === activeCategoryId && prev[i].name === stdItem.name) {
+          lastSameNameIdx = i
+        }
+      }
+      if (lastSameNameIdx >= 0) {
+        const next = [...prev]
+        next.splice(lastSameNameIdx + 1, 0, newCard)
+        return next
+      }
+
+      return [...prev, newCard]
     })
   }
 
@@ -707,6 +808,22 @@ export function QuickTouchCbmPanel({
                       (item.spec && (s.spec || '기본') === item.spec)
                   )
                 : allSpecsForName
+
+            // 동일 공간 내 같은 품목명의 복수 행 순서 및 기선택 규격 파악
+            const sameNameSiblings = currentNonBoxItems.filter(x => x.name === item.name)
+            const sameNameSeq =
+              sameNameSiblings.length > 1
+                ? sameNameSiblings.findIndex(x => x._uid === item._uid) + 1
+                : 0
+            const otherUsedSpecs = new Set(
+              sameNameSiblings
+                .filter(x => x._uid !== item._uid && (Number(x.quantity) || 0) > 0 && x.spec)
+                .map(x => x.spec)
+            )
+            const isPendingCopiedSpec = Boolean(
+              item._isCopiedRow && !item.spec && availableSpecs.length > 0
+            )
+
             const effCbm = getItemEffectiveCbm(item)
             const unitCbm = (Number(item.cbm) || 0) + (Number(item.innerBoxCbm) || 0)
             const displayCbm = hasQty ? effCbm : unitCbm
@@ -715,19 +832,29 @@ export function QuickTouchCbmPanel({
             return (
               <div
                 key={item._uid}
-                className={`flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-lg border transition-all ${
-                  hasQty
+                className={`flex items-center justify-between gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg border transition-all ${
+                  isPendingCopiedSpec
+                    ? 'border-indigo-400 bg-indigo-50/50 shadow-2xs ring-1 ring-indigo-200'
+                    : hasQty
                     ? 'border-blue-500 bg-blue-50/40 shadow-2xs ring-1 ring-blue-200'
                     : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/40'
                 }`}
               >
-                {/* 좌측: 품목명 + 규격 선택(드롭다운/배지) + CBM */}
+                {/* 좌측: 품목명 + 규격 선택(드롭다운/입력) + CBM */}
                 <div className="flex items-center gap-1.5 min-w-0 flex-1">
                   {/* 품목명 */}
-                  <div className="flex items-center gap-1 shrink-0 max-w-[115px] sm:max-w-[140px]">
+                  <div className="flex items-center gap-1 shrink-0 max-w-[100px] sm:max-w-[140px]">
                     <span className="font-extrabold text-xs sm:text-sm text-gray-900 truncate" title={item.name}>
                       {item.name}
                     </span>
+                    {sameNameSeq > 0 && (
+                      <span
+                        className="px-1 py-0.1 rounded bg-indigo-100 text-indigo-800 border border-indigo-200 text-[9px] font-black shrink-0"
+                        title={`같은 공간 동일 품목 ${sameNameSeq}번째 규격`}
+                      >
+                        #{sameNameSeq}
+                      </span>
+                    )}
                     {isBox && item.spec && (
                       <span className="px-1.5 py-0.2 rounded bg-amber-300 text-slate-950 border border-amber-400 text-[10px] font-black shrink-0">
                         {item.spec}
@@ -746,33 +873,50 @@ export function QuickTouchCbmPanel({
                             ? hasQty
                               ? 'bg-white text-blue-950 border-blue-400 focus:border-blue-600'
                               : 'bg-indigo-50/70 text-indigo-950 border-indigo-200 hover:border-indigo-400'
+                            : isPendingCopiedSpec
+                            ? 'bg-indigo-100/90 text-indigo-950 border-indigo-400 ring-1 ring-indigo-300'
                             : 'bg-amber-50/80 text-amber-950 border-amber-300 hover:border-amber-400'
                         }`}
                       >
-                        <option value="">▾ 규격 선택</option>
-                        {availableSpecs.map(s => (
-                          <option key={s.id} value={s.spec || '기본'}>
-                            {s.spec || '기본'} ({s.defaultCbm}
-                            {(s.defaultInnerCbm || 0) > 0 ? `+${s.defaultInnerCbm}` : ''})
-                          </option>
-                        ))}
+                        <option value="">
+                          {isPendingCopiedSpec || sameNameSeq > 0 ? '▾ 다른 규격 선택' : '▾ 규격 선택'}
+                        </option>
+                        {availableSpecs.map(s => {
+                          const spLabel = s.spec || '기본'
+                          const alreadyUsed = otherUsedSpecs.has(spLabel)
+                          return (
+                            <option key={s.id} value={spLabel}>
+                              {spLabel} ({s.defaultCbm}
+                              {(s.defaultInnerCbm || 0) > 0 ? `+${s.defaultInnerCbm}` : ''})
+                              {alreadyUsed ? ' · 등록됨' : ''}
+                            </option>
+                          )
+                        })}
                       </select>
                     ) : (
-                      <div
-                        title={item.spec || '규격 선택'}
-                        className={`w-full px-1.5 py-1 rounded-md text-[11px] sm:text-xs font-bold truncate border ${
+                      <input
+                        type="text"
+                        lang="ko"
+                        inputMode="text"
+                        autoCapitalize="off"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        style={{ imeMode: 'active' } as React.CSSProperties}
+                        value={item.spec || ''}
+                        onChange={e => handleUpdateCustomSpec(item._uid, e.target.value)}
+                        placeholder="규격 입력"
+                        title={item.spec || '규격 직접 입력'}
+                        className={`w-full px-1.5 py-1 rounded-md text-[11px] sm:text-xs font-bold border outline-none transition-colors ${
                           hasQty
-                            ? 'bg-white text-blue-950 border-blue-300'
-                            : 'bg-amber-50/80 text-amber-950 border-amber-300'
+                            ? 'bg-white text-blue-950 border-blue-300 focus:border-blue-500'
+                            : 'bg-amber-50/80 text-amber-950 border-amber-300 focus:border-amber-500'
                         }`}
-                      >
-                        {item.spec || '▾ 규격 선택'}
-                      </div>
+                      />
                     )}
                   </div>
 
                   {/* CBM 및 내품 표시 */}
-                  <div className="hidden xs:flex items-center gap-1 shrink-0 text-[11px]">
+                  <div className="hidden sm:flex items-center gap-1 shrink-0 text-[11px]">
                     <span className={`font-bold ${hasQty ? 'text-blue-700' : 'text-gray-500'}`}>
                       {displayCbm.toFixed(2)}
                     </span>
@@ -787,7 +931,7 @@ export function QuickTouchCbmPanel({
                   </div>
                 </div>
 
-                {/* 우측: 처리옵션 + 원터치 수량 증감 + 삭제 */}
+                {/* 우측: 처리옵션 + 원터치 수량 증감 + 다른 규격 복사등록 + 삭제 */}
                 <div className="flex items-center gap-1 shrink-0">
                   {/* 처리 상태 배지 (클릭 시 순환 변경) */}
                   <button
@@ -848,6 +992,23 @@ export function QuickTouchCbmPanel({
                       title="박스 5개씩 추가"
                     >
                       +5
+                    </button>
+                  )}
+
+                  {/* 같은 공간 다른 규격 복사등록 버튼 */}
+                  {!isBox && (
+                    <button
+                      type="button"
+                      onClick={() => handleDuplicateItem(item._uid)}
+                      title={`[${activeCategory?.name}]에 '${item.name}' 다른 규격 복사등록`}
+                      className={`h-6 sm:h-7 px-1.5 rounded-md flex items-center gap-0.5 text-[10px] font-extrabold border transition-all active:scale-90 shrink-0 ${
+                        hasQty
+                          ? 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-300 shadow-2xs'
+                          : 'bg-gray-50 hover:bg-indigo-50 text-gray-500 hover:text-indigo-700 border-gray-200 hover:border-indigo-200'
+                      }`}
+                    >
+                      <Copy size={11} />
+                      <span>복사</span>
                     </button>
                   )}
 

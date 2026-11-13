@@ -11,7 +11,7 @@ import { getLadderFares } from '@/app/actions/ladder'
 import type { LadderFareItem } from '@/types/ladder'
 import { getPartnerCompanies, createPartnerCompany, type PartnerCompanyItem } from '@/app/actions/partner'
 import DaumPostcodeEmbed from 'react-daum-postcode'
-import { MapPin, Search, ChevronDown, ChevronUp, Navigation, RefreshCw, Car, AlertCircle, CheckCircle2, Calculator, Truck, Plus, FileText, Sparkles, Zap, Smartphone, Table, Trash2, Coins, CreditCard, PackagePlus, X, Wrench, Building2 } from 'lucide-react'
+import { MapPin, Search, ChevronDown, ChevronUp, Navigation, RefreshCw, Car, AlertCircle, CheckCircle2, Calculator, Truck, Plus, FileText, Sparkles, Zap, Smartphone, Table, Trash2, Copy, Coins, CreditCard, PackagePlus, X, Wrench, Building2 } from 'lucide-react'
 import { CustomDatePicker } from '@/components/CustomDatePicker'
 import { format } from 'date-fns'
 import { formatPhoneNumber, handlePhoneInputChange, handleSelectAllOnFocus } from '@/lib/format'
@@ -161,11 +161,14 @@ const filterValidCbmItems = (itemsList: any[]): any[] => {
     const qty = item.quantity !== undefined ? Number(item.quantity) : 1
     const unitCbm = (Number(item.cbm) || 0) + (Number(item.innerBoxCbm) || 0)
     return unitCbm > 0 && qty > 0
-  }).map((item: any) => ({
-    ...item,
-    locationName: item.locationName ? normalizeLocationName(item.locationName) : item.locationName,
-    treatment: item.treatment || '이동'
-  }))
+  }).map((item: any) => {
+    const { _isCopiedRow, ...rest } = item
+    return {
+      ...rest,
+      locationName: item.locationName ? normalizeLocationName(item.locationName) : item.locationName,
+      treatment: item.treatment || '이동'
+    }
+  })
   return sortCbmItems(filtered)
 }
 
@@ -1111,7 +1114,8 @@ export function EstimateForm({
         it =>
           (it.locationId || '') === catId &&
           it.name === stdItem.name &&
-          (it.spec || '') === (stdItem.spec || '')
+          (it.spec || '') === (stdItem.spec || '') &&
+          (it.treatment || '이동') === '이동'
       )
       if (exactIdx >= 0) {
         const next = [...prev]
@@ -1145,19 +1149,95 @@ export function EstimateForm({
         return next
       }
 
-      return [
-        ...prev,
-        ensureItemUid({
-          locationId: catId,
-          locationName: catName,
-          name: stdItem.name,
-          spec: stdItem.spec || '',
+      const newRow = ensureItemUid({
+        locationId: catId,
+        locationName: catName,
+        name: stdItem.name,
+        spec: stdItem.spec || '',
+        quantity: 1,
+        cbm: stdItem.defaultCbm ?? 0.5,
+        innerBoxCbm: stdItem.defaultInnerCbm ?? 0,
+        treatment: '이동',
+      })
+
+      let lastSameNameIdx = -1
+      for (let i = 0; i < prev.length; i++) {
+        if ((prev[i].locationId || '') === catId && prev[i].name === stdItem.name) {
+          lastSameNameIdx = i
+        }
+      }
+      if (lastSameNameIdx >= 0) {
+        const next = [...prev]
+        next.splice(lastSameNameIdx + 1, 0, newRow)
+        return next
+      }
+
+      return [...prev, newRow]
+    })
+  }
+
+  // 상세 테이블 모드: 같은 공간에 동일 품목(다른 규격) 복사등록 핸들러
+  const handleDuplicateTableItem = (idx: number) => {
+    setItems(prev => {
+      if (idx < 0 || idx >= prev.length) return prev
+      const src = prev[idx]
+      const availableSpecs = getMatchingStandardSpecs(src.name, standardItems)
+
+      let copiedRow: any
+      if (availableSpecs.length >= 2) {
+        copiedRow = ensureItemUid({
+          locationId: src.locationId,
+          locationName: src.locationName,
+          name: src.name,
+          spec: '',
+          quantity: 0,
+          treatment: src.treatment || '이동',
+          cbm: 0,
+          innerBoxCbm: 0,
+          _isCopiedRow: true,
+        })
+      } else if (availableSpecs.length === 1) {
+        const onlySpec = availableSpecs[0]
+        copiedRow = ensureItemUid({
+          locationId: src.locationId,
+          locationName: src.locationName,
+          name: src.name,
+          spec: onlySpec.spec || '기본',
           quantity: 1,
-          cbm: stdItem.defaultCbm ?? 0.5,
-          innerBoxCbm: stdItem.defaultInnerCbm ?? 0,
-          treatment: '이동',
-        }),
-      ]
+          treatment: src.treatment || '이동',
+          cbm: onlySpec.defaultCbm ?? src.cbm ?? 0,
+          innerBoxCbm: onlySpec.defaultInnerCbm ?? src.innerBoxCbm ?? 0,
+          _isCopiedRow: true,
+        })
+      } else {
+        copiedRow = ensureItemUid({
+          locationId: src.locationId,
+          locationName: src.locationName,
+          name: src.name,
+          spec: '',
+          quantity: 1,
+          treatment: src.treatment || '이동',
+          cbm: Number(src.cbm) || 0,
+          innerBoxCbm: Number(src.innerBoxCbm) || 0,
+          _isCopiedRow: true,
+        })
+      }
+
+      let insertAfterIdx = idx
+      for (let i = idx + 1; i < prev.length; i++) {
+        if (
+          (prev[i].locationId || '') === (src.locationId || '') &&
+          prev[i].name === src.name
+        ) {
+          insertAfterIdx = i
+        } else if ((prev[i].locationId || '') === (src.locationId || '')) {
+          break
+        }
+      }
+
+      const next = [...prev]
+      next.splice(insertAfterIdx + 1, 0, copiedRow)
+      return next
     })
   }
 
@@ -1869,7 +1949,9 @@ export function EstimateForm({
                   fi =>
                     (fi.locationId || '') === locId &&
                     fi.name === dItem.name &&
-                    ((fi.spec || '') === (dItem.spec || '') || (Number(fi.quantity) || 0) === 0)
+                    ((Number(fi.quantity) || 0) === 0 ||
+                      ((fi.spec || '') === (dItem.spec || '') &&
+                        (fi.treatment || '이동') === (dItem.treatment || '이동')))
                 )
                 if (matchIdx >= 0) {
                   finalItems[matchIdx] = ensureItemUid({
@@ -1878,7 +1960,18 @@ export function EstimateForm({
                     treatment: dItem.treatment || '이동',
                   })
                 } else {
-                  finalItems.push(ensureItemUid({ ...dItem, treatment: dItem.treatment || '이동' }))
+                  const newRestored = ensureItemUid({ ...dItem, treatment: dItem.treatment || '이동' })
+                  let lastSameNameIdx = -1
+                  for (let k = 0; k < finalItems.length; k++) {
+                    if ((finalItems[k].locationId || '') === locId && finalItems[k].name === dItem.name) {
+                      lastSameNameIdx = k
+                    }
+                  }
+                  if (lastSameNameIdx >= 0) {
+                    finalItems.splice(lastSameNameIdx + 1, 0, newRestored)
+                  } else {
+                    finalItems.push(newRestored)
+                  }
                 }
               })
             }
@@ -3820,7 +3913,7 @@ export function EstimateForm({
                 const allCatItems = items.filter(i => (i.locationId || '') === cat.id)
                 const catItems = allCatItems.filter(it => {
                   const qty = Number(it.quantity) || 0
-                  if (tableMidCat === 'selected' && qty <= 0) return false
+                  if (tableMidCat === 'selected' && qty <= 0 && !it._isCopiedRow) return false
                   if (
                     tableMidCat !== 'all' &&
                     tableMidCat !== 'selected' &&
@@ -3890,34 +3983,64 @@ export function EstimateForm({
                               <th className="whitespace-nowrap px-1 sm:px-1.5 py-1.5 font-semibold w-13 sm:w-16 text-center">처리</th>
                               <th className="whitespace-nowrap px-1 sm:px-1.5 py-1.5 font-semibold w-14 sm:w-18 text-right">기본 CBM</th>
                               <th className="whitespace-nowrap px-1 sm:px-1.5 py-1.5 font-semibold w-14 sm:w-18 text-right">내품 CBM</th>
-                              <th className="whitespace-nowrap px-0.5 sm:px-1 py-1.5 font-semibold w-7 sm:w-8 text-center">삭제</th>
+                              <th className="whitespace-nowrap px-1 sm:px-1.5 py-1.5 font-semibold w-16 sm:w-20 text-center">복사/삭제</th>
                             </tr>
                           </thead>
                         <tbody>
                           {catItems.map((item) => {
                             const idx = items.findIndex(i => (i._uid ? i._uid === item._uid : i === item))
+                            const availableSpecs = getMatchingStandardSpecs(item.name, standardItems)
+                            const sameNameSiblings = item.name && !isBoxItem(item.name)
+                              ? allCatItems.filter(x => x.name === item.name)
+                              : []
+                            const sameNameSeq =
+                              sameNameSiblings.length > 1
+                                ? sameNameSiblings.findIndex(x => x._uid === item._uid) + 1
+                                : 0
+                            const otherUsedSpecs = new Set(
+                              sameNameSiblings
+                                .filter(x => x._uid !== item._uid && (Number(x.quantity) || 0) > 0 && x.spec)
+                                .map(x => x.spec)
+                            )
+                            const isPendingCopiedSpec = Boolean(
+                              item._isCopiedRow && !item.spec && availableSpecs.length > 0
+                            )
                             return (
-                              <tr key={item._uid || idx} className="border-b last:border-0 hover:bg-blue-50/30 transition-colors">
+                              <tr
+                                key={item._uid || idx}
+                                className={`border-b last:border-0 transition-colors ${
+                                  isPendingCopiedSpec
+                                    ? 'bg-indigo-50/50 hover:bg-indigo-50/80'
+                                    : 'hover:bg-blue-50/30'
+                                }`}
+                              >
                                 <td className="px-1.5 sm:px-2 py-1">
-                                  <input 
-                                    type="text" 
-                                    value={item.name} 
-                                    onChange={e => {
-                                      const newItems = [...items]
-                                      newItems[idx].name = e.target.value
-                                      setItems(newItems)
-                                    }} 
-                                    className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-xs sm:text-sm outline-none focus:border-blue-500 font-medium" 
-                                    placeholder="직접입력" 
-                                    autoComplete="off"
-                                    spellCheck={false}
-                                  />
+                                  <div className="flex items-center gap-1">
+                                    <input 
+                                      type="text" 
+                                      value={item.name} 
+                                      onChange={e => {
+                                        const newItems = [...items]
+                                        newItems[idx].name = e.target.value
+                                        setItems(newItems)
+                                      }} 
+                                      className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-xs sm:text-sm outline-none focus:border-blue-500 font-medium" 
+                                      placeholder="직접입력" 
+                                      autoComplete="off"
+                                      spellCheck={false}
+                                    />
+                                    {sameNameSeq > 0 && (
+                                      <span
+                                        className="px-1 py-0.5 rounded bg-indigo-100 text-indigo-800 border border-indigo-200 text-[10px] font-black shrink-0"
+                                        title={`같은 공간 동일 품목 ${sameNameSeq}번째 규격`}
+                                      >
+                                        #{sameNameSeq}
+                                      </span>
+                                    )}
+                                  </div>
                                 </td>
                                 <td className="px-1.5 sm:px-2 py-1">
                                   {(() => {
-                                    // 해당 품목명(name)을 가진 기준정보 항목들을 찾음 (규격순 정렬, BOX는 위치 연결 규격 우선)
-                                    const availableSpecs = getMatchingStandardSpecs(item.name, standardItems)
-                                    
                                     if (availableSpecs.length > 0) {
                                       return (
                                         <select
@@ -3945,14 +4068,25 @@ export function EstimateForm({
                                             }
                                             setItems(newItems)
                                           }}
-                                          className="w-full rounded border border-gray-300 bg-white px-1.5 sm:px-2 py-1 text-xs sm:text-sm font-medium text-gray-800 outline-none focus:border-blue-500 cursor-pointer"
+                                          className={`w-full rounded border px-1.5 sm:px-2 py-1 text-xs sm:text-sm font-medium outline-none cursor-pointer ${
+                                            isPendingCopiedSpec
+                                              ? 'border-indigo-400 bg-indigo-50 text-indigo-950 font-bold ring-1 ring-indigo-300 focus:border-indigo-600'
+                                              : 'border-gray-300 bg-white text-gray-800 focus:border-blue-500'
+                                          }`}
                                         >
-                                          <option value="">규격 선택</option>
-                                          {availableSpecs.map(s => (
-                                            <option key={s.id} value={s.spec || '기본'}>
-                                              {s.spec || '기본'} ({s.defaultCbm} CBM{(s.defaultInnerCbm || 0) > 0 ? ` + 내품 ${s.defaultInnerCbm}` : ''})
-                                            </option>
-                                          ))}
+                                          <option value="">
+                                            {isPendingCopiedSpec || sameNameSeq > 0 ? '▾ 다른 규격 선택' : '규격 선택'}
+                                          </option>
+                                          {availableSpecs.map(s => {
+                                            const spLabel = s.spec || '기본'
+                                            const alreadyUsed = otherUsedSpecs.has(spLabel)
+                                            return (
+                                              <option key={s.id} value={spLabel}>
+                                                {spLabel} ({s.defaultCbm} CBM{(s.defaultInnerCbm || 0) > 0 ? ` + 내품 ${s.defaultInnerCbm}` : ''})
+                                                {alreadyUsed ? ' · 등록됨' : ''}
+                                              </option>
+                                            )
+                                          })}
                                         </select>
                                       )
                                     }
@@ -4062,16 +4196,28 @@ export function EstimateForm({
                                   />
                                 </td>
                                 <td className="px-1 py-1 text-center">
-                                  <button 
-                                    type="button" 
-                                    onClick={() => {
-                                      const newItems = items.filter((_, i) => i !== idx)
-                                      setItems(newItems)
-                                    }} 
-                                    className="text-red-500 hover:text-red-700 font-bold p-1 text-xs sm:text-sm"
-                                  >
-                                    ✕
-                                  </button>
+                                  <div className="inline-flex items-center justify-center gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDuplicateTableItem(idx)}
+                                      title={`[${cat.name}]에 '${item.name || '품목'}' 다른 규격 복사등록`}
+                                      className="inline-flex items-center gap-0.5 px-1.5 py-1 rounded border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold text-[10px] sm:text-xs transition-colors shrink-0"
+                                    >
+                                      <Copy size={11} />
+                                      <span>복사</span>
+                                    </button>
+                                    <button 
+                                      type="button" 
+                                      onClick={() => {
+                                        const newItems = items.filter((_, i) => i !== idx)
+                                        setItems(newItems)
+                                      }} 
+                                      title="행 삭제"
+                                      className="text-red-500 hover:text-red-700 font-bold p-1 text-xs sm:text-sm shrink-0"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
                                 </td>
                               </tr>
                             )
