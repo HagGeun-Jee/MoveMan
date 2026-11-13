@@ -5,7 +5,7 @@ import { getLocationCategories } from '@/app/actions/item'
 import { getCostStandards } from '@/app/actions/costStandards'
 import { isCurrentSessionAdminAccount } from '@/app/actions/estimate'
 import { calculatePackingMaterials, isExcludedMaterial, type PackingMaterialItem } from '@/lib/packingMaterialCalculator'
-import { format } from 'date-fns'
+import { formatKstDate, formatKstShortDateTime } from '@/lib/kstDate'
 import { MapPin, Phone } from 'lucide-react'
 import { PrintButton } from '@/components/PrintButton'
 import { DeleteEstimateButton } from '@/components/DeleteEstimateButton'
@@ -14,6 +14,7 @@ import { EstimateContractItemsView } from '@/components/EstimateContractItemsVie
 import { EstimatePackingMaterialsView } from '@/components/EstimatePackingMaterialsView'
 import { CustomerPreMoveSmsTrigger } from '@/components/CustomerPreMoveSmsModal'
 import { SontaxDetailTrigger } from '@/components/SontaxFilingModal'
+import { getItemOrderInSpace, sortCategoriesByDisplayOrder } from '@/lib/spaceOrderUtils'
 
 import { Metadata } from 'next'
 
@@ -152,9 +153,12 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
   const knownAddCost = ladderTotalCost + distanceExtraCost
   const otherAdditionalCost = Math.max(0, (estimate.additionalCost || 0) - knownAddCost)
 
+  const orderedCategories = sortCategoriesByDisplayOrder(locationCategories)
   const locationOrderMap: Record<string, number> = {}
-  locationCategories.forEach((cat, index) => {
+  const locationObjByNameMap: Record<string, any> = {}
+  orderedCategories.forEach((cat, index) => {
     locationOrderMap[cat.name] = index
+    locationObjByNameMap[cat.name] = cat
   })
 
   const groupedItems = items.reduce((acc: Record<string, any[]>, item: any) => {
@@ -164,9 +168,23 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
     return acc
   }, {})
 
-  // 각 위치별로 품목, 규격 순 가나다 정렬
+  const isBoxName = (n?: string) => {
+    const u = (n || '').trim().toUpperCase()
+    return u === 'BOX' || u.startsWith('BOX') || u === '박스'
+  }
+
+  // 각 위치별로 물품 기준정보 디스플레이 순서 우선 -> 품목명 -> 규격 순 정렬 (BOX는 일반물품 뒤 배치)
   for (const locName in groupedItems) {
+    const matchedCat = locationObjByNameMap[locName] || { name: locName }
     groupedItems[locName].sort((a: any, b: any) => {
+      const aBox = isBoxName(a.name)
+      const bBox = isBoxName(b.name)
+      if (aBox !== bBox) return aBox ? 1 : -1
+
+      const ordA = getItemOrderInSpace(matchedCat, a.name || '', 9999)
+      const ordB = getItemOrderInSpace(matchedCat, b.name || '', 9999)
+      if (ordA !== ordB) return ordA - ordB
+
       const nameComp = (a.name || '').localeCompare(b.name || '', 'ko')
       if (nameComp !== 0) return nameComp
       return (a.spec || '').localeCompare(b.spec || '', 'ko')
@@ -374,10 +392,10 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                   </td>
                   <th className="border border-gray-300 bg-gray-100 px-2.5 py-1.5 print:px-2 print:py-1 text-left font-bold text-gray-900 whitespace-nowrap">접수 / 방문일</th>
                   <td className="border border-gray-300 px-2.5 py-1.5 print:px-2 print:py-1 font-semibold text-gray-900">
-                    <span>접수: {format(new Date(estimate.estimateDate), 'yyyy-MM-dd')}</span>
+                    <span>접수: {formatKstDate(estimate.estimateDate)}</span>
                     {estimate.visitDate && (
                       <span className="text-gray-600 ml-1.5">
-                        (방문: {format(new Date(estimate.visitDate), 'MM-dd HH:mm')})
+                        (방문: {formatKstShortDateTime(estimate.visitDate)})
                       </span>
                     )}
                   </td>
@@ -385,10 +403,10 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                 <tr>
                   <th className="border border-gray-300 bg-gray-100 px-2.5 py-1.5 print:px-2 print:py-1 text-left font-bold text-gray-900 whitespace-nowrap">이사 예정일</th>
                   <td className="border border-gray-300 px-2.5 py-1.5 print:px-2 print:py-1 font-extrabold text-gray-900">
-                    {estimate.movingDate ? format(new Date(estimate.movingDate), 'yyyy-MM-dd') : '-'}
+                    {estimate.movingDate ? formatKstDate(estimate.movingDate) : '-'}
                     {estimate.movingType === 'K' && estimate.organizeDate && (
                       <span className="text-xs text-gray-600 font-normal ml-1.5">
-                        (정리일: {format(new Date(estimate.organizeDate), 'yyyy-MM-dd')})
+                        (정리일: {formatKstDate(estimate.organizeDate)})
                       </span>
                     )}
                   </td>

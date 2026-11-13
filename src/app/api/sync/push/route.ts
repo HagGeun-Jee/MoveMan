@@ -3,7 +3,7 @@ import prisma from '@/lib/prisma'
 import { verifyActiveAdmin } from '@/lib/adminSchema'
 import { cookies } from 'next/headers'
 import { decrypt } from '@/lib/session'
-import { format } from 'date-fns'
+import { parseKstDateTime, parseKstDateOnly, getKstParts } from '@/lib/kstDate'
 
 export async function POST(request: Request) {
   try {
@@ -61,10 +61,11 @@ export async function POST(request: Request) {
           if (item.action === 'CREATE') {
             const data = item.payload
             const movingType = data.movingType || 'P'
-            const estDate = data.estimateDate ? new Date(data.estimateDate) : new Date()
+            const estDate = parseKstDateOnly(data.estimateDate) || new Date()
             
-            // 견적번호 채번: movingType + YYMMDD + 0001
-            const dateStr = format(estDate, 'yyMMdd')
+            // 견적번호 채번: movingType + KST YYMMDD + 0001
+            const estParts = getKstParts(estDate) || getKstParts(new Date())!
+            const dateStr = `${estParts.yyyy.slice(-2)}${estParts.MM}${estParts.dd}`
             const prefix = `${movingType}${dateStr}`
 
             // 다중 사용자 동시 동기화 시 견적번호(id) 채번 충돌 방지를 위한 자동 재시도 (최대 5회)
@@ -94,9 +95,9 @@ export async function POST(request: Request) {
                     fromAddress: data.fromAddress || '',
                     toAddress: data.toAddress || '',
                     estimateDate: estDate,
-                    visitDate: data.visitDate ? new Date(data.visitDate) : null,
-                    movingDate: data.movingDate ? new Date(data.movingDate) : null,
-                    organizeDate: data.organizeDate ? new Date(data.organizeDate) : null,
+                    visitDate: parseKstDateTime(data.visitDate),
+                    movingDate: parseKstDateOnly(data.movingDate),
+                    organizeDate: parseKstDateOnly(data.organizeDate),
                     cbmItems: toValidJsonString(data.cbmItems, '[]'),
                     materials: toValidJsonString(data.materials, '{}'),
                     assemblyItems: toValidJsonString(data.assemblyItems, '[]'),
@@ -143,10 +144,10 @@ export async function POST(request: Request) {
                   contact: data.contact !== undefined ? data.contact : existing.contact,
                   fromAddress: data.fromAddress !== undefined ? data.fromAddress : existing.fromAddress,
                   toAddress: data.toAddress !== undefined ? data.toAddress : existing.toAddress,
-                  estimateDate: data.estimateDate ? new Date(data.estimateDate) : existing.estimateDate,
-                  visitDate: data.visitDate ? new Date(data.visitDate) : existing.visitDate,
-                  movingDate: data.movingDate ? new Date(data.movingDate) : existing.movingDate,
-                  organizeDate: data.organizeDate ? new Date(data.organizeDate) : existing.organizeDate,
+                  estimateDate: data.estimateDate !== undefined ? (parseKstDateOnly(data.estimateDate) || existing.estimateDate) : existing.estimateDate,
+                  visitDate: data.visitDate !== undefined ? parseKstDateTime(data.visitDate) : existing.visitDate,
+                  movingDate: data.movingDate !== undefined ? parseKstDateOnly(data.movingDate) : existing.movingDate,
+                  organizeDate: data.organizeDate !== undefined ? parseKstDateOnly(data.organizeDate) : existing.organizeDate,
                   cbmItems: data.cbmItems !== undefined ? toValidJsonString(data.cbmItems, '[]') : existing.cbmItems,
                   materials: data.materials !== undefined ? toValidJsonString(data.materials, '{}') : existing.materials,
                   environment: (() => {

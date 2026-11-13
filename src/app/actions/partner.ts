@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { decrypt } from '@/lib/session'
-import { format } from 'date-fns'
+import { parseKstDateTime, parseKstDateOnly, getKstParts } from '@/lib/kstDate'
 
 export type PartnerBadgeColor =
   | 'blue'
@@ -46,6 +46,15 @@ export interface CreateQuickVisitInput {
   specialNotes?: string
 }
 
+export interface QuickVisitSmsTemplateItem {
+  id: string
+  title: string
+  content: string
+  isDefault?: boolean
+}
+
+const QUICK_VISIT_SMS_TEMPLATES_KEY = 'quick_visit_sms_templates_v1'
+
 let isPartnerSchemaEnsured = false
 
 export async function ensurePartnerSchema() {
@@ -73,9 +82,78 @@ export async function ensurePartnerSchema() {
       CREATE UNIQUE INDEX IF NOT EXISTS "PartnerCompany_name_key"
       ON "PartnerCompany"("name");
     `)
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "SystemKeyValue" (
+        "key" TEXT NOT NULL,
+        "value" TEXT NOT NULL,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "SystemKeyValue_pkey" PRIMARY KEY ("key")
+      );
+    `)
     isPartnerSchemaEnsured = true
   } catch (err) {
     console.warn('ensurePartnerSchema warning:', err)
+  }
+}
+
+export async function getQuickVisitSmsTemplates(): Promise<QuickVisitSmsTemplateItem[] | null> {
+  await ensurePartnerSchema()
+  try {
+    const rows = await prisma.$queryRawUnsafe<{ value: string }[]>(
+      `SELECT "value" FROM "SystemKeyValue" WHERE "key" = $1 LIMIT 1`,
+      QUICK_VISIT_SMS_TEMPLATES_KEY
+    )
+    if (!rows || rows.length === 0 || !rows[0]?.value) return null
+    const parsed = JSON.parse(rows[0].value)
+    if (!Array.isArray(parsed) || parsed.length === 0) return null
+    return parsed
+      .filter((t: any) => t && typeof t.title === 'string' && typeof t.content === 'string')
+      .map((t: any, idx: number) => ({
+        id: String(t.id || `tpl_${idx + 1}`),
+        title: t.title.trim(),
+        content: t.content,
+        isDefault: Boolean(t.isDefault)
+      }))
+  } catch (err) {
+    console.warn('getQuickVisitSmsTemplates warning:', err)
+    return null
+  }
+}
+
+export async function saveQuickVisitSmsTemplates(
+  templates: QuickVisitSmsTemplateItem[]
+): Promise<{ success?: boolean; error?: string }> {
+  await ensurePartnerSchema()
+  try {
+    const sanitized = (templates || [])
+      .filter(t => t && t.title.trim() && t.content.trim())
+      .map((t, idx) => ({
+        id: t.id || `tpl_${Date.now()}_${idx}`,
+        title: t.title.trim(),
+        content: t.content,
+        isDefault: Boolean(t.isDefault)
+      }))
+
+    if (sanitized.length === 0) {
+      return { error: '최소 1개 이상의 문자 템플릿이 필요합니다.' }
+    }
+    if (!sanitized.some(t => t.isDefault)) {
+      sanitized[0].isDefault = true
+    }
+
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO "SystemKeyValue" ("key", "value", "updatedAt")
+       VALUES ($1, $2, CURRENT_TIMESTAMP)
+       ON CONFLICT ("key") DO UPDATE
+       SET "value" = EXCLUDED."value",
+           "updatedAt" = CURRENT_TIMESTAMP`,
+      QUICK_VISIT_SMS_TEMPLATES_KEY,
+      JSON.stringify(sanitized)
+    )
+    return { success: true }
+  } catch (err) {
+    console.error('saveQuickVisitSmsTemplates error:', err)
+    return { error: '문자 템플릿 저장 중 오류가 발생했습니다.' }
   }
 }
 
@@ -281,7 +359,8 @@ export async function createQuickVisitEstimate(input: CreateQuickVisitInput) {
     | 'K'
 
   const now = new Date()
-  const dateStr = format(now, 'yyMMdd')
+  const nowParts = getKstParts(now)!
+  const dateStr = `${nowParts.yyyy.slice(-2)}${nowParts.MM}${nowParts.dd}`
   const prefix = `${movingType}${dateStr}`
 
   const lastEstimate = await prisma.estimate.findFirst({
@@ -335,8 +414,8 @@ export async function createQuickVisitEstimate(input: CreateQuickVisitInput) {
     fromAddress: (input.fromAddress || '').trim() || '방문 시 상세확인',
     toAddress: (input.toAddress || '').trim() || '',
     estimateDate: now,
-    visitDate: input.visitDate ? new Date(input.visitDate) : null,
-    movingDate: input.movingDate ? new Date(input.movingDate) : null,
+    visitDate: parseKstDateTime(input.visitDate),
+    movingDate: parseKstDateOnly(input.movingDate),
     organizeDate: null,
     cbmItems: '[]',
     materials: '[]',

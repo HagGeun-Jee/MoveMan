@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { decrypt } from '@/lib/session'
-import { format } from 'date-fns'
+import { parseKstDateTime, parseKstDateOnly, getKstParts } from '@/lib/kstDate'
 
 function sanitizeCbmItems(raw: string | null | undefined): string {
   if (!raw) return '[]'
@@ -37,10 +37,11 @@ export async function createEstimate(formData: FormData) {
 
   const movingType = formData.get('movingType') as string
   const estimateDateStr = formData.get('estimateDate') as string
-  const estimateDate = new Date(estimateDateStr)
+  const estimateDate = parseKstDateOnly(estimateDateStr) || new Date()
   
-  // 식별코드 자동 생성 로직: 이사종류코드 + 견적일자(YYMMDD) + 일련번호 4자리 (예: P2609070001)
-  const dateStr = format(estimateDate, 'yyMMdd')
+  // 식별코드 자동 생성 로직: 이사종류코드 + KST 견적일자(YYMMDD) + 일련번호 4자리 (예: P2609070001)
+  const estParts = getKstParts(estimateDate) || getKstParts(new Date())!
+  const dateStr = `${estParts.yyyy.slice(-2)}${estParts.MM}${estParts.dd}`
   const prefix = `${movingType}${dateStr}`
   
   // 같은 prefix로 시작하는 가장 마지막 견적번호 찾기
@@ -141,9 +142,9 @@ export async function createEstimate(formData: FormData) {
     fromAddress: formData.get('fromAddress') as string,
     toAddress: formData.get('toAddress') as string,
     estimateDate,
-    movingDate: formData.get('movingDate') ? new Date(formData.get('movingDate') as string) : null,
-    organizeDate: formData.get('organizeDate') ? new Date(formData.get('organizeDate') as string) : null,
-    visitDate: formData.get('visitDate') ? new Date(formData.get('visitDate') as string) : null,
+    movingDate: parseKstDateOnly(formData.get('movingDate') as string),
+    organizeDate: parseKstDateOnly(formData.get('organizeDate') as string),
+    visitDate: parseKstDateTime(formData.get('visitDate') as string),
     cbmItems,
     materials,
     environment,
@@ -205,7 +206,7 @@ export async function updateEstimate(formData: FormData) {
 
   const movingType = formData.get('movingType') as string
   const estimateDateStr = formData.get('estimateDate') as string
-  const estimateDate = new Date(estimateDateStr)
+  const estimateDate = parseKstDateOnly(estimateDateStr) || new Date()
   
   // CBM 항목 및 결제 정보
   const cbmItems = sanitizeCbmItems(formData.get('cbmItems') as string)
@@ -315,9 +316,9 @@ export async function updateEstimate(formData: FormData) {
       fromAddress: formData.get('fromAddress') as string,
       toAddress: formData.get('toAddress') as string,
       estimateDate,
-      movingDate: formData.get('movingDate') ? new Date(formData.get('movingDate') as string) : null,
-      organizeDate: formData.get('organizeDate') ? new Date(formData.get('organizeDate') as string) : null,
-      visitDate: formData.get('visitDate') ? new Date(formData.get('visitDate') as string) : null,
+      movingDate: parseKstDateOnly(formData.get('movingDate') as string),
+      organizeDate: parseKstDateOnly(formData.get('organizeDate') as string),
+      visitDate: parseKstDateTime(formData.get('visitDate') as string),
       
       cbmItems,
       materials,

@@ -55,6 +55,11 @@ import {
   adjustTollForHeavyTruck,
   type TonnageTierKey,
 } from '@/lib/distanceFare'
+import {
+  sortCategoriesByDisplayOrder,
+  getOrderedItemNamesForSpace,
+  getItemOrderInSpace,
+} from '@/lib/spaceOrderUtils'
 
 const NumberInput = ({ value, onChange, className, name }: { value: number, onChange: (val: number) => void, className?: string, name?: string }) => {
   const [localVal, setLocalVal] = useState(value === 0 ? '' : value.toLocaleString())
@@ -139,15 +144,7 @@ export const PREFERRED_SPACE_ORDER = [
 ]
 
 export const sortLocationCategoriesByPreferredOrder = (cats: any[]): any[] => {
-  if (!Array.isArray(cats)) return []
-  return [...cats].sort((a, b) => {
-    const idxA = PREFERRED_SPACE_ORDER.indexOf(normalizeLocationName(a.name))
-    const idxB = PREFERRED_SPACE_ORDER.indexOf(normalizeLocationName(b.name))
-    const rankA = idxA >= 0 ? idxA : 99
-    const rankB = idxB >= 0 ? idxB : 99
-    if (rankA !== rankB) return rankA - rankB
-    return (a.order ?? 99) - (b.order ?? 99)
-  })
+  return sortCategoriesByDisplayOrder(cats)
 }
 
 export const normalizeLocationName = (locName?: string): string => {
@@ -304,183 +301,61 @@ export const getMatchingStandardSpecs = (itemName: string, stdItems: any[]): any
 export const getDefaultCuratedRoomItems = (
   catId: string,
   catName: string,
-  stdItems: any[]
+  stdItems: any[],
+  categoryObj?: any
 ): any[] => {
-  const normName = normalizeLocationName(catName || '')
-
-  type CuratedTemplate = { name: string }
-
-  const BEDROOM_CORE_ITEMS: CuratedTemplate[] = [
-    { name: '장농' },
-    { name: '침대' },
-    { name: '화장대' },
-    { name: '서랍장' },
-    { name: '책상' },
-    { name: '의자' },
-    { name: '책장' },
-    { name: 'TV' },
-    { name: 'TV장' },
-    { name: '행거' },
-    { name: '붙박이장' },
-    { name: '에어컨' },
-  ]
-
-  const SPACE_CURATED_MAP: Record<string, CuratedTemplate[]> = {
-    거실: [
-      { name: 'TV' },
-      { name: 'TV장' },
-      { name: '소파' },
-      { name: '소파 테이블' },
-      { name: '장식장' },
-      { name: '수납장/교구장' },
-      { name: '책상' },
-      { name: '의자' },
-      { name: '책장' },
-      { name: '앵글' },
-      { name: '화장대' },
-      { name: '에어컨' },
-      { name: '리빙박스' },
-      { name: '운동기구' },
-      { name: '스타일러' },
-      { name: '안마의자' },
-      { name: '피아노' },
-    ],
-    주방: [
-      { name: '냉장고' },
-      { name: '김치냉장고' },
-      { name: '식탁' },
-      { name: '의자' },
-      { name: '수납장/교구장' },
-      { name: '식기세척기' },
-      { name: '앵글' },
-      { name: '주방가전' },
-      { name: '싱크대살림' },
-    ],
-    베란다: [
-      { name: '냉장고' },
-      { name: '김치냉장고' },
-      { name: '건조기' },
-      { name: '세탁기' },
-      { name: '화분' },
-      { name: '항아리' },
-      { name: '앵글' },
-      { name: '캠핑/생활기타' },
-      { name: '자전거' },
-    ],
-    팬트리: [
-      { name: '팬트리선반' },
-      { name: '캠핑/생활기타' },
-      { name: '계절가전' },
-      { name: '청소기' },
-    ],
-    신발장: [
-      { name: '신발장' },
-      { name: '유모차' },
-      { name: '자전거' },
-      { name: '운동기구' },
-      { name: '앵글' },
-    ],
-    현관: [
-      { name: '신발장' },
-      { name: '유모차' },
-      { name: '자전거' },
-      { name: '운동기구' },
-      { name: '앵글' },
-    ],
-    화장실: [
-      { name: '욕실용품' },
-      { name: '수납장/교구장' },
-    ],
-    드레스룸: [
-      { name: '장농' },
-      { name: '행거' },
-      { name: '붙박이장' },
-      { name: '서랍장' },
-      { name: '화장대' },
-      { name: '전신거울' },
-      { name: '스타일러' },
-      { name: '에어컨' },
-    ],
-    서재: [
-      { name: '책상' },
-      { name: '의자' },
-      { name: '책장' },
-      { name: '서랍장' },
-      { name: '컴퓨터' },
-      { name: '모니터' },
-      { name: '소파' },
-      { name: '에어컨' },
-    ],
-    창고: [
-      { name: '앵글' },
-      { name: '리빙박스' },
-      { name: '캠핑/생활기타' },
-      { name: '캐리어' },
-      { name: '운동기구' },
-      { name: '자전거' },
-      { name: '김치통/아이스박스' },
-    ],
-    다이닝룸: [
-      { name: '식탁' },
-      { name: '의자' },
-      { name: '장식장' },
-      { name: '김치냉장고' },
-      { name: '수납장/교구장' },
-      { name: '싱크대살림' },
-    ],
+  if (!catId && (!catName || catName === '기타/미지정')) {
+    return []
   }
+  const catRef = categoryObj || { id: catId, name: catName }
+  const orderedNames = getOrderedItemNamesForSpace(catRef, stdItems, isBoxItem)
 
-  const isBedroom =
-    normName === '안방' ||
-    normName === '입구방' ||
-    normName.startsWith('작은방') ||
-    normName.startsWith('침실') ||
-    /^방\d*$/.test(normName)
-
-  const targetTemplates: CuratedTemplate[] | null = isBedroom
-    ? BEDROOM_CORE_ITEMS
-    : SPACE_CURATED_MAP[normName] || null
-
-  if (targetTemplates) {
-    const uniqueCanonicalNames = Array.from(
-      new Set(targetTemplates.map(tpl => resolveCanonicalItemName(tpl.name, stdItems)))
-    )
-    return uniqueCanonicalNames.map(canonicalName =>
-      ensureItemUid({
-        locationId: catId,
-        locationName: catName,
-        name: canonicalName,
-        spec: '',
-        quantity: 0,
-        treatment: '이동',
-        cbm: 0,
-        innerBoxCbm: 0,
-      })
-    )
-  }
-
-  // 기타 사용자 정의 공간인 경우 해당 공간 연결 품목 중 최대 12개만 노출 (모두 '규격 선택' 초기 세팅)
-  const fallbackItems = (Array.isArray(stdItems) ? stdItems : [])
-    .filter(
-      (item: any) =>
-        !isBoxItem(item.name) &&
-        (catId ? item.locations?.some((l: any) => l.id === catId) : !item.locations || item.locations.length === 0)
-    )
-    .sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '', 'ko'))
-
-  const uniqueNames = Array.from(new Set(fallbackItems.map((i: any) => i.name))).slice(0, 12)
-  return uniqueNames.map(name =>
-    ensureItemUid({
+  return orderedNames.map(rawName => {
+    const canonicalName = resolveCanonicalItemName(rawName, stdItems)
+    return ensureItemUid({
       locationId: catId,
       locationName: catName,
-      name,
+      name: canonicalName,
       spec: '',
       quantity: 0,
       treatment: '이동',
       cbm: 0,
       innerBoxCbm: 0,
     })
-  )
+  })
+}
+
+export const sortSpaceItemsByConfiguredOrder = (itemsList: any[], cats: any[]): any[] => {
+  if (!Array.isArray(itemsList)) return []
+  const catMapById = new Map<string, any>()
+  const catMapByName = new Map<string, any>()
+  ;(Array.isArray(cats) ? cats : []).forEach(c => {
+    if (c?.id) catMapById.set(c.id, c)
+    if (c?.name) catMapByName.set(normalizeLocationName(c.name), c)
+  })
+
+  return [...itemsList].sort((a: any, b: any) => {
+    const locIdA = a.locationId || ''
+    const locIdB = b.locationId || ''
+    if (locIdA !== locIdB) return 0
+
+    const aBox = isBoxItem(a.name || '')
+    const bBox = isBoxItem(b.name || '')
+    if (aBox !== bBox) return aBox ? 1 : -1
+
+    const cat =
+      (locIdA && catMapById.get(locIdA)) ||
+      catMapByName.get(normalizeLocationName(a.locationName || '')) ||
+      null
+
+    const ordA = getItemOrderInSpace(cat, a.name || '', 9999)
+    const ordB = getItemOrderInSpace(cat, b.name || '', 9999)
+    if (ordA !== ordB) return ordA - ordB
+
+    const nameComp = (a.name || '').localeCompare(b.name || '', 'ko')
+    if (nameComp !== 0) return nameComp
+    return (a.spec || '').localeCompare(b.spec || '', 'ko')
+  })
 }
 
 const parseAndFilterCbmItems = (cbmItemsStr: string | null | undefined): any[] => {
@@ -535,6 +410,7 @@ export function EstimateForm({
 
   const [draftRestoredTime, setDraftRestoredTime] = useState<string | null>(null)
   const isDraftLoadedRef = useRef(false)
+  const hasUserEditedRef = useRef(false)
 
   const [movingCost, setMovingCost] = useState(initialData?.movingCost || 0)
   const [isCostModalOpen, setIsCostModalOpen] = useState(false)
@@ -1173,8 +1049,8 @@ export function EstimateForm({
 
     if (list.length > 0) return list
 
-    // 활성 공간이 아직 없으면 '안방' (또는 첫 번째 공간)을 기본으로 노출
-    const defaultCat = categories.find((c: any) => c.name === '안방') || categories[0]
+    // 활성 공간이 아직 없으면 첫 번째 공간(또는 '안방')을 기본으로 노출
+    const defaultCat = categories[0] || categories.find((c: any) => c.name === '안방')
     return defaultCat ? [defaultCat] : [{ id: '', name: '안방' }]
   }, [allCategoriesWithUnassigned, activeCategoryIds, items, categories])
 
@@ -1184,14 +1060,19 @@ export function EstimateForm({
     return allCategoriesWithUnassigned.filter((c: any) => !displayedIdSet.has(c.id))
   }, [allCategoriesWithUnassigned, displayedCategories])
 
-  // 공간 추가 핸들러 (공간별 핵심 대표 물품만 수량 0으로 깔끔하게 노출, 자재박스는 하단 고정 바에서 추가)
+  // 공간 추가 핸들러 (물품 기준정보의 해당 공간 지정 물품 및 디스플레이 순서 그대로 초기 나열)
   const handleAddCategory = (catId: string) => {
     const targetCat = allCategoriesWithUnassigned.find((c: any) => c.id === catId)
     if (!targetCat) return
 
     setActiveCategoryIds(prev => Array.from(new Set([...prev, catId])))
 
-    const curatedDefaultItems = getDefaultCuratedRoomItems(catId, targetCat.name, standardItems)
+    const curatedDefaultItems = getDefaultCuratedRoomItems(
+      catId,
+      targetCat.name,
+      standardItems,
+      targetCat
+    )
 
     setItems(prevItems => {
       let nextItems = ensureLocationConnectedBoxItems(
@@ -1347,7 +1228,7 @@ export function EstimateForm({
 
     const targetCatObjs = nextActiveCatIds.map(id => {
       const found = allCategoriesWithUnassigned.find((c: any) => c.id === id)
-      return { id, name: found ? found.name : '기타/미지정' }
+      return found || { id, name: '기타/미지정' }
     })
 
     setItems(prevItems => {
@@ -1397,9 +1278,14 @@ export function EstimateForm({
         }
       })
 
-      // 각 방(안방, 입구방, 작은방1, 작은방2 등)이 항상 안방과 동일한 대표 물품 구성을 갖도록 보강
+      // 각 공간이 기준정보에 설정된 초기 물품 구성 및 디스플레이 순서를 유지하도록 보강
       targetCatObjs.forEach(catObj => {
-        const curatedRoomItems = getDefaultCuratedRoomItems(catObj.id, catObj.name, standardItems)
+        const curatedRoomItems = getDefaultCuratedRoomItems(
+          catObj.id,
+          catObj.name,
+          standardItems,
+          catObj
+        )
         const existingRoomNames = new Set(
           nextList.filter(it => (it.locationId || '') === catObj.id).map(it => it.name)
         )
@@ -1411,7 +1297,8 @@ export function EstimateForm({
         })
       })
 
-      return ensureLocationConnectedBoxItems(nextList, targetCatObjs, standardItems)
+      const cleanedList = ensureLocationConnectedBoxItems(nextList, targetCatObjs, standardItems)
+      return sortSpaceItemsByConfiguredOrder(cleanedList, categories)
     })
 
     setActiveCategoryIds(nextActiveCatIds)
@@ -1635,7 +1522,9 @@ export function EstimateForm({
       baseFemale = isPacking ? 1 : 0
     } else if (cbm <= 38.0) {
       // 5톤 1대 + 1톤 1대 [6톤] (32~34평형, ~38 CBM)
-      baseMale = 4
+      // 양쪽 사다리차 또는 한쪽 사다리차 사용 시 남3+여1, 미사용 시 남4+여1
+      const hasAnyLadder = fromWorkTypes.includes('사다리차') || toWorkTypes.includes('사다리차')
+      baseMale = hasAnyLadder ? 3 : 4
       baseFemale = isPacking ? 1 : 0
     } else if (cbm <= 46.0) {
       // 5톤 1대 + 2.5톤 1대 [7.5톤] (34평 짐 많음 / 40평형, ~46 CBM)
@@ -1780,10 +1669,10 @@ export function EstimateForm({
           if (draft.partnerShortName !== undefined) setPartnerShortName(draft.partnerShortName)
           if (draft.partnerColor !== undefined) setPartnerColor(draft.partnerColor)
           if (draft.movingType !== undefined) setMovingType(draft.movingType)
-          if (draft.estimateDate) setEstimateDate(new Date(draft.estimateDate))
-          if (draft.visitDate) setVisitDate(new Date(draft.visitDate))
-          if (draft.movingDate) setMovingDate(new Date(draft.movingDate))
-          if (draft.organizeDate) setOrganizeDate(new Date(draft.organizeDate))
+          if (draft.estimateDate !== undefined) setEstimateDate(draft.estimateDate ? new Date(draft.estimateDate) : null)
+          if (draft.visitDate !== undefined) setVisitDate(draft.visitDate ? new Date(draft.visitDate) : null)
+          if (draft.movingDate !== undefined) setMovingDate(draft.movingDate ? new Date(draft.movingDate) : null)
+          if (draft.organizeDate !== undefined) setOrganizeDate(draft.organizeDate ? new Date(draft.organizeDate) : null)
           if (draft.organizeStatus !== undefined) setOrganizeStatus(draft.organizeStatus)
 
           if (draft.fromAddress !== undefined) setFromAddress(draft.fromAddress)
@@ -1966,19 +1855,17 @@ export function EstimateForm({
         setCostStandardsData(costStandardsRes)
       }
 
-      const defaultCat = sortedCatsRes.find((c: any) => c.name === '안방') || sortedCatsRes[0]
-      const initialDefaultCats = INITIAL_DEFAULT_SPACE_ORDER.map(name =>
-        sortedCatsRes.find((c: any) => normalizeLocationName(c.name) === name)
-      ).filter(Boolean)
+      const defaultCat = sortedCatsRes[0] || sortedCatsRes.find((c: any) => c.name === '안방')
+      const initialDefaultCats = sortedCatsRes.filter((c: any) => c.isDefault !== false)
       const effectiveInitialCats =
         initialDefaultCats.length > 0 ? initialDefaultCats : defaultCat ? [defaultCat] : []
 
       if (!initialData?.cbmItems) {
         let initialItems: any[] = []
 
-        // 초기 10개 기본 공간(안방, 입구방, 작은방1, 작은방2, 거실, 주방, 베란다, 팬트리, 신발장, 화장실)의 핵심 대표 물품 세팅 (수량 0)
+        // 물품 기준정보에 설정된 기본 공간 순서 및 공간별 초기 물품 순서대로 세팅 (수량 0)
         effectiveInitialCats.forEach((cat: any) => {
-          const roomItems = getDefaultCuratedRoomItems(cat.id, cat.name, sortedStandardItems)
+          const roomItems = getDefaultCuratedRoomItems(cat.id, cat.name, sortedStandardItems, cat)
           initialItems.push(...roomItems)
         })
 
@@ -2029,10 +1916,11 @@ export function EstimateForm({
         setItems(finalItems.map(ensureItemUid))
         setActiveCategoryIds(loadedActiveCats)
 
+        const firstDefaultCatId = effectiveInitialCats[0]?.id || sortedCatsRes[0]?.id
         const initialExpanded: Record<string, boolean> = {}
         sortedCatsRes.forEach((c: any) => {
           const catItems = finalItems.filter((i: any) => (i.locationId || '') === c.id)
-          initialExpanded[c.id] = c.name === '안방' || catItems.some(i => (i.quantity || 0) > 0)
+          initialExpanded[c.id] = c.id === firstDefaultCatId || catItems.some(i => (i.quantity || 0) > 0)
         })
         initialExpanded[''] = finalItems.some(i => !i.locationId && (i.quantity || 0) > 0)
         setExpandedCategories(initialExpanded)
@@ -2064,6 +1952,9 @@ export function EstimateForm({
           return true
         })
 
+        // 각 공간 내 품목 순서를 물품 기준정보 디스플레이 순서대로 정렬
+        finalItems = sortSpaceItemsByConfiguredOrder(finalItems, sortedCatsRes)
+
         // 기존 견적의 짐이 있는 공간들을 활성화
         const existingCatIds = Array.from(new Set(
           finalItems.map((i: any) => i.locationId || '')
@@ -2084,9 +1975,9 @@ export function EstimateForm({
     })
   }, [initialData, storageKey])
 
-  // 2. 폼 값 변경 시 localStorage에 실시간 자동 저장 (Debounce 400ms)
+  // 2. 폼 값 변경 시 localStorage에 실시간 자동 저장 (사용자가 실제로 수정한 경우에만 Debounce 400ms 저장)
   useEffect(() => {
-    if (!isDraftLoadedRef.current) return
+    if (!isDraftLoadedRef.current || !hasUserEditedRef.current) return
 
     const hasContent = Boolean(
       customerName || 
@@ -2322,16 +2213,27 @@ export function EstimateForm({
       localStorage.removeItem(storageKey)
     } catch {}
 
+    // 타임존 오차 방지를 위해 방문일정은 정확한 ISO 타임스탬프(UTC Z), 날짜 전용 필드는 YYYY-MM-DD로 명시 전달
+    const visitIso = visitDate ? visitDate.toISOString() : ''
+    const estDateStr = estimateDate ? format(estimateDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
+    const movDateStr = movingDate ? format(movingDate, 'yyyy-MM-dd') : ''
+    const orgDateStr = organizeDate ? format(organizeDate, 'yyyy-MM-dd') : ''
+
+    formData.set('visitDate', visitIso)
+    formData.set('estimateDate', estDateStr)
+    formData.set('movingDate', movDateStr)
+    formData.set('organizeDate', orgDateStr)
+
     const rawItems = filterValidCbmItems(items)
     const offlineData = {
       id: initialData?.id,
       customerName,
       contact,
       movingType,
-      estimateDate: estimateDate ? estimateDate.toISOString() : new Date().toISOString(),
-      visitDate: visitDate ? visitDate.toISOString() : null,
-      movingDate: movingDate ? movingDate.toISOString() : null,
-      organizeDate: organizeDate ? organizeDate.toISOString() : null,
+      estimateDate: estDateStr,
+      visitDate: visitIso || null,
+      movingDate: movDateStr || null,
+      organizeDate: orgDateStr || null,
       fromAddress,
       toAddress,
       cbmItems: JSON.stringify(rawItems),
@@ -2388,7 +2290,18 @@ export function EstimateForm({
   }
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-3 sm:space-y-4 pb-20 px-1 sm:px-2 md:px-3">
+    <div
+      className="w-full max-w-5xl mx-auto space-y-3 sm:space-y-4 pb-20 px-1 sm:px-2 md:px-3"
+      onPointerDownCapture={() => {
+        hasUserEditedRef.current = true
+      }}
+      onKeyDownCapture={() => {
+        hasUserEditedRef.current = true
+      }}
+      onChangeCapture={() => {
+        hasUserEditedRef.current = true
+      }}
+    >
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{title}</h1>
         <div className="flex items-center gap-2.5 self-end sm:self-auto">
@@ -2533,10 +2446,17 @@ export function EstimateForm({
                 접수일자 <span className="text-red-500">*</span>
               </label>
               <div className="flex-1 p-1 sm:p-1.5 min-w-0">
+                <input
+                  type="hidden"
+                  name="estimateDate"
+                  value={estimateDate ? format(estimateDate, 'yyyy-MM-dd') : ''}
+                />
                 <CustomDatePicker 
                   selected={estimateDate} 
-                  onChange={setEstimateDate} 
-                  name="estimateDate" 
+                  onChange={d => {
+                    hasUserEditedRef.current = true
+                    setEstimateDate(d)
+                  }}
                   required 
                   className="w-full rounded border border-gray-200 px-2.5 py-1.5 outline-none focus:border-blue-500 text-xs sm:text-sm" 
                 />
@@ -2639,12 +2559,22 @@ export function EstimateForm({
                     방문 견적일정
                   </th>
                   <td className="border border-gray-200 p-1.5 sm:p-2">
+                    <input
+                      type="hidden"
+                      name="visitDate"
+                      value={visitDate ? visitDate.toISOString() : ''}
+                    />
                     <CustomDatePicker 
                       selected={visitDate} 
-                      onChange={setVisitDate} 
-                      name="visitDate" 
+                      onChange={d => {
+                        hasUserEditedRef.current = true
+                        setVisitDate(d)
+                      }}
                       showTimeSelect 
-                      dateFormat="yyyy-MM-dd'T'HH:mm" 
+                      timeIntervals={15}
+                      isClearable
+                      dateFormat="yyyy-MM-dd HH:mm" 
+                      placeholderText="방문일시 선택"
                       className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 sm:py-2 outline-none focus:border-blue-500 text-xs sm:text-sm" 
                     />
                   </td>
@@ -2652,10 +2582,19 @@ export function EstimateForm({
                     이사 예정일
                   </th>
                   <td className="border border-gray-200 p-1.5 sm:p-2">
+                    <input
+                      type="hidden"
+                      name="movingDate"
+                      value={movingDate ? format(movingDate, 'yyyy-MM-dd') : ''}
+                    />
                     <CustomDatePicker 
                       selected={movingDate} 
-                      onChange={setMovingDate} 
-                      name="movingDate" 
+                      onChange={d => {
+                        hasUserEditedRef.current = true
+                        setMovingDate(d)
+                      }}
+                      isClearable
+                      placeholderText="이사일자 선택"
                       className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 sm:py-2 outline-none focus:border-blue-500 text-xs sm:text-sm" 
                     />
                   </td>
@@ -2667,10 +2606,19 @@ export function EstimateForm({
                       정리 예정일 (보관)
                     </th>
                     <td className="border border-gray-200 p-1.5 sm:p-2">
+                      <input
+                        type="hidden"
+                        name="organizeDate"
+                        value={organizeDate ? format(organizeDate, 'yyyy-MM-dd') : ''}
+                      />
                       <CustomDatePicker 
                         selected={organizeDate} 
-                        onChange={setOrganizeDate} 
-                        name="organizeDate" 
+                        onChange={d => {
+                          hasUserEditedRef.current = true
+                          setOrganizeDate(d)
+                        }}
+                        isClearable
+                        placeholderText="정리일자 선택"
                         className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 sm:py-2 outline-none focus:border-blue-500 text-xs sm:text-sm" 
                       />
                     </td>
@@ -4165,7 +4113,7 @@ export function EstimateForm({
                                 >
                                   <option value="">+ [{cat.name}] 드롭다운 선택</option>
                                   {(() => {
-                                    // 1. 현재 위치(카테고리)와 일치하는 품목명 목록 (BOX 최상단 우선, 그 외 가나다순 정렬)
+                                    // 1. 현재 위치(카테고리)와 일치하는 품목명 목록 (BOX 최상단 우선, 그 외 해당 공간 디스플레이 순서 -> 가나다순)
                                     const matchedNames = Array.from(new Set(
                                       standardItems
                                         .filter(i => cat.id ? i.locations?.some((l: any) => l.id === cat.id) : (!i.locations || i.locations.length === 0))
@@ -4175,6 +4123,9 @@ export function EstimateForm({
                                       const bBox = isBoxItem(b)
                                       if (aBox && !bBox) return -1
                                       if (!aBox && bBox) return 1
+                                      const oa = getItemOrderInSpace(cat, a, 9999)
+                                      const ob = getItemOrderInSpace(cat, b, 9999)
+                                      if (oa !== ob) return oa - ob
                                       return a.localeCompare(b, 'ko')
                                     })
 
@@ -5069,10 +5020,29 @@ export function EstimateForm({
           vehicleCount={vehicles.reduce((sum, v) => sum + (Number(v.count) || 0), 0) || 1}
           waypointCount={waypointCount}
           costStandards={costStandardsData}
-          onApply={(calculatedCost) => {
+          fromFloor={fromFloor}
+          toFloor={toFloor}
+          isFromLadder={isFromLadder}
+          isToLadder={isToLadder}
+          ladderTonnage={ladderTonnage}
+          ladderFares={ladderFares}
+          appliedLadderCost={appliedLadderCost}
+          onApply={(calculatedCost, details) => {
             setMovingCost(calculatedCost)
             setIsCostEdited(true)
-            const newSupply = calculatedCost + additionalCost + storageCost
+
+            let nextAdditional = additionalCost
+            if (details.equipmentApplyMode === 'MOVING_COST' && details.equipmentCost > 0 && appliedLadderCost > 0) {
+              nextAdditional = Math.max(0, additionalCost - appliedLadderCost)
+              setAdditionalCost(nextAdditional)
+              setAppliedLadderCost(0)
+            } else if (details.equipmentApplyMode === 'ADDITIONAL_COST' && details.equipmentCost > 0) {
+              nextAdditional = Math.max(0, additionalCost - appliedLadderCost + details.equipmentCost)
+              setAdditionalCost(nextAdditional)
+              setAppliedLadderCost(details.equipmentCost)
+            }
+
+            const newSupply = calculatedCost + nextAdditional + storageCost
             const newVat = Math.floor(newSupply * 0.1)
             setVat(newVat)
             const newTotal = newSupply + newVat
@@ -5081,7 +5051,16 @@ export function EstimateForm({
             const newBalance = Math.max(0, newTarget - newDown - intermediatePayment)
             setDownPayment(newDown)
             setBalance(newBalance)
-            alert(`산출된 이사비용 (${calculatedCost.toLocaleString()}원)이 기본 이사 비용에 반영되었습니다!\n(결제대상[${paymentTarget === 'supply' ? '공급가액' : '공급대가'}]: ${newTarget.toLocaleString()}원 / 계약금 10%: ${newDown.toLocaleString()}원 / 잔금: ${newBalance.toLocaleString()}원)`)
+
+            const equipLine =
+              details.equipmentApplyMode === 'ADDITIONAL_COST' && details.equipmentCost > 0
+                ? `\n· 가산비용 장비비 반영: +${details.equipmentCost.toLocaleString()}원`
+                : details.equipmentApplyMode === 'MOVING_COST' && details.equipmentCost > 0
+                  ? `\n· 기본 이사비용 내 장비비 포함: +${details.equipmentCost.toLocaleString()}원`
+                  : ''
+            alert(
+              `산출된 이사비용 (${calculatedCost.toLocaleString()}원)이 반영되었습니다!${equipLine}\n(결제대상[${paymentTarget === 'supply' ? '공급가액' : '공급대가'}]: ${newTarget.toLocaleString()}원 / 계약금 10%: ${newDown.toLocaleString()}원 / 잔금: ${newBalance.toLocaleString()}원)`
+            )
           }}
         />
       )}
@@ -5107,6 +5086,18 @@ export function EstimateForm({
           ? labors.filter((l: any) => (l.name || '').includes('여') || (l.name || '').includes('도우미') || (l.name || '').includes('주방')).reduce((sum: number, cur: any) => sum + (Number(cur.count) || 0), 0)
           : 1
 
+        // 현재 견적서 설정 차량(vehicles)이 아직 비어있다면 현재 적재 물량(requiredCbm)에 맞춰 기본 배차 차량을 자동 구성하여 원가산출에 전달
+        const effectiveVehiclesForCostCalc = (() => {
+          if (vehicles && vehicles.length > 0) return vehicles
+          if (requiredCbm <= 0) return []
+          if (requiredCbm <= 7.0) return [{ name: '1톤 탑차', count: 1, tonnage: 1 }]
+          if (requiredCbm <= 15.0) return [{ name: '2.5톤 탑차', count: 1, tonnage: 2.5 }]
+          if (requiredCbm <= 31.0) return [{ name: '5톤 탑차', count: 1, tonnage: 5 }]
+          if (requiredCbm <= 38.0) return [{ name: '5톤 탑차', count: 1, tonnage: 5 }, { name: '1톤 탑차', count: 1, tonnage: 1 }]
+          if (requiredCbm <= 46.0) return [{ name: '5톤 탑차', count: 1, tonnage: 5 }, { name: '2.5톤 탑차', count: 1, tonnage: 2.5 }]
+          return [{ name: '5톤 탑차', count: 2, tonnage: 5 }]
+        })()
+
         return (
           <CostCalculatorModal
             isOpen={isCostCalculatorModalOpen}
@@ -5121,8 +5112,12 @@ export function EstimateForm({
             womenCount={womenCount}
             menUnitPrice={menUnitPrice}
             womenUnitPrice={womenUnitPrice}
-            vehicles={vehicles}
+            vehicles={effectiveVehiclesForCostCalc}
             ladderTotalCost={totalLadderCost}
+            fromFloor={fromFloor}
+            toFloor={toFloor}
+            fromLadderCost={fromLadderCalc.cost}
+            toLadderCost={toLadderCalc.cost}
             waypointCount={waypointCount}
             costStandards={costStandardsData}
             onApply={(calculatedCost) => {

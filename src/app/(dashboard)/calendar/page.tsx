@@ -1,12 +1,12 @@
 import prisma from '@/lib/prisma'
-import { startOfMonth, endOfMonth, eachDayOfInterval, format, getDay, isSameDay } from 'date-fns'
-import { ko } from 'date-fns/locale'
+import { startOfMonth, endOfMonth, eachDayOfInterval, format, getDay } from 'date-fns'
 import { Solar } from 'lunar-javascript'
 import KoreanLunarCalendar from 'korean-lunar-calendar'
 import { Sun, Star } from 'lucide-react'
 import Link from 'next/link'
 import { CalendarWeatherProvider, CalendarDayWeatherBadge } from './CalendarWeatherClient'
 import { getVehicleCalendarEvents } from '@/app/actions/vehicleLog'
+import { formatKstDate, formatKstTime, getKstMonthRange } from '@/lib/kstDate'
 
 // 한국 표준시(KST, Asia/Seoul) 기준 오늘 날짜 정보 구하기 (Vercel/Render UTC 서버 환경 대응)
 function getKoreaToday(): { year: number, month: number, day: number, dateString: string } {
@@ -67,11 +67,13 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   
   const prefixDays = Array(startDay).fill(null)
   
+  // KST(Asia/Seoul) 기준 해당 월의 시작~말일 범위로 조회하여 UTC/KST 경계 누락 방지
+  const { start: kstMonthStart, end: kstMonthEnd } = getKstMonthRange(targetYear, targetMonth)
   const estimates = await prisma.estimate.findMany({
     where: {
       OR: [
-        { movingDate: { gte: monthStart, lte: monthEnd } },
-        { visitDate: { gte: monthStart, lte: monthEnd } }
+        { movingDate: { gte: kstMonthStart, lte: kstMonthEnd } },
+        { visitDate: { gte: kstMonthStart, lte: kstMonthEnd } }
       ]
     }
   })
@@ -186,9 +188,9 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                 const isCellToday = dateStr === koreaToday.dateString
 
                 const dayEstimates = estimates
-                  .filter(e => e.visitDate && isSameDay(new Date(e.visitDate), date))
+                  .filter(e => e.visitDate && formatKstDate(e.visitDate) === dateStr)
                   .sort((a, b) => new Date(a.visitDate!).getTime() - new Date(b.visitDate!).getTime())
-                const dayMovings = estimates.filter(e => e.movingDate && isSameDay(new Date(e.movingDate), date))
+                const dayMovings = estimates.filter(e => e.movingDate && formatKstDate(e.movingDate) === dateStr)
                 const dayVehicleEvents = vehicleEvents.filter(ev => ev.date === dateStr)
                 
                 const solar = Solar.fromYmd(date.getFullYear(), date.getMonth() + 1, date.getDate())
@@ -244,7 +246,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                     </div>
                     <div className="flex-1 space-y-1 overflow-y-auto no-scrollbar">
                       {dayEstimates.map(est => {
-                        const visitTimeStr = est.visitDate ? format(new Date(est.visitDate), 'HH:mm') : ''
+                        const visitTimeStr = est.visitDate ? formatKstTime(est.visitDate) : ''
                         let partnerBadge = ''
                         try {
                           if (est.environment) {

@@ -55,14 +55,14 @@ export const TONNAGE_DISTANCE_FARE_TABLE: Record<TonnageTierKey, TonnageDistance
   '6': {
     key: '6',
     label: '5톤 + 1톤 (6톤)',
-    standardWorkers: '남4 / 여1',
+    standardWorkers: '남3~4 / 여1',
     baseDistanceKm: 25,
     vehicleBaseFee: 470000,
     shortExtraRate: 2600,
     longExtraRate: 2200,
     ultraLongDistanceKm: 250,
     ultraLongSurcharge: 200000,
-    ultraLongNote: '차량 2대분 톨비 + 장거리 수당 (+20만 원, 5인 팀)'
+    ultraLongNote: '차량 2대분 톨비 + 장거리 수당 (+20만 원, 4~5인 팀)'
   },
   '7.5': {
     key: '7.5',

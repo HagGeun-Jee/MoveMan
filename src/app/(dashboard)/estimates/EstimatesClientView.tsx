@@ -2,8 +2,7 @@
 
 import React, { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
+import { formatKstDate, formatKstDateTime } from '@/lib/kstDate'
 import { EstimateRow } from './EstimateRow'
 import { formatPhoneNumber } from '@/lib/format'
 import { OfflineEstimatesNotice } from '@/components/OfflineEstimatesNotice'
@@ -488,18 +487,16 @@ export function EstimatesClientView({
                       <td className="p-3.5 font-medium text-gray-900 whitespace-nowrap">
                         {est.visitDate ? (
                           <span className="text-xs font-bold text-indigo-800 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
-                            {format(new Date(est.visitDate), 'yyyy-MM-dd HH:mm', { locale: ko })}
+                            {formatKstDateTime(est.visitDate)}
                           </span>
                         ) : (
                           <span className="text-xs text-gray-400">
-                            {format(new Date(est.estimateDate), 'yyyy-MM-dd', { locale: ko })} (접수)
+                            {formatKstDate(est.estimateDate)} (접수)
                           </span>
                         )}
                       </td>
                       <td className="p-3.5 font-medium text-gray-900 whitespace-nowrap">
-                        {est.movingDate
-                          ? format(new Date(est.movingDate), 'yyyy-MM-dd', { locale: ko })
-                          : '-'}
+                        {est.movingDate ? formatKstDate(est.movingDate) : '-'}
                       </td>
                       <td className="p-3.5 whitespace-nowrap">
                         <div className="flex flex-col items-start gap-1">

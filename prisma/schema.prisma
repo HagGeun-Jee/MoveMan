@@ -63,11 +63,13 @@ model Estimate {
 }
 
 model LocationCategory {
-  id        String         @id @default(cuid())
-  name      String         @unique
-  order     Int            @default(0)
-  items     StandardItem[]
-  createdAt DateTime       @default(now())
+  id         String         @id @default(cuid())
+  name       String         @unique
+  order      Int            @default(0)
+  isDefault  Boolean        @default(true)
+  itemOrders String         @default("{}")
+  items      StandardItem[]
+  createdAt  DateTime       @default(now())
 }
 
 model StandardItem {
@@ -328,4 +330,12 @@ model MaterialAuditItem {
   audit       MaterialAudit @relation(fields: [auditId], references: [id], onDelete: Cascade)
   material    MaterialItem  @relation(fields: [materialId], references: [id], onDelete: Cascade)
 }
+
+// 공통 시스템 설정 Key-Value 저장소 (방문견적 안내 문자 템플릿 등 기기 간 동기화 설정용)
+model SystemKeyValue {
+  key       String   @id
+  value     String
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
 

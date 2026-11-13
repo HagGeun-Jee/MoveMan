@@ -1,7 +1,6 @@
 import prisma from '@/lib/prisma'
 import Link from 'next/link'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
+import { formatKstDate } from '@/lib/kstDate'
 import { EstimateRow } from './estimates/EstimateRow'
 import { formatPhoneNumber } from '@/lib/format'
 import { Calendar, CalendarDays, FilePlus } from 'lucide-react'
@@ -213,7 +212,7 @@ export default async function DashboardPage() {
                       <td className="p-4 font-bold text-blue-600 hover:underline">{est.id}</td>
                       <td className="p-4 font-bold text-gray-900">{est.customerName}</td>
                       <td className="p-4 font-medium text-gray-900">{formatPhoneNumber(est.contact)}</td>
-                      <td className="p-4 font-medium text-gray-900">{format(new Date(est.estimateDate), 'yyyy-MM-dd', { locale: ko })}</td>
+                      <td className="p-4 font-medium text-gray-900">{formatKstDate(est.estimateDate)}</td>
                       <td className="p-4">
                         <span className="px-2.5 py-1 bg-gray-100 text-gray-900 rounded-md text-xs font-bold border border-gray-200">
                           {est.movingType === 'P' ? '포장이사' : est.movingType === 'G' ? '일반이사' : '보관이사'}

@@ -13,13 +13,14 @@ import {
   convertEngInputToKor,
 } from '@/lib/itemFilterUtils'
 import { isBoxItem } from './EstimateForm'
+import { getItemOrderInSpace } from '@/lib/spaceOrderUtils'
 
 interface ItemQuickAddModalProps {
   isOpen: boolean
   onClose: () => void
   categoryId: string
   categoryName: string
-  categories?: { id: string; name: string }[]
+  categories?: { id: string; name: string; itemOrders?: string }[]
   onSelectCategory?: (catId: string) => void
   standardItems: any[]
   currentCategoryItems: any[]
@@ -100,7 +101,10 @@ export function ItemQuickAddModal({
       group.specs.sort((a, b) => (a.spec || '').localeCompare(b.spec || '', 'ko'))
     })
 
-    // 정렬: 1순위 BOX, 2순위 현재 공간 지정 품목, 3순위 가나다순
+    const currentCatObj =
+      categories?.find(c => c.id === categoryId) || { id: categoryId, name: categoryName }
+
+    // 정렬: 1순위 BOX, 2순위 현재 공간 지정 품목(해당 공간 디스플레이 순서 기준), 3순위 가나다순
     list.sort((a, b) => {
       const aBox = isBoxItem(a.name)
       const bBox = isBoxItem(b.name)
@@ -108,11 +112,16 @@ export function ItemQuickAddModal({
       if (!aBox && bBox) return 1
       if (a.isMatchedLocation && !b.isMatchedLocation) return -1
       if (!a.isMatchedLocation && b.isMatchedLocation) return 1
+      if (a.isMatchedLocation && b.isMatchedLocation) {
+        const oa = getItemOrderInSpace(currentCatObj, a.name, 9999)
+        const ob = getItemOrderInSpace(currentCatObj, b.name, 9999)
+        if (oa !== ob) return oa - ob
+      }
       return a.name.localeCompare(b.name, 'ko')
     })
 
     return list
-  }, [standardItems, categoryId])
+  }, [standardItems, categoryId, categoryName, categories])
 
   // 필터링된 그룹 목록
   const filteredGroups = useMemo(() => {

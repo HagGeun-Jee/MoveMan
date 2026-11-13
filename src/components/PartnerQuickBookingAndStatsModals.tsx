@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   getPartnerCompanies,
@@ -8,8 +8,11 @@ import {
   updatePartnerCompany,
   deletePartnerCompany,
   createQuickVisitEstimate,
+  getQuickVisitSmsTemplates,
+  saveQuickVisitSmsTemplates,
   type PartnerCompanyItem,
-  type PartnerBadgeColor
+  type PartnerBadgeColor,
+  type QuickVisitSmsTemplateItem
 } from '@/app/actions/partner'
 import { formatPhoneNumber, handlePhoneInputChange, handleSelectAllOnFocus } from '@/lib/format'
 import {
@@ -29,7 +32,14 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowRight,
-  ClipboardPaste
+  ClipboardPaste,
+  MessageSquareText,
+  Send,
+  Copy,
+  Settings2,
+  RotateCcw,
+  CheckCircle2,
+  Navigation
 } from 'lucide-react'
 
 export const PARTNER_COLOR_PALETTE: {
@@ -116,6 +126,150 @@ const VISIT_TIME_PRESETS = [
   '19:00'
 ]
 
+const QUICK_VISIT_SMS_STORAGE_KEY = 'meman_quick_visit_sms_templates_v1'
+
+const DEFAULT_QUICK_VISIT_SMS_TEMPLATES: QuickVisitSmsTemplateItem[] = [
+  {
+    id: 'tpl_visit_confirm',
+    title: '기본 방문예약 안내',
+    isDefault: true,
+    content: `안녕하세요, {고객명} 고객님!
+이사 방문견적 예약 안내드립니다.
+
+■ 방문일시 : {방문일시}
+■ 방문주소 : {방문지}
+■ 이사종류 : {이사종류} (이사예정일: {이사예정일})
+
+약속드린 시간에 맞춰 찾아뵙겠습니다.
+방문 출발 전 미리 연락드리겠습니다. 감사합니다!`
+  },
+  {
+    id: 'tpl_platform_assign',
+    title: '플랫폼/의뢰처 배정 안내',
+    isDefault: false,
+    content: `안녕하세요, {고객명} 고객님!
+{의뢰업체} 통해 배정받은 방문견적 담당자입니다.
+
+■ 방문일시 : {방문일시}
+■ 방문주소 : {방문지}
+■ 이사예정일 : {이사예정일} ({이사종류})
+
+예약해주신 일정에 방문하여 꼼꼼하고 합리적인 견적 안내드리겠습니다.
+일정 조정이 필요하시면 편하게 연락 주세요. 감사합니다!`
+  },
+  {
+    id: 'tpl_before_depart',
+    title: '방문 출발 전 안내',
+    isDefault: false,
+    content: `안녕하세요, {고객명} 고객님!
+금일 {방문시간} 방문견적 예약 관련 안내드립니다.
+
+■ 방문주소 : {방문지}
+
+약속된 시간에 맞춰 출발 예정입니다.
+주차 안내나 현관 호출 방법 등 참고사항이 있으시면 편하게 문자 남겨주세요. 감사합니다!`
+  }
+]
+
+const SMS_PLACEHOLDER_CHIPS: { token: string; label: string }[] = [
+  { token: '{고객명}', label: '고객명' },
+  { token: '{방문일시}', label: '방문일시' },
+  { token: '{방문일자}', label: '방문일자' },
+  { token: '{방문시간}', label: '방문시간' },
+  { token: '{방문지}', label: '방문지' },
+  { token: '{도착지}', label: '도착지' },
+  { token: '{이사예정일}', label: '이사예정일' },
+  { token: '{이사종류}', label: '이사종류' },
+  { token: '{의뢰업체}', label: '의뢰업체' },
+  { token: '{특이사항}', label: '특이사항' }
+]
+
+function formatYmdKor(ymd?: string): string {
+  if (!ymd || !/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return '미정'
+  const [y, m, d] = ymd.split('-').map(Number)
+  const dt = new Date(y, m - 1, d)
+  if (isNaN(dt.getTime())) return ymd
+  const weekDays = ['일', '월', '화', '수', '목', '금', '토']
+  return `${y}년 ${String(m).padStart(2, '0')}월 ${String(d).padStart(2, '0')}일(${weekDays[dt.getDay()]})`
+}
+
+function formatTimeKor(hm?: string): string {
+  if (!hm || !/^\d{1,2}:\d{2}$/.test(hm)) return ''
+  const [hStr, mStr] = hm.split(':')
+  const h = parseInt(hStr, 10)
+  const m = parseInt(mStr, 10)
+  if (isNaN(h) || isNaN(m)) return hm
+  const ampm = h < 12 ? '오전' : '오후'
+  const h12 = h % 12 === 0 ? 12 : h % 12
+  return m > 0 ? `${ampm} ${h12}시 ${m}분` : `${ampm} ${h12}시`
+}
+
+function cleanCustomerBaseName(raw: string): string {
+  return (raw || '')
+    .trim()
+    .replace(/\s*(?:고객님|고객|선생님|사장님|님)$/, '')
+    .trim()
+}
+
+function substituteVisitSmsTemplate(
+  rawTemplate: string,
+  params: {
+    customerName: string
+    contact: string
+    movingType: 'P' | 'G' | 'K'
+    visitDatePart: string
+    visitTimePart: string
+    movingDatePart: string
+    fromAddress: string
+    toAddress: string
+    partnerName: string
+    specialNotes: string
+  }
+): string {
+  if (!rawTemplate) return ''
+  const cleanCust = cleanCustomerBaseName(params.customerName)
+  const visitDateKor = formatYmdKor(params.visitDatePart)
+  const visitTimeKor = formatTimeKor(params.visitTimePart)
+  const visitDateTimeKor = [visitDateKor !== '미정' ? visitDateKor : '', visitTimeKor]
+    .filter(Boolean)
+    .join(' ') || '일정 협의'
+  const movingDateKor = params.movingDatePart ? formatYmdKor(params.movingDatePart) : '미정'
+  const movingTypeLabel =
+    params.movingType === 'P' ? '포장이사' : params.movingType === 'G' ? '일반이사' : '보관이사'
+  const fromAddrLabel = params.fromAddress.trim() || '방문 시 상세확인'
+  const toAddrLabel = params.toAddress.trim() || '방문 시 확인'
+  const partnerLabel = params.partnerName.trim() || '저희 이사업체'
+  const notesLabel = params.specialNotes.trim() || '-'
+
+  let out = rawTemplate
+
+  // 고객명 치환 (미입력 시 '고객 고객님' 중복 방지 -> '고객님'으로 자연스럽게 처리)
+  if (cleanCust) {
+    out = out.replace(/\{고객명\}/g, cleanCust)
+  } else {
+    out = out
+      .replace(/\{고객명\}\s*고객님/g, '고객님')
+      .replace(/\{고객명\}\s*님/g, '고객님')
+      .replace(/\{고객명\}/g, '고객님')
+  }
+
+  out = out
+    .replace(/\{방문일시\}/g, visitDateTimeKor)
+    .replace(/\{방문일자\}/g, visitDateKor)
+    .replace(/\{방문시간\}/g, visitTimeKor || '시간 협의')
+    .replace(/\{방문지\}/g, fromAddrLabel)
+    .replace(/\{출발지\}/g, fromAddrLabel)
+    .replace(/\{도착지\}/g, toAddrLabel)
+    .replace(/\{이사예정일\}/g, movingDateKor)
+    .replace(/\{이사일자\}/g, movingDateKor)
+    .replace(/\{이사종류\}/g, movingTypeLabel)
+    .replace(/\{의뢰업체\}/g, partnerLabel)
+    .replace(/\{연락처\}/g, params.contact.trim() || '-')
+    .replace(/\{특이사항\}/g, notesLabel)
+
+  return out
+}
+
 /**
  * 1. 문자 수신 후 10초 만에 방문견적 예약을 등록하는 모달
  */
@@ -161,6 +315,32 @@ export function QuickVisitBookingModal({
   const [specialNotes, setSpecialNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
+  // 방문예약 등록 완료 상태 (등록 완료 후 문자 발송 스텝 지원)
+  const [registeredBookingId, setRegisteredBookingId] = useState<string | null>(null)
+
+  // 방문예약 안내 문자 템플릿 상태
+  const [smsTemplates, setSmsTemplates] = useState<QuickVisitSmsTemplateItem[]>(
+    DEFAULT_QUICK_VISIT_SMS_TEMPLATES
+  )
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>(
+    DEFAULT_QUICK_VISIT_SMS_TEMPLATES[0].id
+  )
+  const [isSmsManualEdited, setIsSmsManualEdited] = useState(false)
+  const [manualSmsText, setManualSmsText] = useState('')
+  const [smsCopied, setSmsCopied] = useState(false)
+
+  // 템플릿 관리(추가/수정/삭제) 인라인 패널 상태
+  const [isTemplateManagerOpen, setIsTemplateManagerOpen] = useState(false)
+  const [editingTplId, setEditingTplId] = useState<string>('')
+  const [tplFormTitle, setTplFormTitle] = useState('')
+  const [tplFormContent, setTplFormContent] = useState('')
+  const [tplFormIsDefault, setTplFormIsDefault] = useState(false)
+  const [savingTemplates, setSavingTemplates] = useState(false)
+  const [tplSavedNotice, setTplSavedNotice] = useState<string | null>(null)
+  const tplTextareaRef = useRef<HTMLTextAreaElement | null>(null)
+  const prevCleanCustNameRef = useRef<string>('')
+
+  // 거래처 및 문자 템플릿 로드 (로컬 캐시 즉시 반영 + 서버 DB 최신화)
   useEffect(() => {
     if (!isOpen) return
     getPartnerCompanies().then(list => {
@@ -172,13 +352,116 @@ export function QuickVisitBookingModal({
         setSelectedPartnerColor(list[0].color || 'blue')
       }
     })
+
+    // 1) localStorage 즉시 로드
+    try {
+      const cached = localStorage.getItem(QUICK_VISIT_SMS_STORAGE_KEY)
+      if (cached) {
+        const parsed = JSON.parse(cached)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setSmsTemplates(parsed)
+          const def = parsed.find((t: QuickVisitSmsTemplateItem) => t.isDefault) || parsed[0]
+          if (def) setSelectedTemplateId(def.id)
+        }
+      }
+    } catch {
+      // ignore storage parse error
+    }
+
+    // 2) 서버 DB 저장 템플릿 동기화
+    getQuickVisitSmsTemplates().then(serverList => {
+      if (serverList && serverList.length > 0) {
+        setSmsTemplates(serverList)
+        const def = serverList.find(t => t.isDefault) || serverList[0]
+        setSelectedTemplateId(prev =>
+          serverList.some(t => t.id === prev) ? prev : def.id
+        )
+        try {
+          localStorage.setItem(QUICK_VISIT_SMS_STORAGE_KEY, JSON.stringify(serverList))
+        } catch {
+          // ignore
+        }
+      }
+    })
   }, [isOpen])
+
+  const activeTemplate = useMemo(() => {
+    return (
+      smsTemplates.find(t => t.id === selectedTemplateId) ||
+      smsTemplates.find(t => t.isDefault) ||
+      smsTemplates[0] ||
+      DEFAULT_QUICK_VISIT_SMS_TEMPLATES[0]
+    )
+  }, [smsTemplates, selectedTemplateId])
+
+  // 입력값(고객명, 방문일시, 방문지 등) 변경 시 실시간 자동 완성되는 문자 문구
+  const renderedTemplateText = useMemo(() => {
+    return substituteVisitSmsTemplate(activeTemplate?.content || '', {
+      customerName,
+      contact,
+      movingType,
+      visitDatePart,
+      visitTimePart,
+      movingDatePart,
+      fromAddress,
+      toAddress,
+      partnerName: selectedPartnerName,
+      specialNotes
+    })
+  }, [
+    activeTemplate,
+    customerName,
+    contact,
+    movingType,
+    visitDatePart,
+    visitTimePart,
+    movingDatePart,
+    fromAddress,
+    toAddress,
+    selectedPartnerName,
+    specialNotes
+  ])
+
+  // 사용자가 미리보기 문구를 직접 일부 수정한 상태라도, '고객명' 입력값이 바뀌면 문자 내 고객명도 즉시 자동 갱신!
+  useEffect(() => {
+    const nextClean = cleanCustomerBaseName(customerName)
+    const prevClean = prevCleanCustNameRef.current
+
+    if (isSmsManualEdited && prevClean !== nextClean) {
+      setManualSmsText(prevText => {
+        if (!prevText) return renderedTemplateText
+        if (prevText.includes('{고객명}')) {
+          return nextClean
+            ? prevText.replace(/\{고객명\}/g, nextClean)
+            : prevText
+                .replace(/\{고객명\}\s*고객님/g, '고객님')
+                .replace(/\{고객명\}\s*님/g, '고객님')
+                .replace(/\{고객명\}/g, '고객님')
+        }
+        if (prevClean && nextClean && prevText.includes(prevClean)) {
+          return prevText.split(prevClean).join(nextClean)
+        }
+        if (prevClean && !nextClean && prevText.includes(`${prevClean} 고객님`)) {
+          return prevText.split(`${prevClean} 고객님`).join('고객님')
+        }
+        if (!prevClean && nextClean && prevText.includes('고객님')) {
+          return prevText.replace('고객님', `${nextClean} 고객님`)
+        }
+        return prevText
+      })
+    }
+
+    prevCleanCustNameRef.current = nextClean
+  }, [customerName, isSmsManualEdited, renderedTemplateText])
+
+  const effectiveSmsText = isSmsManualEdited ? manualSmsText : renderedTemplateText
 
   if (!isOpen) return null
 
   // 수신 문자/카톡 텍스트에서 플랫폼(의뢰업체), 고객명, 연락처, 이사종류, 이사예정일, 방문견적시간, 출발지, 도착지, 특이사항 지능형 추출
   const handleParseSmsText = (text: string) => {
     setSmsRawText(text)
+    setIsSmsManualEdited(false)
     if (!text.trim()) {
       setParseFeedback(null)
       return
@@ -724,6 +1007,207 @@ export function QuickVisitBookingModal({
     }
   }
 
+  const resetFormFields = () => {
+    const now = new Date()
+    setSmsRawText('')
+    setParseFeedback(null)
+    setCustomerName('')
+    setContact('')
+    setMovingType('P')
+    setVisitDatePart(
+      `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+    )
+    setVisitTimePart('14:00')
+    setMovingDatePart('')
+    setFromAddress('')
+    setToAddress('')
+    setSpecialNotes('')
+    setRegisteredBookingId(null)
+    setIsSmsManualEdited(false)
+    setManualSmsText('')
+    setIsTemplateManagerOpen(false)
+    prevCleanCustNameRef.current = ''
+  }
+
+  const handleCloseModal = () => {
+    if (registeredBookingId) {
+      resetFormFields()
+    }
+    onClose()
+  }
+
+  const cleanPhoneDigits = contact.replace(/[^0-9+]/g, '')
+  const hasValidContact = cleanPhoneDigits.replace(/[^0-9]/g, '').length >= 8
+  const trimmedFromAddr = fromAddress.trim()
+  const trimmedToAddr = toAddress.trim()
+
+  const handleTriggerSendSms = () => {
+    if (!hasValidContact) {
+      alert('문자를 보낼 고객 연락처를 먼저 입력해주세요.')
+      return
+    }
+    const bodyText = (effectiveSmsText || renderedTemplateText || '').trim()
+    if (!bodyText) {
+      alert('발송할 문자 내용이 비어있습니다.')
+      return
+    }
+    const ua = typeof navigator !== 'undefined' ? navigator.userAgent.toLowerCase() : ''
+    const isIos = /iphone|ipad|ipod/.test(ua)
+    const sep = isIos ? '&' : '?'
+    window.location.href = `sms:${cleanPhoneDigits}${sep}body=${encodeURIComponent(bodyText)}`
+  }
+
+  const handleCopySmsText = async () => {
+    const bodyText = (effectiveSmsText || renderedTemplateText || '').trim()
+    if (!bodyText) return
+    try {
+      await navigator.clipboard.writeText(bodyText)
+    } catch {
+      const ta = document.createElement('textarea')
+      ta.value = bodyText
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      document.body.removeChild(ta)
+    }
+    setSmsCopied(true)
+    setTimeout(() => setSmsCopied(false), 2000)
+  }
+
+  const persistTemplatesEverywhere = async (nextList: QuickVisitSmsTemplateItem[], toastMsg?: string) => {
+    setSmsTemplates(nextList)
+    try {
+      localStorage.setItem(QUICK_VISIT_SMS_STORAGE_KEY, JSON.stringify(nextList))
+    } catch {
+      // ignore local storage error
+    }
+    setSavingTemplates(true)
+    try {
+      await saveQuickVisitSmsTemplates(nextList)
+      if (toastMsg) {
+        setTplSavedNotice(toastMsg)
+        setTimeout(() => setTplSavedNotice(null), 2800)
+      }
+    } finally {
+      setSavingTemplates(false)
+    }
+  }
+
+  const openTemplateManager = (targetTpl?: QuickVisitSmsTemplateItem) => {
+    const tpl = targetTpl || activeTemplate
+    setEditingTplId(tpl.id)
+    setTplFormTitle(tpl.title)
+    setTplFormContent(tpl.content)
+    setTplFormIsDefault(Boolean(tpl.isDefault))
+    setIsTemplateManagerOpen(true)
+  }
+
+  const startCreateNewTemplate = () => {
+    setEditingTplId('NEW')
+    setTplFormTitle('')
+    setTplFormContent(
+      `안녕하세요, {고객명} 고객님!\n방문견적 예약 안내드립니다.\n\n■ 방문일시 : {방문일시}\n■ 방문주소 : {방문지}\n\n약속된 시간에 방문드리겠습니다. 감사합니다!`
+    )
+    setTplFormIsDefault(false)
+    setIsTemplateManagerOpen(true)
+  }
+
+  const handleInsertPlaceholderToken = (token: string) => {
+    const el = tplTextareaRef.current
+    if (!el) {
+      setTplFormContent(prev => `${prev}${token}`)
+      return
+    }
+    const start = el.selectionStart ?? tplFormContent.length
+    const end = el.selectionEnd ?? tplFormContent.length
+    const next = tplFormContent.slice(0, start) + token + tplFormContent.slice(end)
+    setTplFormContent(next)
+    requestAnimationFrame(() => {
+      el.focus()
+      const pos = start + token.length
+      el.setSelectionRange(pos, pos)
+    })
+  }
+
+  const handleSaveTemplateForm = async () => {
+    const title = tplFormTitle.trim()
+    const content = tplFormContent.trim()
+    if (!title) {
+      alert('템플릿 이름을 입력해주세요.')
+      return
+    }
+    if (!content) {
+      alert('템플릿 문자 내용을 입력해주세요.')
+      return
+    }
+
+    let nextList: QuickVisitSmsTemplateItem[]
+    let savedId = editingTplId
+
+    if (editingTplId === 'NEW' || !smsTemplates.some(t => t.id === editingTplId)) {
+      savedId = `tpl_${Date.now()}`
+      const newItem: QuickVisitSmsTemplateItem = {
+        id: savedId,
+        title,
+        content,
+        isDefault: tplFormIsDefault
+      }
+      nextList = tplFormIsDefault
+        ? [...smsTemplates.map(t => ({ ...t, isDefault: false })), newItem]
+        : [...smsTemplates, newItem]
+    } else {
+      nextList = smsTemplates.map(t => {
+        if (t.id === editingTplId) {
+          return { ...t, title, content, isDefault: tplFormIsDefault ? true : t.isDefault }
+        }
+        return tplFormIsDefault ? { ...t, isDefault: false } : t
+      })
+    }
+
+    if (!nextList.some(t => t.isDefault) && nextList.length > 0) {
+      nextList[0] = { ...nextList[0], isDefault: true }
+    }
+
+    setSelectedTemplateId(savedId)
+    setEditingTplId(savedId)
+    setIsSmsManualEdited(false)
+    await persistTemplatesEverywhere(nextList, `'${title}' 템플릿이 저장되었습니다.`)
+  }
+
+  const handleDeleteTemplate = async (targetId: string) => {
+    if (smsTemplates.length <= 1) {
+      alert('최소 1개 이상의 문자 템플릿은 유지되어야 합니다.')
+      return
+    }
+    const target = smsTemplates.find(t => t.id === targetId)
+    if (!confirm(`'${target?.title || '선택한 템플릿'}'을(를) 삭제하시겠습니까?`)) return
+
+    const nextList = smsTemplates.filter(t => t.id !== targetId)
+    if (!nextList.some(t => t.isDefault) && nextList.length > 0) {
+      nextList[0] = { ...nextList[0], isDefault: true }
+    }
+    const fallback = nextList.find(t => t.isDefault) || nextList[0]
+    setSelectedTemplateId(fallback.id)
+    setEditingTplId(fallback.id)
+    setTplFormTitle(fallback.title)
+    setTplFormContent(fallback.content)
+    setTplFormIsDefault(Boolean(fallback.isDefault))
+    setIsSmsManualEdited(false)
+    await persistTemplatesEverywhere(nextList, '템플릿이 삭제되었습니다.')
+  }
+
+  const handleResetDefaultTemplates = async () => {
+    if (!confirm('문자 템플릿 목록을 초기 기본 템플릿 3종으로 복원하시겠습니까?')) return
+    const defaults = DEFAULT_QUICK_VISIT_SMS_TEMPLATES.map(t => ({ ...t }))
+    setSelectedTemplateId(defaults[0].id)
+    setEditingTplId(defaults[0].id)
+    setTplFormTitle(defaults[0].title)
+    setTplFormContent(defaults[0].content)
+    setTplFormIsDefault(true)
+    setIsSmsManualEdited(false)
+    await persistTemplatesEverywhere(defaults, '기본 템플릿으로 초기화되었습니다.')
+  }
+
   const handleSaveBooking = async (openFullEstimateAfter: boolean) => {
     if (!customerName.trim() || !contact.trim()) {
       alert('고객명과 연락처를 입력해주세요.')
@@ -762,7 +1246,8 @@ export function QuickVisitBookingModal({
         }
       }
 
-      const visitDateIso = `${visitDatePart}T${visitTimePart || '14:00'}:00`
+      // 한국 표준시(KST, +09:00) 오프셋을 명시하여 UTC 서버(Render)에서도 방문 시각이 밀리지 않도록 보장
+      const visitDateIso = `${visitDatePart}T${visitTimePart || '14:00'}:00+09:00`
       const res = await createQuickVisitEstimate({
         partnerId: finalPartnerId,
         partnerName: finalPartnerName,
@@ -784,388 +1269,901 @@ export function QuickVisitBookingModal({
       }
 
       if (onSaved) onSaved()
+      router.refresh()
 
       if (openFullEstimateAfter && res.id) {
+        resetFormFields()
         onClose()
         router.push(`/estimates/${res.id}/edit`)
       } else {
-        alert(
-          `방문견적 일정이 등록되었습니다! (식별코드: ${res.id})\n일정 캘린더 및 견적 목록에서 바로 확인하실 수 있습니다.`
-        )
-        onClose()
-        router.refresh()
+        // 방문예약 등록 완료 화면으로 전환하여 즉시 완성된 안내 문자를 보낼 수 있도록 제공
+        setRegisteredBookingId(res.id || '등록완료')
       }
     } finally {
       setSubmitting(false)
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 w-full max-w-xl max-h-[92vh] flex flex-col overflow-hidden">
-        {/* 헤더 */}
-        <div className="px-5 py-3.5 bg-gradient-to-r from-indigo-700 to-blue-700 text-white flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CalendarClock className="w-5 h-5 text-indigo-200" />
+  // 공통 SMS 템플릿 선택·관리·미리보기·발송 블록 (등록 전 폼 화면 & 등록 완료 화면 모두에서 동일하게 실시간 동작)
+  const renderSmsTemplateComposerSection = (isCompletionStep: boolean) => (
+    <div
+      className={`rounded-2xl border p-3.5 space-y-2.5 ${
+        isCompletionStep
+          ? 'bg-emerald-50/40 border-emerald-200'
+          : 'bg-slate-50/90 border-slate-200'
+      }`}
+    >
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5">
+          <MessageSquareText
+            className={`w-4 h-4 shrink-0 ${
+              isCompletionStep ? 'text-emerald-600' : 'text-indigo-600'
+            }`}
+          />
+          <span className="text-xs font-extrabold text-gray-900">
+            {isCompletionStep
+              ? '방문예약 안내 문자 발송 (고객명·방문일시 자동 적용)'
+              : '방문예약 문자 템플릿 (고객명·일정 실시간 자동 완성)'}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() =>
+              isTemplateManagerOpen
+                ? setIsTemplateManagerOpen(false)
+                : openTemplateManager()
+            }
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-extrabold border flex items-center gap-1 transition-colors ${
+              isTemplateManagerOpen
+                ? 'bg-slate-800 text-white border-slate-800'
+                : 'bg-white hover:bg-gray-100 text-gray-700 border-gray-300'
+            }`}
+          >
+            <Settings2 className="w-3.5 h-3.5" />
+            <span>{isTemplateManagerOpen ? '템플릿 관리 닫기' : '템플릿 관리'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 저장된 템플릿 빠른 선택 탭 */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {smsTemplates.map(tpl => {
+          const isSelected = activeTemplate?.id === tpl.id
+          return (
+            <button
+              key={tpl.id}
+              type="button"
+              onClick={() => {
+                setSelectedTemplateId(tpl.id)
+                setIsSmsManualEdited(false)
+                if (isTemplateManagerOpen) {
+                  setEditingTplId(tpl.id)
+                  setTplFormTitle(tpl.title)
+                  setTplFormContent(tpl.content)
+                  setTplFormIsDefault(Boolean(tpl.isDefault))
+                }
+              }}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-extrabold border transition-all flex items-center gap-1 ${
+                isSelected
+                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-indigo-50 hover:border-indigo-300'
+              }`}
+            >
+              <span>{tpl.title}</span>
+              {tpl.isDefault && (
+                <span
+                  className={`text-[9px] px-1 py-0.2 rounded ${
+                    isSelected ? 'bg-white/25 text-white' : 'bg-indigo-100 text-indigo-700'
+                  }`}
+                >
+                  기본
+                </span>
+              )}
+            </button>
+          )
+        })}
+        <button
+          type="button"
+          onClick={startCreateNewTemplate}
+          className="px-2 py-1 rounded-lg text-[11px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 flex items-center gap-0.5"
+        >
+          <Plus className="w-3 h-3" />
+          <span>새 템플릿</span>
+        </button>
+      </div>
+
+      {/* 템플릿 관리 인라인 에디터 */}
+      {isTemplateManagerOpen && (
+        <div className="p-3 rounded-xl bg-white border-2 border-indigo-300 shadow-xs space-y-2.5">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <span className="text-xs font-extrabold text-indigo-950">
+              {editingTplId === 'NEW' ? '✨ 새 문자 템플릿 등록' : '✏️ 선택 템플릿 내용 편집'}
+            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={startCreateNewTemplate}
+                className="px-2 py-0.5 rounded bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-bold border border-indigo-200"
+              >
+                + 새로 만들기
+              </button>
+              <button
+                type="button"
+                onClick={handleResetDefaultTemplates}
+                className="px-2 py-0.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-600 text-[11px] font-semibold"
+                title="초기 기본 템플릿 3종으로 복원"
+              >
+                초기화
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <input
+              type="text"
+              value={tplFormTitle}
+              onChange={e => setTplFormTitle(e.target.value)}
+              placeholder="템플릿 이름 (예: 방문예약 확정 문자)"
+              className="flex-1 rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs font-bold text-gray-900 outline-none focus:border-indigo-500"
+            />
+            <label className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-700 cursor-pointer select-none shrink-0">
+              <input
+                type="checkbox"
+                checked={tplFormIsDefault}
+                onChange={e => setTplFormIsDefault(e.target.checked)}
+                className="rounded border-gray-300 text-indigo-600 w-3.5 h-3.5"
+              />
+              <span>기본 템플릿 지정</span>
+            </label>
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex items-center gap-1 flex-wrap">
+              <span className="text-[11px] font-bold text-gray-500 mr-0.5">
+                자동 치환 변수 넣기:
+              </span>
+              {SMS_PLACEHOLDER_CHIPS.map(chip => (
+                <button
+                  key={chip.token}
+                  type="button"
+                  onClick={() => handleInsertPlaceholderToken(chip.token)}
+                  className="px-1.5 py-0.5 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-[10px] font-extrabold"
+                >
+                  +{chip.token}
+                </button>
+              ))}
+            </div>
+            <textarea
+              ref={tplTextareaRef}
+              rows={5}
+              value={tplFormContent}
+              onChange={e => setTplFormContent(e.target.value)}
+              placeholder="예: 안녕하세요, {고객명} 고객님! {방문일시}에 방문견적 예정입니다."
+              className="w-full rounded-lg border border-gray-300 px-2.5 py-2 text-xs text-gray-800 outline-none focus:border-indigo-500 leading-relaxed"
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-2 pt-1">
             <div>
-              <h2 className="text-base font-extrabold leading-tight">
-                방문견적 빠른 예약 접수 (문자 연동)
+              {editingTplId !== 'NEW' && smsTemplates.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => handleDeleteTemplate(editingTplId)}
+                  className="px-2.5 py-1 rounded-lg text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 flex items-center gap-1"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>삭제</span>
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setIsTemplateManagerOpen(false)}
+                className="px-2.5 py-1 rounded-lg text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200"
+              >
+                닫기
+              </button>
+              <button
+                type="button"
+                disabled={savingTemplates}
+                onClick={handleSaveTemplateForm}
+                className="px-3 py-1 rounded-lg text-xs font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 flex items-center gap-1"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>{savingTemplates ? '저장 중...' : '템플릿 저장'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tplSavedNotice && (
+        <p className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5">
+          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+          <span>{tplSavedNotice}</span>
+        </p>
+      )}
+
+      {/* 실시간 완성 문자 미리보기 및 자유 수정 */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <span className="text-[11px] font-bold text-gray-600">
+            발송될 완성 문자 내용{' '}
+            <span className="text-indigo-700 font-extrabold">
+              (고객명: {cleanCustomerBaseName(customerName) || '미입력 → 고객님'})
+            </span>
+          </span>
+          {isSmsManualEdited && (
+            <button
+              type="button"
+              onClick={() => {
+                setIsSmsManualEdited(false)
+                setManualSmsText('')
+              }}
+              className="text-[11px] font-bold text-blue-600 hover:underline flex items-center gap-1"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>템플릿 자동문구로 복원</span>
+            </button>
+          )}
+        </div>
+
+        <textarea
+          rows={isCompletionStep ? 6 : 4}
+          value={effectiveSmsText}
+          onChange={e => {
+            setManualSmsText(e.target.value)
+            setIsSmsManualEdited(true)
+          }}
+          className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs text-gray-900 outline-none focus:border-blue-500 leading-relaxed"
+        />
+
+        <div className="flex flex-wrap items-center justify-end gap-2 pt-0.5">
+          <button
+            type="button"
+            onClick={handleCopySmsText}
+            className="px-3 py-1.5 rounded-xl text-xs font-bold text-gray-700 bg-white hover:bg-gray-100 border border-gray-300 flex items-center gap-1.5 shadow-2xs"
+          >
+            {smsCopied ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="text-emerald-700 font-extrabold">복사 완료!</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-3.5 h-3.5 text-gray-500" />
+                <span>문자 복사</span>
+              </>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleTriggerSendSms}
+            className="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-extrabold text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs flex items-center gap-1.5"
+          >
+            <Send className="w-3.5 h-3.5" />
+            <span>문자 보내기 (템플릿 완성본)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+    >
+      <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 w-full max-w-2xl max-h-[93vh] flex flex-col overflow-hidden">
+        {/* 헤더 */}
+        <div
+          className={`px-4 sm:px-5 py-3.5 text-white flex items-center justify-between shrink-0 ${
+            registeredBookingId
+              ? 'bg-gradient-to-r from-emerald-600 to-teal-600'
+              : 'bg-gradient-to-r from-indigo-700 to-blue-700'
+          }`}
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            {registeredBookingId ? (
+              <CheckCircle2 className="w-5 h-5 text-emerald-100 shrink-0" />
+            ) : (
+              <CalendarClock className="w-5 h-5 text-indigo-200 shrink-0" />
+            )}
+            <div className="min-w-0">
+              <h2 className="text-sm sm:text-base font-extrabold leading-tight truncate">
+                {registeredBookingId
+                  ? `방문견적 예약 등록 완료 (${registeredBookingId})`
+                  : '방문견적 빠른 예약 접수 (문자 연동)'}
               </h2>
-              <p className="text-[11px] text-indigo-100">
-                의뢰업체로부터 받은 고객 성명·연락처와 방문일정을 먼저 등록합니다.
+              <p className="text-[11px] text-white/85 truncate">
+                {registeredBookingId
+                  ? '예약 일정이 저장되었습니다. 고객님께 안내 문자를 바로 발송해보세요.'
+                  : '의뢰업체로부터 받은 고객 성명·연락처와 방문일정을 빠르게 등록하고 안내 문자를 발송합니다.'}
               </p>
             </div>
           </div>
           <button
             type="button"
-            onClick={onClose}
-            className="p-1 text-white/80 hover:text-white rounded-lg"
+            onClick={handleCloseModal}
+            aria-label="닫기"
+            className="p-1 text-white/80 hover:text-white rounded-lg shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="p-4 sm:p-5 overflow-y-auto space-y-4 text-xs sm:text-sm">
-          {/* 1. 수신 문자 붙여넣기 자동 추출 박스 */}
-          <div className="p-3 rounded-2xl bg-indigo-50/70 border border-indigo-200 space-y-2">
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <span className="text-xs font-extrabold text-indigo-950 flex items-center gap-1.5">
-                <ClipboardPaste className="w-4 h-4 text-indigo-600" />
-                <span>플랫폼/업체 문자 붙여넣기 (업체·성명·연락처·일정·출도착지 자동 인식)</span>
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      const clipText = await navigator.clipboard.readText()
-                      if (clipText) handleParseSmsText(clipText)
-                    } catch {
-                      alert('클립보드 접근 권한이 없거나 지원되지 않습니다. 입력창을 길게 눌러 붙여넣기 해주세요.')
-                    }
-                  }}
-                  className="px-2 py-0.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold flex items-center gap-1 shadow-2xs"
-                >
-                  <ClipboardPaste className="w-3 h-3" />
-                  <span>클립보드 붙여넣기</span>
-                </button>
-                {smsRawText && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSmsRawText('')
-                      setParseFeedback(null)
-                    }}
-                    className="text-[11px] text-gray-500 hover:text-red-600 font-semibold"
-                  >
-                    지우기
-                  </button>
-                )}
+        {registeredBookingId ? (
+          /* ================= 등록 완료 & 고객 안내문자 발송 화면 ================= */
+          <div className="p-4 sm:p-5 overflow-y-auto space-y-4 text-xs sm:text-sm">
+            <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-3">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-600 text-white text-[11px] font-extrabold">
+                    예약등록 완료
+                  </span>
+                  <span className="font-mono font-bold text-emerald-900 text-xs sm:text-sm">
+                    {registeredBookingId}
+                  </span>
+                </div>
+                <span className="text-xs font-extrabold text-emerald-800">
+                  방문일시: {formatYmdKor(visitDatePart)} {formatTimeKor(visitTimePart)}
+                </span>
+              </div>
+
+              {/* 등록 완료 화면에서도 고객명 수정 시 아래 문자 템플릿에 즉시 반영 + 통화/문자/카카오맵 바로가기 */}
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 bg-white p-3 rounded-xl border border-emerald-200/80">
+                <div className="sm:col-span-4">
+                  <label className="block text-[11px] font-bold text-gray-600 mb-1">
+                    고객명 (변경 시 문자 즉시 반영)
+                  </label>
+                  <input
+                    type="text"
+                    value={customerName}
+                    onChange={e => setCustomerName(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 font-black text-gray-900 outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div className="sm:col-span-8">
+                  <label className="block text-[11px] font-bold text-gray-600 mb-1">
+                    연락처 · 바로 연결
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="tel"
+                      maxLength={14}
+                      value={contact}
+                      onFocus={handleSelectAllOnFocus}
+                      onChange={e => handlePhoneInputChange(e, setContact)}
+                      className="flex-1 min-w-0 rounded-lg border border-gray-300 px-2.5 py-1.5 font-bold text-gray-900 outline-none focus:border-emerald-500"
+                    />
+                    {hasValidContact ? (
+                      <a
+                        href={`tel:${cleanPhoneDigits}`}
+                        className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold flex items-center gap-1 shrink-0 whitespace-nowrap shadow-2xs"
+                      >
+                        <Phone className="w-3.5 h-3.5" />
+                        <span>통화</span>
+                      </a>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => alert('통화할 고객 연락처를 먼저 입력해주세요.')}
+                        className="px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-400 border border-gray-200 text-xs font-bold flex items-center gap-1 shrink-0 whitespace-nowrap"
+                      >
+                        <Phone className="w-3.5 h-3.5" />
+                        <span>통화</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleTriggerSendSms}
+                      className="px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold flex items-center gap-1 shrink-0 whitespace-nowrap shadow-2xs"
+                    >
+                      <MessageSquareText className="w-3.5 h-3.5" />
+                      <span>문자</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="sm:col-span-12 flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-gray-100">
+                  <div className="text-xs text-gray-700 min-w-0">
+                    <span className="font-bold text-gray-500 mr-1.5">방문지:</span>
+                    <span className="font-semibold text-gray-900">
+                      {trimmedFromAddr || '방문 시 상세확인'}
+                    </span>
+                  </div>
+                  {trimmedFromAddr ? (
+                    <a
+                      href={`https://map.kakao.com/link/search/${encodeURIComponent(trimmedFromAddr)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1 rounded-lg bg-[#FEE500] hover:bg-[#FDD800] text-gray-900 border border-amber-300 text-xs font-extrabold flex items-center gap-1 shrink-0 whitespace-nowrap shadow-2xs"
+                    >
+                      <MapPin className="w-3.5 h-3.5 text-amber-900" />
+                      <span>카카오맵</span>
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        alert('카카오맵에서 조회할 방문지 주소를 먼저 입력해주세요.')
+                      }
+                      className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-400 border border-gray-200 text-xs font-bold flex items-center gap-1 shrink-0 whitespace-nowrap"
+                    >
+                      <MapPin className="w-3.5 h-3.5" />
+                      <span>카카오맵</span>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
-            <textarea
-              rows={3}
-              value={smsRawText}
-              onChange={e => handleParseSmsText(e.target.value)}
-              placeholder={`예: 전달: 안녕하세요 모두이사 입니다.\n2026-11-25 / 김영은 고객님 / 연락처: 010-6432-3208 / 가정\n출발지: 경기 용인시 처인구... / 도착지: 경기 파주시... / 3시견적`}
-              className="w-full rounded-xl border border-indigo-200 bg-white px-3 py-2 text-xs text-gray-800 outline-none focus:border-indigo-500 resize-none"
-            />
-            {parseFeedback && (
-              <p className="text-[11px] font-bold text-indigo-700 flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                <span>{parseFeedback}</span>
-              </p>
-            )}
-          </div>
 
-          {/* 2. 의뢰 이사업체 선택 */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-extrabold text-gray-800 flex items-center gap-1.5">
-                <Building2 className="w-4 h-4 text-blue-600" />
-                <span>의뢰 이사업체 (거래처) 선택</span>
-              </label>
+            {/* 템플릿 관리 및 예약완료 문자 발송 */}
+            {renderSmsTemplateComposerSection(true)}
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-3 border-t border-gray-200">
               <button
                 type="button"
-                onClick={() => setIsAddingNewPartner(prev => !prev)}
-                className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-0.5"
+                onClick={resetFormFields}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 flex items-center justify-center gap-1"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>{isAddingNewPartner ? '추가 닫기' : '새 의뢰업체 추가'}</span>
+                <span>다른 고객 추가 접수</span>
               </button>
-            </div>
 
-            {isAddingNewPartner && (
-              <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-200 flex flex-wrap items-center gap-2">
-                <input
-                  type="text"
-                  value={newPartnerName}
-                  onChange={e => setNewPartnerName(e.target.value)}
-                  placeholder="새 이사업체명 (예: 한진익스프레스)"
-                  className="flex-1 min-w-[160px] rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-bold outline-none focus:border-blue-500"
-                />
-                <div className="flex items-center gap-1">
-                  {PARTNER_COLOR_PALETTE.slice(0, 6).map(c => (
-                    <button
-                      key={c.key}
-                      type="button"
-                      onClick={() => setNewPartnerColor(c.key)}
-                      className={`w-5 h-5 rounded-full ${c.dotClass} ${
-                        newPartnerColor === c.key ? 'ring-2 ring-offset-1 ring-gray-900' : 'opacity-60'
-                      }`}
-                      title={c.label}
-                    />
-                  ))}
-                </div>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <button
                   type="button"
-                  disabled={creatingPartner}
-                  onClick={handleQuickAddPartner}
-                  className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold"
+                  onClick={() => {
+                    const targetId = registeredBookingId
+                    resetFormFields()
+                    onClose()
+                    router.push(`/estimates/${targetId}/edit`)
+                  }}
+                  className="px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold text-white bg-blue-600 hover:bg-blue-700 shadow-xs flex items-center justify-center gap-1.5"
                 >
-                  {creatingPartner ? '등록중...' : '즉시 등록'}
+                  <span>견적서 작성 열기</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold text-gray-800 bg-gray-100 hover:bg-gray-200"
+                >
+                  확인 (닫기)
                 </button>
               </div>
-            )}
-
-            <div className="flex flex-wrap gap-1.5">
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedPartnerId('')
-                  setSelectedPartnerName('')
-                  setSelectedPartnerShortName('')
-                  setSelectedPartnerColor('slate')
-                }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-extrabold border transition-all ${
-                  !selectedPartnerName
-                    ? 'bg-slate-800 text-white border-slate-800 shadow-2xs'
-                    : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
-                }`}
-              >
-                자체 / 직접 오더
-              </button>
-
-              {partners.map(p => {
-                const isSelected = selectedPartnerId === p.id || selectedPartnerName === p.name
-                const style = getPartnerBadgeStyle(p.color)
-                return (
+            </div>
+          </div>
+        ) : (
+          /* ================= 방문견적 빠른 예약 접수 입력 화면 ================= */
+          <div className="p-4 sm:p-5 overflow-y-auto space-y-4 text-xs sm:text-sm">
+            {/* 1. 수신 문자 붙여넣기 자동 추출 박스 */}
+            <div className="p-3 rounded-2xl bg-indigo-50/70 border border-indigo-200 space-y-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <span className="text-xs font-extrabold text-indigo-950 flex items-center gap-1.5">
+                  <ClipboardPaste className="w-4 h-4 text-indigo-600" />
+                  <span>플랫폼/업체 문자 붙여넣기 (업체·성명·연락처·일정·출도착지 자동 인식)</span>
+                </span>
+                <div className="flex items-center gap-2">
                   <button
-                    key={p.id}
                     type="button"
-                    onClick={() => {
-                      setSelectedPartnerId(p.id)
-                      setSelectedPartnerName(p.name)
-                      setSelectedPartnerShortName(p.shortName || p.name.slice(0, 4))
-                      setSelectedPartnerColor(p.color)
+                    onClick={async () => {
+                      try {
+                        const clipText = await navigator.clipboard.readText()
+                        if (clipText) handleParseSmsText(clipText)
+                      } catch {
+                        alert(
+                          '클립보드 접근 권한이 없거나 지원되지 않습니다. 입력창을 길게 눌러 붙여넣기 해주세요.'
+                        )
+                      }
                     }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-extrabold border transition-all flex items-center gap-1.5 ${
-                      isSelected
-                        ? `${style.activeBtnClass} shadow-xs scale-[1.02]`
-                        : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
-                    }`}
+                    className="px-2 py-0.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold flex items-center gap-1 shadow-2xs"
                   >
-                    <span
-                      className={`w-2 h-2 rounded-full ${
-                        isSelected ? 'bg-white' : style.dotClass
-                      }`}
-                    />
-                    <span>{p.name}</span>
+                    <ClipboardPaste className="w-3 h-3" />
+                    <span>클립보드 붙여넣기</span>
                   </button>
-                )
-              })}
+                  {smsRawText && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSmsRawText('')
+                        setParseFeedback(null)
+                      }}
+                      className="text-[11px] text-gray-500 hover:text-red-600 font-semibold"
+                    >
+                      지우기
+                    </button>
+                  )}
+                </div>
+              </div>
+              <textarea
+                rows={3}
+                value={smsRawText}
+                onChange={e => handleParseSmsText(e.target.value)}
+                placeholder={`예: 전달: 안녕하세요 모두이사 입니다.\n2026-11-25 / 김영은 고객님 / 연락처: 010-6432-3208 / 가정\n출발지: 경기 용인시 처인구... / 도착지: 경기 파주시... / 3시견적`}
+                className="w-full rounded-xl border border-indigo-200 bg-white px-3 py-2 text-xs text-gray-800 outline-none focus:border-indigo-500 resize-none"
+              />
+              {parseFeedback && (
+                <p className="text-[11px] font-bold text-indigo-700 flex items-center gap-1">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                  <span>{parseFeedback}</span>
+                </p>
+              )}
+            </div>
 
-              {selectedPartnerName &&
-                !partners.some(p => p.id === selectedPartnerId || p.name === selectedPartnerName) && (
+            {/* 2. 의뢰 이사업체 선택 */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-extrabold text-gray-800 flex items-center gap-1.5">
+                  <Building2 className="w-4 h-4 text-blue-600" />
+                  <span>의뢰 이사업체 (거래처) 선택</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsAddingNewPartner(prev => !prev)}
+                  className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-0.5"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{isAddingNewPartner ? '추가 닫기' : '새 의뢰업체 추가'}</span>
+                </button>
+              </div>
+
+              {isAddingNewPartner && (
+                <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-200 flex flex-wrap items-center gap-2">
+                  <input
+                    type="text"
+                    value={newPartnerName}
+                    onChange={e => setNewPartnerName(e.target.value)}
+                    placeholder="새 이사업체명 (예: 한진익스프레스)"
+                    className="flex-1 min-w-[160px] rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-bold outline-none focus:border-blue-500"
+                  />
+                  <div className="flex items-center gap-1">
+                    {PARTNER_COLOR_PALETTE.slice(0, 6).map(c => (
+                      <button
+                        key={c.key}
+                        type="button"
+                        onClick={() => setNewPartnerColor(c.key)}
+                        className={`w-5 h-5 rounded-full ${c.dotClass} ${
+                          newPartnerColor === c.key ? 'ring-2 ring-offset-1 ring-gray-900' : 'opacity-60'
+                        }`}
+                        title={c.label}
+                      />
+                    ))}
+                  </div>
                   <button
                     type="button"
-                    className="px-3 py-1.5 rounded-xl text-xs font-extrabold border bg-indigo-600 text-white border-indigo-600 shadow-xs flex items-center gap-1.5"
-                    title="문자에서 자동 감지된 업체입니다. 접수 완료 시 거래처 목록에 자동 추가됩니다."
+                    disabled={creatingPartner}
+                    onClick={handleQuickAddPartner}
+                    className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold"
                   >
-                    <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                    <span>{selectedPartnerName} (자동감지)</span>
+                    {creatingPartner ? '등록중...' : '즉시 등록'}
                   </button>
-                )}
-            </div>
-          </div>
+                </div>
+              )}
 
-          {/* 3. 고객명 · 연락처 · 이사종류 */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">
-                고객명 <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={customerName}
-                onChange={e => setCustomerName(e.target.value)}
-                placeholder="홍길동"
-                className="w-full rounded-xl border border-gray-300 px-3 py-2 font-black text-gray-900 outline-none focus:border-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">
-                연락처 <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="tel"
-                required
-                maxLength={14}
-                value={contact}
-                onFocus={handleSelectAllOnFocus}
-                onChange={e => handlePhoneInputChange(e, setContact)}
-                placeholder="010-0000-0000"
-                className="w-full rounded-xl border border-gray-300 px-3 py-2 font-bold text-gray-900 outline-none focus:border-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">이사 종류</label>
-              <select
-                value={movingType}
-                onChange={e => setMovingType(e.target.value as 'P' | 'G' | 'K')}
-                className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 font-bold text-gray-800 outline-none focus:border-blue-500"
-              >
-                <option value="P">포장이사 (P)</option>
-                <option value="G">일반이사 (G)</option>
-                <option value="K">보관이사 (K)</option>
-              </select>
-            </div>
-          </div>
-
-          {/* 4. 방문 견적일정 (날짜 + 시간 퀵선택) & 이사 희망일 */}
-          <div className="p-3.5 rounded-2xl bg-blue-50/50 border border-blue-200/80 space-y-2.5">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-xs font-extrabold text-blue-950 mb-1">
-                  방문 견적일자 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={visitDatePart}
-                  onChange={e => setVisitDatePart(e.target.value)}
-                  className="w-full rounded-xl border border-blue-300 bg-white px-3 py-2 font-bold text-gray-900 outline-none focus:border-blue-600"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-extrabold text-blue-950 mb-1">
-                  방문 시간
-                </label>
-                <input
-                  type="time"
-                  value={visitTimePart}
-                  onChange={e => setVisitTimePart(e.target.value)}
-                  className="w-full rounded-xl border border-blue-300 bg-white px-3 py-2 font-bold text-blue-800 outline-none focus:border-blue-600"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">
-                  이사 예정일 (선택/미정 가능)
-                </label>
-                <input
-                  type="date"
-                  value={movingDatePart}
-                  onChange={e => setMovingDatePart(e.target.value)}
-                  className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 font-semibold text-gray-800 outline-none focus:border-blue-500"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1 flex-wrap pt-0.5">
-              <span className="text-[11px] font-bold text-gray-500 mr-1">시간 빠른선택:</span>
-              {VISIT_TIME_PRESETS.map(t => (
+              <div className="flex flex-wrap gap-1.5">
                 <button
-                  key={t}
                   type="button"
-                  onClick={() => setVisitTimePart(t)}
-                  className={`px-2 py-0.5 rounded text-[11px] font-bold border transition-all ${
-                    visitTimePart === t
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white text-gray-700 border-gray-200 hover:bg-blue-100'
+                  onClick={() => {
+                    setSelectedPartnerId('')
+                    setSelectedPartnerName('')
+                    setSelectedPartnerShortName('')
+                    setSelectedPartnerColor('slate')
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold border transition-all ${
+                    !selectedPartnerName
+                      ? 'bg-slate-800 text-white border-slate-800 shadow-2xs'
+                      : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
                   }`}
                 >
-                  {t}
+                  자체 / 직접 오더
                 </button>
-              ))}
-            </div>
-          </div>
 
-          {/* 5. 출발지 / 도착지 / 메모 */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {partners.map(p => {
+                  const isSelected = selectedPartnerId === p.id || selectedPartnerName === p.name
+                  const style = getPartnerBadgeStyle(p.color)
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedPartnerId(p.id)
+                        setSelectedPartnerName(p.name)
+                        setSelectedPartnerShortName(p.shortName || p.name.slice(0, 4))
+                        setSelectedPartnerColor(p.color)
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-extrabold border transition-all flex items-center gap-1.5 ${
+                        isSelected
+                          ? `${style.activeBtnClass} shadow-xs scale-[1.02]`
+                          : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span
+                        className={`w-2 h-2 rounded-full ${
+                          isSelected ? 'bg-white' : style.dotClass
+                        }`}
+                      />
+                      <span>{p.name}</span>
+                    </button>
+                  )
+                })}
+
+                {selectedPartnerName &&
+                  !partners.some(p => p.id === selectedPartnerId || p.name === selectedPartnerName) && (
+                    <button
+                      type="button"
+                      className="px-3 py-1.5 rounded-xl text-xs font-extrabold border bg-indigo-600 text-white border-indigo-600 shadow-xs flex items-center gap-1.5"
+                      title="문자에서 자동 감지된 업체입니다. 접수 완료 시 거래처 목록에 자동 추가됩니다."
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                      <span>{selectedPartnerName} (자동감지)</span>
+                    </button>
+                  )}
+              </div>
+            </div>
+
+            {/* 3. 고객명 · 연락처(+통화/문자 버튼) · 이사종류 */}
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+              <div className="sm:col-span-3">
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  고객명 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={customerName}
+                  onChange={e => setCustomerName(e.target.value)}
+                  placeholder="홍길동"
+                  className="w-full rounded-xl border border-gray-300 px-3 py-2 font-black text-gray-900 outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="sm:col-span-6">
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  연락처 <span className="text-red-500">*</span>
+                </label>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="tel"
+                    required
+                    maxLength={14}
+                    value={contact}
+                    onFocus={handleSelectAllOnFocus}
+                    onChange={e => handlePhoneInputChange(e, setContact)}
+                    placeholder="010-0000-0000"
+                    className="flex-1 min-w-0 rounded-xl border border-gray-300 px-3 py-2 font-bold text-gray-900 outline-none focus:border-blue-500"
+                  />
+                  {hasValidContact ? (
+                    <a
+                      href={`tel:${cleanPhoneDigits}`}
+                      title="고객에게 전화 걸기"
+                      className="px-2.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold flex items-center gap-1 shrink-0 whitespace-nowrap shadow-2xs transition-colors"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                      <span>통화</span>
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => alert('통화할 고객 연락처를 먼저 입력해주세요.')}
+                      title="연락처 입력 후 통화 가능"
+                      className="px-2.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-400 border border-gray-200 text-xs font-bold flex items-center gap-1 shrink-0 whitespace-nowrap transition-colors"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                      <span>통화</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleTriggerSendSms}
+                    title="템플릿 완성 문자 바로 보내기"
+                    className={`px-2.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1 shrink-0 whitespace-nowrap transition-colors ${
+                      hasValidContact
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-2xs'
+                        : 'bg-gray-100 hover:bg-gray-200 text-gray-400 border border-gray-200'
+                    }`}
+                  >
+                    <MessageSquareText className="w-3.5 h-3.5" />
+                    <span>문자</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="sm:col-span-3">
+                <label className="block text-xs font-bold text-gray-700 mb-1">이사 종류</label>
+                <select
+                  value={movingType}
+                  onChange={e => setMovingType(e.target.value as 'P' | 'G' | 'K')}
+                  className="w-full rounded-xl border border-gray-300 bg-white px-2.5 py-2 font-bold text-gray-800 outline-none focus:border-blue-500"
+                >
+                  <option value="P">포장이사 (P)</option>
+                  <option value="G">일반이사 (G)</option>
+                  <option value="K">보관이사 (K)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* 4. 방문 견적일정 (날짜 + 시간 퀵선택) & 이사 희망일 */}
+            <div className="p-3.5 rounded-2xl bg-blue-50/50 border border-blue-200/80 space-y-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-extrabold text-blue-950 mb-1">
+                    방문 견적일자 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={visitDatePart}
+                    onChange={e => setVisitDatePart(e.target.value)}
+                    className="w-full rounded-xl border border-blue-300 bg-white px-3 py-2 font-bold text-gray-900 outline-none focus:border-blue-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-extrabold text-blue-950 mb-1">
+                    방문 시간
+                  </label>
+                  <input
+                    type="time"
+                    value={visitTimePart}
+                    onChange={e => setVisitTimePart(e.target.value)}
+                    className="w-full rounded-xl border border-blue-300 bg-white px-3 py-2 font-bold text-blue-800 outline-none focus:border-blue-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    이사 예정일 (선택/미정 가능)
+                  </label>
+                  <input
+                    type="date"
+                    value={movingDatePart}
+                    onChange={e => setMovingDatePart(e.target.value)}
+                    className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 font-semibold text-gray-800 outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1 flex-wrap pt-0.5">
+                <span className="text-[11px] font-bold text-gray-500 mr-1">시간 빠른선택:</span>
+                {VISIT_TIME_PRESETS.map(t => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setVisitTimePart(t)}
+                    className={`px-2 py-0.5 rounded text-[11px] font-bold border transition-all ${
+                      visitTimePart === t
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white text-gray-700 border-gray-200 hover:bg-blue-100'
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 5. 출발지(방문지 + 카카오맵) / 도착지 / 메모 */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  방문지 (출발지 주소)
+                </label>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="text"
+                    value={fromAddress}
+                    onChange={e => setFromAddress(e.target.value)}
+                    placeholder="예: 서울시 송파구 잠실동 123-4"
+                    className="flex-1 min-w-0 rounded-xl border border-gray-300 px-3 py-2 text-gray-900 outline-none focus:border-blue-500"
+                  />
+                  {trimmedFromAddr ? (
+                    <a
+                      href={`https://map.kakao.com/link/search/${encodeURIComponent(trimmedFromAddr)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="카카오맵에서 방문지 위치 보기"
+                      className="px-2.5 py-2 rounded-xl bg-[#FEE500] hover:bg-[#FDD800] text-gray-900 border border-amber-300 text-xs font-extrabold flex items-center gap-1 shrink-0 whitespace-nowrap shadow-2xs transition-colors"
+                    >
+                      <MapPin className="w-3.5 h-3.5 text-amber-900" />
+                      <span>카카오맵</span>
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        alert('카카오맵에서 조회할 방문지(출발지) 주소를 먼저 입력해주세요.')
+                      }
+                      title="방문지 주소 입력 후 카카오맵 열기 가능"
+                      className="px-2.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-400 border border-gray-200 text-xs font-bold flex items-center gap-1 shrink-0 whitespace-nowrap transition-colors"
+                    >
+                      <MapPin className="w-3.5 h-3.5" />
+                      <span>카카오맵</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-gray-700">
+                    도착지 주소 (선택)
+                  </label>
+                  {trimmedFromAddr && trimmedToAddr && (
+                    <a
+                      href={`https://map.kakao.com/?sName=${encodeURIComponent(trimmedFromAddr)}&eName=${encodeURIComponent(trimmedToAddr)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] font-extrabold text-indigo-600 hover:underline flex items-center gap-0.5"
+                    >
+                      <Navigation className="w-3 h-3" />
+                      <span>카카오맵 경로보기</span>
+                    </a>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  value={toAddress}
+                  onChange={e => setToAddress(e.target.value)}
+                  placeholder="방문 시 확인 가능"
+                  className="w-full rounded-xl border border-gray-300 px-3 py-2 text-gray-900 outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">
-                방문지 (출발지 주소)
+                통화 메모 / 특이사항 (선택)
               </label>
               <input
                 type="text"
-                value={fromAddress}
-                onChange={e => setFromAddress(e.target.value)}
-                placeholder="예: 서울시 송파구 잠실동 123-4 (미입력 시 추후입력)"
+                value={specialNotes}
+                onChange={e => setSpecialNotes(e.target.value)}
+                placeholder="예: 34평 아파트, 피아노 있음, 방문 30분 전 연락 요망"
                 className="w-full rounded-xl border border-gray-300 px-3 py-2 text-gray-900 outline-none focus:border-blue-500"
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">
-                도착지 주소 (선택)
-              </label>
-              <input
-                type="text"
-                value={toAddress}
-                onChange={e => setToAddress(e.target.value)}
-                placeholder="방문 시 확인 가능"
-                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-gray-900 outline-none focus:border-blue-500"
-              />
+            {/* 6. 방문예약 안내 문자 템플릿 선택·관리 및 완성 문자 발송 */}
+            {renderSmsTemplateComposerSection(false)}
+
+            {/* 하단 버튼 */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-3 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={handleCloseModal}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => handleSaveBooking(false)}
+                className="px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs flex items-center justify-center gap-1.5"
+              >
+                <Check className="w-4 h-4" />
+                <span>{submitting ? '등록 중...' : '방문예약 등록 완료 (문자발송)'}</span>
+              </button>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => handleSaveBooking(true)}
+                className="px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold text-white bg-blue-600 hover:bg-blue-700 shadow-xs flex items-center justify-center gap-1.5"
+              >
+                <span>등록 후 바로 견적서 열기</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
             </div>
           </div>
-
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">
-              통화 메모 / 특이사항 (선택)
-            </label>
-            <input
-              type="text"
-              value={specialNotes}
-              onChange={e => setSpecialNotes(e.target.value)}
-              placeholder="예: 34평 아파트, 피아노 있음, 방문 30분 전 연락 요망"
-              className="w-full rounded-xl border border-gray-300 px-3 py-2 text-gray-900 outline-none focus:border-blue-500"
-            />
-          </div>
-
-          {/* 하단 버튼 */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-3 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200"
-            >
-              취소
-            </button>
-            <button
-              type="button"
-              disabled={submitting}
-              onClick={() => handleSaveBooking(false)}
-              className="px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs flex items-center justify-center gap-1.5"
-            >
-              <Check className="w-4 h-4" />
-              <span>{submitting ? '등록 중...' : '방문일정만 등록 완료'}</span>
-            </button>
-            <button
-              type="button"
-              disabled={submitting}
-              onClick={() => handleSaveBooking(true)}
-              className="px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold text-white bg-blue-600 hover:bg-blue-700 shadow-xs flex items-center justify-center gap-1.5"
-            >
-              <span>등록 후 바로 견적서 열기</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   )

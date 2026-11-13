@@ -34,6 +34,11 @@ import {
   calculateTonnageDistanceFare,
   adjustTollForHeavyTruck
 } from '@/lib/distanceFare'
+import {
+  SEASON_OPTIONS,
+  detectSeasonByMovingDate,
+  type SeasonOptionKey,
+} from '@/lib/movingSeason'
 
 interface CostCalculatorModalProps {
   isOpen: boolean
@@ -51,6 +56,10 @@ interface CostCalculatorModalProps {
   womenUnitPrice?: number // 여성 일당 (기본 170,000)
   vehicles?: { name: string; count: number; tonnage?: number }[] // 투입 차량 목록
   ladderTotalCost?: number
+  fromFloor?: string
+  toFloor?: string
+  fromLadderCost?: number
+  toLadderCost?: number
   waypointCount?: number // 경유 품목 수
   costStandards?: CostStandardData
 }
@@ -122,6 +131,10 @@ export function CostCalculatorModal({
   womenUnitPrice = 170000,
   vehicles = [],
   ladderTotalCost = 0,
+  fromFloor = '',
+  toFloor = '',
+  fromLadderCost = 0,
+  toLadderCost = 0,
   waypointCount = 0,
   costStandards
 }: CostCalculatorModalProps) {
@@ -469,11 +482,21 @@ export function CostCalculatorModal({
   const [tapeUnitPrice, setTapeUnitPrice] = useState<number>(standards.tapeUnitPrice)
   const [tapeRolls, setTapeRolls] = useState<number>(0)
 
-  // 4. 장비비 (사다리차 포함 여부)
+  // 4. 장비비 내역 (출발지·도착지 사다리차 및 기타 장비)
   const [includeLadderCost, setIncludeLadderCost] = useState<boolean>(false)
-  const [ladderCost, setLadderCost] = useState<number>(ladderTotalCost || 0)
+  const [simFromLadderCost, setSimFromLadderCost] = useState<number>(fromLadderCost || 0)
+  const [simToLadderCost, setSimToLadderCost] = useState<number>(toLadderCost || 0)
+  const [extraEquipmentCost, setExtraEquipmentCost] = useState<number>(
+    Math.max(0, (ladderTotalCost || 0) - (fromLadderCost || 0) - (toLadderCost || 0))
+  )
 
-  // 5. 캘린더 및 이사일정 할증 상태 (손 없는 날, 주말, 금요일, 월말, 공휴일)
+  // 5-A. 시뮬레이션 이사일자 및 시즌별(성수기/비수기) 옵션 상태
+  const [simMovingDateStr, setSimMovingDateStr] = useState<string>('')
+  const [selectedSeasonKey, setSelectedSeasonKey] = useState<SeasonOptionKey>('NONE')
+  const [seasonSign, setSeasonSign] = useState<1 | -1>(1)
+  const [seasonAbsCost, setSeasonAbsCost] = useState<number>(0)
+
+  // 5-B. 캘린더 및 이사일정 할증 상태 (손 없는 날, 주말, 금요일, 월말, 공휴일)
   const [isSonEobNeunNal, setIsSonEobNeunNal] = useState<boolean>(false)
   const [isWeekend, setIsWeekend] = useState<boolean>(false)
   const [isFriday, setIsFriday] = useState<boolean>(false)
@@ -774,6 +797,12 @@ export function CostCalculatorModal({
     setFridayCost(50000)
     setMonthEndCost(50000)
     setHolidayCost(100000)
+    setSelectedSeasonKey('NONE')
+    setSeasonSign(1)
+    setSeasonAbsCost(0)
+
+    const initYmd = movingDate ? formatLocalYMD(movingDate) : ''
+    setSimMovingDateStr(initYmd)
 
     if (movingDate) {
       const d = new Date(movingDate)
@@ -859,9 +888,77 @@ export function CostCalculatorModal({
     setTapeUnitPrice(standards.tapeUnitPrice)
 
     setIncludeLadderCost(false)
-    setLadderCost(ladderTotalCost || 0)
+    setSimFromLadderCost(fromLadderCost || 0)
+    setSimToLadderCost(toLadderCost || 0)
+    setExtraEquipmentCost(Math.max(0, (ladderTotalCost || 0) - (fromLadderCost || 0) - (toLadderCost || 0)))
     setMarginRate(standards.defaultMarginRate || 20.0)
     setDiscountAmount(0)
+  }
+
+  const applyCalendarFlagsForYmd = (ymdStr: string) => {
+    setSimMovingDateStr(ymdStr)
+    if (!ymdStr || !/^\d{4}-\d{1,2}-\d{1,2}$/.test(ymdStr)) {
+      setIsSonEobNeunNal(false)
+      setIsWeekend(false)
+      setIsFriday(false)
+      setIsMonthEnd(false)
+      setIsHoliday(false)
+      setHolidayName(null)
+      setApplySonEobNeunNal(false)
+      setApplyWeekend(false)
+      setApplyFriday(false)
+      setApplyMonthEnd(false)
+      setApplyHoliday(false)
+      return
+    }
+    const [y, m, day] = ymdStr.split('-').map(Number)
+    const d = new Date(y, m - 1, day)
+    const dayOfWeek = d.getDay()
+    const dateNum = d.getDate()
+    let isSon = false
+    try {
+      const korCal = new KoreanLunarCalendar()
+      korCal.setSolarDate(y, m, day)
+      const korLunar = korCal.getLunarCalendar()
+      isSon = korLunar.day % 10 === 9 || korLunar.day % 10 === 0
+    } catch {
+      isSon = false
+    }
+    const isWk = dayOfWeek === 0 || dayOfWeek === 6
+    const isFri = dayOfWeek === 5
+    const isEnd = dateNum >= 25
+    const detectedHoliday = detectKoreanHolidayName(d)
+    const isHol = Boolean(detectedHoliday)
+
+    setIsSonEobNeunNal(isSon)
+    setIsWeekend(isWk)
+    setIsFriday(isFri)
+    setIsMonthEnd(isEnd)
+    setIsHoliday(isHol)
+    setHolidayName(detectedHoliday)
+    setApplySonEobNeunNal(isSon)
+    setApplyWeekend(isWk)
+    setApplyFriday(isFri)
+    setApplyMonthEnd(isEnd)
+    setApplyHoliday(isHol)
+  }
+
+  const detectedSeason = useMemo(
+    () => detectSeasonByMovingDate(simMovingDateStr || movingDate),
+    [simMovingDateStr, movingDate]
+  )
+
+  const handleSelectSeasonOption = (key: SeasonOptionKey, customDefaultAmt?: number) => {
+    setSelectedSeasonKey(key)
+    if (key === 'NONE') {
+      setSeasonSign(1)
+      setSeasonAbsCost(0)
+      return
+    }
+    const found = SEASON_OPTIONS.find(o => o.key === key)
+    const amt = customDefaultAmt !== undefined ? customDefaultAmt : (found?.defaultAmount ?? 0)
+    setSeasonSign(amt < 0 ? -1 : 1)
+    setSeasonAbsCost(Math.abs(amt))
   }
 
   const excludedCharteredCount = vehicleStats.charteredCount
@@ -903,25 +1000,28 @@ export function CostCalculatorModal({
   // 3. 자재비 합계 계산
   const totalMaterialCost = tapeRolls * tapeUnitPrice
 
-  // 4. 장비비 (사다리차 전용 — 외주 용차비는 2번 차량비로 완전 통합)
-  const totalEquipmentCost = includeLadderCost ? ladderCost : 0
+  // 4. 장비비 내역 합계 (출발지 사다리차 + 도착지 사다리차 + 기타 장비)
+  const rawEquipmentSum = (Number(simFromLadderCost) || 0) + (Number(simToLadderCost) || 0) + (Number(extraEquipmentCost) || 0)
+  const totalEquipmentCost = includeLadderCost ? rawEquipmentSum : 0
 
-  // 5. 캘린더 및 이사일정 할증 합계 계산 (손 없는 날, 주말, 금요일, 월말, 공휴일)
-  const totalCalendarSurcharge =
+  // 5. 시즌(성수기/비수기) 옵션 및 일자별 캘린더 할증 합계 계산
+  const effectiveSeasonCost = selectedSeasonKey === 'NONE' ? 0 : seasonSign * (Number(seasonAbsCost) || 0)
+  const pureCalendarSurcharge =
     (applySonEobNeunNal ? sonEobNeunNalCost : 0) +
     (applyWeekend ? weekendCost : 0) +
     (applyFriday ? fridayCost : 0) +
     (applyMonthEnd ? monthEndCost : 0) +
     (applyHoliday ? holidayCost : 0)
+  const totalCalendarSurcharge = effectiveSeasonCost + pureCalendarSurcharge
 
   // 6. 총 원가 (소요비용 합계)
   const totalCost = totalLaborCost + totalVehicleCost + totalMaterialCost + totalEquipmentCost
 
-  // 7. 마진액, 디스카운드 및 일정 할증 포함 최종 제안 판매가
+  // 7. 마진액, 디스카운드 및 시즌·일정 옵션 포함 최종 제안 판매가
   const marginAmount = Math.round(totalCost * (marginRate / 100))
   const effectiveMarginAmount = marginAmount - discountAmount
   const effectiveMarginRate = totalCost > 0 ? Math.round((effectiveMarginAmount / totalCost) * 1000) / 10 : 0
-  const baseSellingBeforeDiscount = totalCost + marginAmount + totalCalendarSurcharge
+  const baseSellingBeforeDiscount = Math.max(0, totalCost + marginAmount + totalCalendarSurcharge)
   const roundedBeforeDiscount = roundToTenThousand
     ? Math.ceil(baseSellingBeforeDiscount / 10000) * 10000
     : baseSellingBeforeDiscount
@@ -1900,12 +2000,12 @@ export function CostCalculatorModal({
               </div>
             </div>
 
-            {/* 4. 장비비 (사다리차 전용 — 체크되어 소계에 합산될 때만 프레임 강조) */}
+            {/* 4. 장비비 내역 (출발지·도착지 사다리차 및 기타 장비 — 체크 시 기본원가에 합산) */}
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-2xs">
               <div className="px-3.5 py-2 bg-purple-50/70 border-b border-purple-100 flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <Layers className="w-3.5 h-3.5 text-purple-600" />
-                  <span className="font-bold text-purple-900 text-xs">4. 장비비 (사다리차)</span>
+                  <span className="font-bold text-purple-900 text-xs">4. 장비비 내역 (사다리차 · 기타 장비)</span>
                 </div>
                 <span className="font-bold text-purple-800 text-xs">{totalEquipmentCost.toLocaleString()} 원</span>
               </div>
@@ -1913,54 +2013,237 @@ export function CostCalculatorModal({
                 <div className={`p-2.5 rounded-lg space-y-2 text-xs transition-all ${
                   totalEquipmentCost > 0
                     ? 'border-2 border-purple-500 bg-purple-50/50 ring-2 ring-purple-500/15 shadow-2xs'
-                    : 'border border-dashed border-gray-200 bg-gray-50/50 opacity-70'
+                    : 'border border-dashed border-gray-200 bg-gray-50/50 opacity-80'
                 }`}>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={includeLadderCost}
-                      onChange={(e) => setIncludeLadderCost(e.target.checked)}
-                      className="w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
-                    />
-                    <span className="font-bold text-gray-800">기본 이사원가에 사다리차 장비비 포함</span>
+                  <label className="flex items-center justify-between gap-2 cursor-pointer pb-1 border-b border-purple-100/80">
+                    <span className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={includeLadderCost}
+                        onChange={(e) => setIncludeLadderCost(e.target.checked)}
+                        className="w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
+                      />
+                      <span className="font-bold text-gray-800">기본 이사원가에 장비비 내역 포함</span>
+                    </span>
+                    <span className="text-[11px] font-extrabold text-purple-700">
+                      합계 {rawEquipmentSum.toLocaleString()}원
+                    </span>
                   </label>
                   <div className="flex items-center justify-between pt-0.5">
-                    <span className="text-gray-600">사다리차 운임 합계:</span>
+                    <span className="text-gray-600">
+                      출발지 사다리차{fromFloor ? ` (${fromFloor}층)` : ''}:
+                    </span>
                     <div className="flex items-center gap-1">
                       <FormattedModalNumberInput
-                        value={ladderCost}
-                        onChange={(val) => setLadderCost(val)}
+                        value={simFromLadderCost}
+                        onChange={(val) => {
+                          setSimFromLadderCost(val)
+                          if (val > 0) setIncludeLadderCost(true)
+                        }}
+                        className="w-24 px-1.5 py-0.5 text-right font-bold bg-white border border-gray-200 rounded text-xs"
+                      />
+                      <span>원</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">
+                      도착지 사다리차{toFloor ? ` (${toFloor}층)` : ''}:
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <FormattedModalNumberInput
+                        value={simToLadderCost}
+                        onChange={(val) => {
+                          setSimToLadderCost(val)
+                          if (val > 0) setIncludeLadderCost(true)
+                        }}
+                        className="w-24 px-1.5 py-0.5 text-right font-bold bg-white border border-gray-200 rounded text-xs"
+                      />
+                      <span>원</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">기타 장비(스카이차 등):</span>
+                    <div className="flex items-center gap-1">
+                      <FormattedModalNumberInput
+                        value={extraEquipmentCost}
+                        onChange={(val) => {
+                          setExtraEquipmentCost(val)
+                          if (val > 0) setIncludeLadderCost(true)
+                        }}
                         className="w-24 px-1.5 py-0.5 text-right font-bold bg-white border border-gray-200 rounded text-xs"
                       />
                       <span>원</span>
                     </div>
                   </div>
                   <p className="text-[10px] text-gray-400">
-                    * 사다리차를 가산비용으로 별도 청구할 경우 체크 해제 유지
+                    * 장비비를 가산비용 칸으로 별도 청구할 경우 체크 해제 유지
                   </p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* 5. 캘린더 및 이사일정 할증 (손 없는 날, 주말, 금요일, 월말, 공휴일 — 체크되어 소계에 합산될 때만 프레임 강조) */}
+          {/* 5. 이사일자 시즌별(성수기·비수기) 옵션 및 캘린더 할증 */}
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-2xs">
             <div className="px-4 py-2.5 bg-indigo-50/70 border-b border-indigo-100 flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <CalendarIcon className="w-4 h-4 text-indigo-600" />
-                <span className="font-bold text-indigo-900">5. 캘린더 및 이사일정 할증 (손 없는 날 · 주말 · 금요일 · 월말 · 공휴일)</span>
-                <span className="text-[11px] font-semibold text-indigo-700 bg-white/90 px-2 py-0.5 rounded-full border border-indigo-200">
-                  이사일: {movingDate ? formatLocalYMD(movingDate) : '미지정'}
+                <span className="font-bold text-indigo-900">
+                  5. 이사일자 시즌별(성수기·비수기) 옵션 및 캘린더 할증
                 </span>
+                <div className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-900 bg-white px-2 py-0.5 rounded-lg border border-indigo-200">
+                  <span>이사일:</span>
+                  <input
+                    type="date"
+                    value={simMovingDateStr}
+                    onChange={e => applyCalendarFlagsForYmd(e.target.value)}
+                    className="font-extrabold text-gray-900 outline-none bg-transparent text-[11px]"
+                  />
+                </div>
               </div>
-              <span className="font-extrabold text-indigo-700 text-sm">
-                소계: +{totalCalendarSurcharge.toLocaleString()} 원
+              <span
+                className={`font-extrabold text-sm ${
+                  totalCalendarSurcharge >= 0 ? 'text-indigo-700' : 'text-emerald-700'
+                }`}
+              >
+                소계: {totalCalendarSurcharge > 0 ? '+' : ''}
+                {totalCalendarSurcharge.toLocaleString()} 원
               </span>
             </div>
 
             <div className="p-3.5 space-y-3">
+              {/* 이사일자 기반 성수기/비수기 시즌 옵션 선택 영역 */}
+              <div className="p-3 rounded-xl border border-amber-200/90 bg-amber-50/30 space-y-2.5 text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 font-extrabold text-amber-950">
+                    <Sun className="w-3.5 h-3.5 text-amber-600" />
+                    <span>이사일자 시즌별 옵션 (성수기 할증 / 비수기 할인)</span>
+                    {detectedSeason && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white border border-amber-300 text-amber-900">
+                        추천: {detectedSeason.seasonTitle} (
+                        {detectedSeason.defaultAmount >= 0 ? '+' : ''}
+                        {detectedSeason.defaultAmount.toLocaleString()}원)
+                      </span>
+                    )}
+                  </div>
+                  {detectedSeason && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleSelectSeasonOption(
+                          detectedSeason.recommendedKey,
+                          detectedSeason.defaultAmount
+                        )
+                      }
+                      className="px-2.5 py-0.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-extrabold transition-colors"
+                    >
+                      이사일 추천시즌 적용
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5">
+                  {SEASON_OPTIONS.map(opt => {
+                    const isSelected = selectedSeasonKey === opt.key
+                    const isRecommended =
+                      Boolean(detectedSeason) && detectedSeason?.recommendedKey === opt.key
+                    const isDiscount = opt.defaultAmount < 0
+                    return (
+                      <button
+                        key={opt.key}
+                        type="button"
+                        onClick={() => handleSelectSeasonOption(opt.key)}
+                        className={`p-2 rounded-lg border text-left transition-all relative flex flex-col justify-between gap-0.5 ${
+                          isSelected
+                            ? isDiscount
+                              ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500/20'
+                              : opt.key === 'NONE'
+                                ? 'bg-gray-100 border-gray-500'
+                                : 'bg-amber-50 border-amber-500 ring-2 ring-amber-500/20'
+                            : 'bg-white border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        {isRecommended && (
+                          <span
+                            className={`absolute -top-1.5 right-1 text-[9px] font-black px-1 rounded-full text-white ${
+                              isDiscount ? 'bg-emerald-600' : 'bg-rose-600'
+                            }`}
+                          >
+                            해당시즌
+                          </span>
+                        )}
+                        <span className="font-extrabold text-gray-900 text-[11px]">{opt.shortLabel}</span>
+                        <span className="text-[10px] text-gray-500 leading-tight">{opt.periodDesc}</span>
+                        <span
+                          className={`text-[11px] font-black pt-0.5 ${
+                            opt.defaultAmount > 0
+                              ? 'text-rose-700'
+                              : opt.defaultAmount < 0
+                                ? 'text-emerald-700'
+                                : 'text-gray-600'
+                          }`}
+                        >
+                          {opt.defaultAmount > 0
+                            ? `+${opt.defaultAmount.toLocaleString()}원`
+                            : opt.defaultAmount < 0
+                              ? `${opt.defaultAmount.toLocaleString()}원`
+                              : '0원'}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-2 bg-white px-2.5 py-1.5 rounded-lg border border-amber-200">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="font-bold text-gray-700 text-[11px]">시즌 금액 직접 조정:</span>
+                    <div className="inline-flex rounded border border-gray-300 overflow-hidden text-[11px] font-extrabold">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSeasonSign(1)
+                          if (selectedSeasonKey === 'NONE') setSelectedSeasonKey('CUSTOM')
+                        }}
+                        className={`px-2 py-0.5 ${
+                          seasonSign === 1 ? 'bg-rose-600 text-white' : 'bg-white text-gray-600'
+                        }`}
+                      >
+                        + 할증
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSeasonSign(-1)
+                          if (selectedSeasonKey === 'NONE') setSelectedSeasonKey('CUSTOM')
+                        }}
+                        className={`px-2 py-0.5 border-l border-gray-300 ${
+                          seasonSign === -1 ? 'bg-emerald-600 text-white' : 'bg-white text-gray-600'
+                        }`}
+                      >
+                        - 비수기할인
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className={seasonSign === 1 ? 'text-rose-600 font-black' : 'text-emerald-600 font-black'}>
+                      {seasonSign === 1 ? '+' : '-'}
+                    </span>
+                    <FormattedModalNumberInput
+                      value={seasonAbsCost}
+                      onChange={val => {
+                        setSeasonAbsCost(val)
+                        if (val > 0 && selectedSeasonKey === 'NONE') setSelectedSeasonKey('CUSTOM')
+                        if (val === 0) setSelectedSeasonKey('NONE')
+                      }}
+                      className="w-24 px-2 py-0.5 text-right font-extrabold bg-white border border-gray-300 rounded text-xs"
+                    />
+                    <span className="text-gray-600 font-bold">원</span>
+                  </div>
+                </div>
+              </div>
+
               {/* 이사일 캘린더 자동 판정 알림 배너 */}
-              {movingDate && (
+              {simMovingDateStr && (
                 <div
                   className={`p-2.5 rounded-lg border text-xs flex flex-wrap items-center justify-between gap-2 ${
                     isSonEobNeunNal || isWeekend || isFriday || isMonthEnd || isHoliday
@@ -1979,10 +2262,10 @@ export function CostCalculatorModal({
                     <span>
                       {isSonEobNeunNal ? (
                         <strong>
-                          ★ 선택하신 이사일({formatLocalYMD(movingDate)})은 민속 손 없는 날입니다!
+                          ★ 선택하신 이사일({simMovingDateStr})은 민속 손 없는 날입니다!
                         </strong>
                       ) : (
-                        <span>선택하신 이사일({formatLocalYMD(movingDate)})은 손 없는 날이 아닙니다.</span>
+                        <span>선택하신 이사일({simMovingDateStr})은 손 없는 날이 아닙니다.</span>
                       )}
                       {isHoliday && holidayName ? ` [공휴일: ${holidayName}]` : ''}
                       {isWeekend ? ' (주말 일정)' : isFriday ? ' (금요일 일정)' : ''}
@@ -2197,9 +2480,9 @@ export function CostCalculatorModal({
                 </span>
                 <p className="text-[11px] text-amber-800">
                   총 원가: <strong className="font-bold">{totalCost.toLocaleString()}원</strong> (인건비 {totalLaborCost.toLocaleString()} + 차량·용차·거리 {totalVehicleCost.toLocaleString()} + 자재비 {totalMaterialCost.toLocaleString()}{totalEquipmentCost > 0 ? ` + 장비비 ${totalEquipmentCost.toLocaleString()}` : ''})
-                  {totalCalendarSurcharge > 0 && (
-                    <span className="text-indigo-800 font-bold ml-1">
-                      | 일정할증 +{totalCalendarSurcharge.toLocaleString()}원
+                  {totalCalendarSurcharge !== 0 && (
+                    <span className={`${totalCalendarSurcharge > 0 ? 'text-indigo-800' : 'text-emerald-800'} font-bold ml-1`}>
+                      | 시즌·일정 {totalCalendarSurcharge > 0 ? '+' : ''}{totalCalendarSurcharge.toLocaleString()}원
                     </span>
                   )}
                 </p>
@@ -2289,9 +2572,9 @@ export function CostCalculatorModal({
               </div>
 
               <div className="bg-white/80 p-2.5 rounded-xl border border-indigo-200 flex flex-col justify-between">
-                <span className="text-[11px] text-gray-500 font-medium">캘린더·일정 할증</span>
-                <p className="text-sm sm:text-base font-extrabold text-indigo-700">
-                  +{totalCalendarSurcharge.toLocaleString()} <span className="text-xs font-normal">원</span>
+                <span className="text-[11px] text-gray-500 font-medium">시즌·캘린더 옵션</span>
+                <p className={`text-sm sm:text-base font-extrabold ${totalCalendarSurcharge < 0 ? 'text-emerald-700' : 'text-indigo-700'}`}>
+                  {totalCalendarSurcharge > 0 ? '+' : ''}{totalCalendarSurcharge.toLocaleString()} <span className="text-xs font-normal">원</span>
                 </p>
               </div>
 
