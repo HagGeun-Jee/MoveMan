@@ -28,6 +28,13 @@ import {
 import { PackingMaterialsSection } from '@/components/PackingMaterialsSection'
 import { AiCbmEstimateModal, type AiIdentifiedItem } from '@/components/AiCbmEstimateModal'
 import { EstimatePresetModal } from '@/components/EstimatePresetModal'
+import { ApartmentAreaLookupBar } from '@/components/ApartmentAreaLookupBar'
+import {
+  extractDongHoFloorFromText,
+  parseJibunAddressParts,
+  type AddressBjdMeta,
+  type UnitAreaInfo,
+} from '@/lib/buildingAreaUtils'
 import { QuickTouchCbmPanel } from '@/components/QuickTouchCbmPanel'
 import { PaperSheetCbmPanel } from '@/components/PaperSheetCbmPanel'
 import { ItemQuickAddModal } from '@/components/ItemQuickAddModal'
@@ -582,11 +589,24 @@ export function EstimateForm({
       setIsCreatingPartner(false)
     }
   }
+  const initialFromParsed = extractDongHoFloorFromText(initialData?.fromAddress || '')
+  const initialToParsed = extractDongHoFloorFromText(initialData?.toAddress || '')
+
   const [organizeStatus, setOrganizeStatus] = useState<string>(envObj.organizeStatus || '')
-  const [fromFloor, setFromFloor] = useState<string>(envObj.fromFloor || '')
+  const [fromFloor, setFromFloor] = useState<string>(envObj.fromFloor || initialFromParsed.floor || '')
   const [fromWorkTypes, setFromWorkTypes] = useState<string[]>(Array.isArray(envObj.fromWorkTypes) ? envObj.fromWorkTypes : [])
-  const [toFloor, setToFloor] = useState<string>(envObj.toFloor || '')
+  const [fromDong, setFromDong] = useState<string>(envObj.fromDong || initialFromParsed.dong || '')
+  const [fromHo, setFromHo] = useState<string>(envObj.fromHo || initialFromParsed.ho || '')
+  const [fromAddressMeta, setFromAddressMeta] = useState<Partial<AddressBjdMeta> | null>(envObj.fromAddressMeta || null)
+  const [fromUnitArea, setFromUnitArea] = useState<UnitAreaInfo | null>(envObj.fromUnitAreaInfo || null)
+
+  const [toFloor, setToFloor] = useState<string>(envObj.toFloor || initialToParsed.floor || '')
   const [toWorkTypes, setToWorkTypes] = useState<string[]>(Array.isArray(envObj.toWorkTypes) ? envObj.toWorkTypes : [])
+  const [toDong, setToDong] = useState<string>(envObj.toDong || initialToParsed.dong || '')
+  const [toHo, setToHo] = useState<string>(envObj.toHo || initialToParsed.ho || '')
+  const [toAddressMeta, setToAddressMeta] = useState<Partial<AddressBjdMeta> | null>(envObj.toAddressMeta || null)
+  const [toUnitArea, setToUnitArea] = useState<UnitAreaInfo | null>(envObj.toUnitAreaInfo || null)
+  const [presetInitialId, setPresetInitialId] = useState<string | undefined>(undefined)
 
   // 거리 관련 상태
   const [distance, setDistance] = useState<number>(Number(envObj.distance) || 0)
@@ -893,14 +913,35 @@ export function EstimateForm({
   }
 
   const handleComplete = (data: any) => {
-    const fullAddress = data.address
+    const baseAddress = data.address || ''
+    const bldName = (data.buildingName || '').trim()
+    const fullAddress =
+      bldName && !baseAddress.includes(bldName)
+        ? `${baseAddress} (${bldName})`
+        : baseAddress
+
+    const jibunStr = data.jibunAddress || data.autoJibunAddress || ''
+    const roadStr = data.roadAddress || data.autoRoadAddress || baseAddress
+    const jibunParts = parseJibunAddressParts(jibunStr)
+    const nextMeta: Partial<AddressBjdMeta> = {
+      bcode: data.bcode || '',
+      jibunAddress: jibunStr,
+      roadAddress: roadStr,
+      buildingName: bldName,
+      ...(jibunParts || {}),
+    }
+
     if (postcodeTarget === 'from') {
       setFromAddress(fullAddress)
+      setFromAddressMeta(nextMeta)
+      setFromUnitArea(null)
       if (toAddress) {
         handleCalculateDistance(fullAddress, toAddress)
       }
     } else {
       setToAddress(fullAddress)
+      setToAddressMeta(nextMeta)
+      setToUnitArea(null)
       if (fromAddress) {
         handleCalculateDistance(fromAddress, fullAddress)
       }
@@ -1736,15 +1777,23 @@ export function EstimateForm({
           if (draft.fromAddress !== undefined) setFromAddress(draft.fromAddress)
           if (draft.toAddress !== undefined) setToAddress(draft.toAddress)
           
-          // 층수 및 작업조건: draft에 유효값이 있으면 우선 적용, 없으면 서버 DB값 유지
+          // 층수·동호수·평형 및 작업조건: draft에 유효값이 있으면 우선 적용, 없으면 서버 DB값 유지
           if (draft.fromFloor !== undefined && draft.fromFloor !== '') setFromFloor(draft.fromFloor)
           else if (envObj.fromFloor) setFromFloor(envObj.fromFloor)
+          if (draft.fromDong !== undefined) setFromDong(draft.fromDong)
+          if (draft.fromHo !== undefined) setFromHo(draft.fromHo)
+          if (draft.fromAddressMeta !== undefined) setFromAddressMeta(draft.fromAddressMeta)
+          if (draft.fromUnitArea !== undefined) setFromUnitArea(draft.fromUnitArea)
 
           if (Array.isArray(draft.fromWorkTypes) && draft.fromWorkTypes.length > 0) setFromWorkTypes(draft.fromWorkTypes)
           else if (Array.isArray(envObj.fromWorkTypes) && envObj.fromWorkTypes.length > 0) setFromWorkTypes(envObj.fromWorkTypes)
 
           if (draft.toFloor !== undefined && draft.toFloor !== '') setToFloor(draft.toFloor)
           else if (envObj.toFloor) setToFloor(envObj.toFloor)
+          if (draft.toDong !== undefined) setToDong(draft.toDong)
+          if (draft.toHo !== undefined) setToHo(draft.toHo)
+          if (draft.toAddressMeta !== undefined) setToAddressMeta(draft.toAddressMeta)
+          if (draft.toUnitArea !== undefined) setToUnitArea(draft.toUnitArea)
 
           if (Array.isArray(draft.toWorkTypes) && draft.toWorkTypes.length > 0) setToWorkTypes(draft.toWorkTypes)
           else if (Array.isArray(envObj.toWorkTypes) && envObj.toWorkTypes.length > 0) setToWorkTypes(envObj.toWorkTypes)
@@ -2083,8 +2132,16 @@ export function EstimateForm({
           fromAddress,
           toAddress,
           fromFloor,
+          fromDong,
+          fromHo,
+          fromAddressMeta,
+          fromUnitArea,
           fromWorkTypes,
           toFloor,
+          toDong,
+          toHo,
+          toAddressMeta,
+          toUnitArea,
           toWorkTypes,
           distance,
           distanceDuration,
@@ -2148,8 +2205,16 @@ export function EstimateForm({
     fromAddress,
     toAddress,
     fromFloor,
+    fromDong,
+    fromHo,
+    fromAddressMeta,
+    fromUnitArea,
     fromWorkTypes,
     toFloor,
+    toDong,
+    toHo,
+    toAddressMeta,
+    toUnitArea,
     toWorkTypes,
     distance,
     distanceDuration,
@@ -2228,8 +2293,16 @@ export function EstimateForm({
     },
     organizeStatus,
     fromFloor,
+    fromDong: fromDong.trim(),
+    fromHo: fromHo.trim(),
+    fromAddressMeta: fromAddressMeta || undefined,
+    fromUnitAreaInfo: fromUnitArea || undefined,
     fromWorkTypes,
     toFloor,
+    toDong: toDong.trim(),
+    toHo: toHo.trim(),
+    toAddressMeta: toAddressMeta || undefined,
+    toUnitAreaInfo: toUnitArea || undefined,
     toWorkTypes,
     distance,
     distanceDuration,
@@ -2761,50 +2834,70 @@ export function EstimateForm({
                       )}
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 bg-gray-50/80 p-2 sm:p-2.5 rounded-lg border border-gray-200">
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-gray-700 font-bold text-xs sm:text-sm whitespace-nowrap">층수:</span>
-                        <input 
-                          type="text" 
-                          value={fromFloor} 
-                          onChange={e => setFromFloor(e.target.value)} 
-                          onFocus={handleSelectAllOnFocus}
-                          placeholder="예: 3" 
-                          className="w-14 sm:w-16 rounded-lg border border-gray-300 bg-white px-1.5 py-1 text-xs sm:text-sm text-center outline-none focus:border-blue-500 shadow-xs font-bold text-gray-800" 
-                        />
-                        <span className="text-gray-600 text-xs sm:text-sm font-medium">층</span>
-                      </div>
+                    <div className="bg-gray-50/80 p-2 sm:p-2.5 rounded-lg border border-gray-200 space-y-2">
+                      <ApartmentAreaLookupBar
+                        side="from"
+                        address={fromAddress}
+                        addressMeta={fromAddressMeta}
+                        dong={fromDong}
+                        ho={fromHo}
+                        onChangeDong={setFromDong}
+                        onChangeHo={setFromHo}
+                        onApplyDongHoToAddress={nextAddr => setFromAddress(nextAddr)}
+                        onInferredFloor={flr => setFromFloor(flr)}
+                        unitArea={fromUnitArea}
+                        onChangeUnitArea={setFromUnitArea}
+                        onOpenRecommendedPreset={presetId => {
+                          setPresetInitialId(presetId)
+                          setIsPresetModalOpen(true)
+                        }}
+                      />
 
-                      <div className="h-4 w-[1px] bg-gray-300 hidden sm:block" />
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-1.5 border-t border-gray-200/80">
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="text-gray-700 font-bold text-xs sm:text-sm whitespace-nowrap">층수:</span>
+                          <input 
+                            type="text" 
+                            value={fromFloor} 
+                            onChange={e => setFromFloor(e.target.value)} 
+                            onFocus={handleSelectAllOnFocus}
+                            placeholder="예: 3" 
+                            className="w-14 sm:w-16 rounded-lg border border-gray-300 bg-white px-1.5 py-1 text-xs sm:text-sm text-center outline-none focus:border-blue-500 shadow-xs font-bold text-gray-800" 
+                          />
+                          <span className="text-gray-600 text-xs sm:text-sm font-medium">층</span>
+                        </div>
 
-                      <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
-                        <span className="text-gray-700 font-bold text-xs sm:text-sm whitespace-nowrap mr-0.5">작업조건:</span>
-                        {['사다리차', '엘리베이터', '수작업', '계단'].map(type => {
-                          const isChecked = fromWorkTypes.includes(type)
-                          return (
-                            <button
-                              key={type}
-                              type="button"
-                              onClick={() => {
-                                setFromWorkTypes(prev => 
-                                  prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
-                                )
-                              }}
-                              className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-xs sm:text-sm font-medium border transition-all flex items-center gap-1 shadow-xs whitespace-nowrap ${
-                                isChecked 
-                                  ? 'bg-blue-600 border-blue-600 text-white font-bold' 
-                                  : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100'
-                              }`}
-                            >
-                              <span className={`w-3 h-3 rounded flex items-center justify-center text-[9px] font-bold ${
-                                isChecked ? 'bg-white text-blue-600' : 'border border-gray-400'
-                              }`}>
-                                {isChecked ? '✓' : ''}
-                              </span>
-                              {type}
-                            </button>
-                          )
-                        })}
+                        <div className="h-4 w-[1px] bg-gray-300 hidden sm:block" />
+
+                        <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
+                          <span className="text-gray-700 font-bold text-xs sm:text-sm whitespace-nowrap mr-0.5">작업조건:</span>
+                          {['사다리차', '엘리베이터', '수작업', '계단'].map(type => {
+                            const isChecked = fromWorkTypes.includes(type)
+                            return (
+                              <button
+                                key={type}
+                                type="button"
+                                onClick={() => {
+                                  setFromWorkTypes(prev => 
+                                    prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+                                  )
+                                }}
+                                className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-xs sm:text-sm font-medium border transition-all flex items-center gap-1 shadow-xs whitespace-nowrap ${
+                                  isChecked 
+                                    ? 'bg-blue-600 border-blue-600 text-white font-bold' 
+                                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100'
+                                }`}
+                              >
+                                <span className={`w-3 h-3 rounded flex items-center justify-center text-[9px] font-bold ${
+                                  isChecked ? 'bg-white text-blue-600' : 'border border-gray-400'
+                                }`}>
+                                  {isChecked ? '✓' : ''}
+                                </span>
+                                {type}
+                              </button>
+                            )
+                          })}
+                        </div>
                       </div>
                     </div>
                   </td>
@@ -2845,50 +2938,66 @@ export function EstimateForm({
                       )}
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 bg-gray-50/80 p-2 sm:p-2.5 rounded-lg border border-gray-200">
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-gray-700 font-bold text-xs sm:text-sm whitespace-nowrap">층수:</span>
-                        <input 
-                          type="text" 
-                          value={toFloor} 
-                          onChange={e => setToFloor(e.target.value)} 
-                          onFocus={handleSelectAllOnFocus}
-                          placeholder="예: 5" 
-                          className="w-14 sm:w-16 rounded-lg border border-gray-300 bg-white px-1.5 py-1 text-xs sm:text-sm text-center outline-none focus:border-blue-500 shadow-xs font-bold text-gray-800" 
-                        />
-                        <span className="text-gray-600 text-xs sm:text-sm font-medium">층</span>
-                      </div>
+                    <div className="bg-gray-50/80 p-2 sm:p-2.5 rounded-lg border border-gray-200 space-y-2">
+                      <ApartmentAreaLookupBar
+                        side="to"
+                        address={toAddress}
+                        addressMeta={toAddressMeta}
+                        dong={toDong}
+                        ho={toHo}
+                        onChangeDong={setToDong}
+                        onChangeHo={setToHo}
+                        onApplyDongHoToAddress={nextAddr => setToAddress(nextAddr)}
+                        onInferredFloor={flr => setToFloor(flr)}
+                        unitArea={toUnitArea}
+                        onChangeUnitArea={setToUnitArea}
+                      />
 
-                      <div className="h-4 w-[1px] bg-gray-300 hidden sm:block" />
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-1.5 border-t border-gray-200/80">
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="text-gray-700 font-bold text-xs sm:text-sm whitespace-nowrap">층수:</span>
+                          <input 
+                            type="text" 
+                            value={toFloor} 
+                            onChange={e => setToFloor(e.target.value)} 
+                            onFocus={handleSelectAllOnFocus}
+                            placeholder="예: 5" 
+                            className="w-14 sm:w-16 rounded-lg border border-gray-300 bg-white px-1.5 py-1 text-xs sm:text-sm text-center outline-none focus:border-blue-500 shadow-xs font-bold text-gray-800" 
+                          />
+                          <span className="text-gray-600 text-xs sm:text-sm font-medium">층</span>
+                        </div>
 
-                      <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
-                        <span className="text-gray-700 font-bold text-xs sm:text-sm whitespace-nowrap mr-0.5">작업조건:</span>
-                        {['사다리차', '엘리베이터', '수작업', '계단'].map(type => {
-                          const isChecked = toWorkTypes.includes(type)
-                          return (
-                            <button
-                              key={type}
-                              type="button"
-                              onClick={() => {
-                                setToWorkTypes(prev => 
-                                  prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
-                                )
-                              }}
-                              className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-xs sm:text-sm font-medium border transition-all flex items-center gap-1 shadow-xs whitespace-nowrap ${
-                                isChecked 
-                                  ? 'bg-blue-600 border-blue-600 text-white font-bold' 
-                                  : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100'
-                              }`}
-                            >
-                              <span className={`w-3 h-3 rounded flex items-center justify-center text-[9px] font-bold ${
-                                isChecked ? 'bg-white text-blue-600' : 'border border-gray-400'
-                              }`}>
-                                {isChecked ? '✓' : ''}
-                              </span>
-                              {type}
-                            </button>
-                          )
-                        })}
+                        <div className="h-4 w-[1px] bg-gray-300 hidden sm:block" />
+
+                        <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
+                          <span className="text-gray-700 font-bold text-xs sm:text-sm whitespace-nowrap mr-0.5">작업조건:</span>
+                          {['사다리차', '엘리베이터', '수작업', '계단'].map(type => {
+                            const isChecked = toWorkTypes.includes(type)
+                            return (
+                              <button
+                                key={type}
+                                type="button"
+                                onClick={() => {
+                                  setToWorkTypes(prev => 
+                                    prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+                                  )
+                                }}
+                                className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-xs sm:text-sm font-medium border transition-all flex items-center gap-1 shadow-xs whitespace-nowrap ${
+                                  isChecked 
+                                    ? 'bg-blue-600 border-blue-600 text-white font-bold' 
+                                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100'
+                                }`}
+                              >
+                                <span className={`w-3 h-3 rounded flex items-center justify-center text-[9px] font-bold ${
+                                  isChecked ? 'bg-white text-blue-600' : 'border border-gray-400'
+                                }`}>
+                                  {isChecked ? '✓' : ''}
+                                </span>
+                                {type}
+                              </button>
+                            )
+                          })}
+                        </div>
                       </div>
                     </div>
                   </td>
@@ -5326,9 +5435,13 @@ export function EstimateForm({
       {isPresetModalOpen && (
         <EstimatePresetModal
           isOpen={isPresetModalOpen}
-          onClose={() => setIsPresetModalOpen(false)}
+          onClose={() => {
+            setIsPresetModalOpen(false)
+            setPresetInitialId(undefined)
+          }}
           onApplyPreset={handleApplyPreset}
           currentItemsCount={items.filter(it => (Number(it.quantity) || 0) > 0).length}
+          initialPresetId={presetInitialId || fromUnitArea?.recommendedPresetId}
         />
       )}
 

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { ESTIMATE_PRESETS, type EstimatePreset, type PresetItem } from '@/lib/estimatePresets'
 import { Zap, X, Check, ArrowRight, Layers, Sparkles, AlertTriangle } from 'lucide-react'
 import { UnassignedBoxTooltip } from './UnassignedBoxTooltip'
@@ -10,17 +10,30 @@ interface EstimatePresetModalProps {
   onClose: () => void
   onApplyPreset: (items: PresetItem[], mode: 'replace' | 'append') => void
   currentItemsCount: number
+  initialPresetId?: string
 }
 
 export function EstimatePresetModal({
   isOpen,
   onClose,
   onApplyPreset,
-  currentItemsCount
+  currentItemsCount,
+  initialPresetId,
 }: EstimatePresetModalProps) {
-  const [selectedPreset, setSelectedPreset] = useState<EstimatePreset>(ESTIMATE_PRESETS[2]) // 기본값 24평
+  const [selectedPreset, setSelectedPreset] = useState<EstimatePreset>(
+    () => ESTIMATE_PRESETS.find(p => p.id === initialPresetId) || ESTIMATE_PRESETS[2]
+  ) // 기본값 24평
   const [applyMode, setApplyMode] = useState<'replace' | 'append'>(currentItemsCount > 0 ? 'replace' : 'replace')
   const [showConfirm, setShowConfirm] = useState(false)
+
+  useEffect(() => {
+    if (isOpen && initialPresetId) {
+      const matched = ESTIMATE_PRESETS.find(p => p.id === initialPresetId)
+      if (matched) {
+        setSelectedPreset(matched)
+      }
+    }
+  }, [isOpen, initialPresetId])
 
   if (!isOpen) return null
 

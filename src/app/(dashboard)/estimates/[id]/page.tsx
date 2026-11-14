@@ -434,8 +434,16 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                   <td colSpan={3} className="border border-gray-300 px-2.5 py-1.5 print:px-2 print:py-1 font-semibold text-gray-900">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                       <span>{estimate.fromAddress || '-'}</span>
-                      {(envObj.fromFloor || (envObj.fromWorkTypes && envObj.fromWorkTypes.length > 0)) ? (
+                      {(envObj.fromUnitAreaInfo?.pyeongType || envObj.fromFloor || (envObj.fromWorkTypes && envObj.fromWorkTypes.length > 0)) ? (
                         <div className="flex flex-wrap items-center gap-1 text-xs print:text-[10.5px] font-normal shrink-0">
+                          {envObj.fromUnitAreaInfo?.pyeongType && (
+                            <span className="bg-indigo-50 text-indigo-800 px-1.5 py-0.2 rounded font-bold border border-indigo-200 print:bg-transparent print:border-gray-400 print:text-black">
+                              {envObj.fromUnitAreaInfo.pyeongType}평형
+                              {envObj.fromUnitAreaInfo.exclusiveAreaM2 ? ` (전용 ${envObj.fromUnitAreaInfo.exclusiveAreaM2}㎡)` : ''}
+                              {envObj.fromUnitAreaInfo.tenureLabel ? ` · [${envObj.fromUnitAreaInfo.tenureLabel}]` : ''}
+                              {envObj.fromUnitAreaInfo.hallType ? ` · ${envObj.fromUnitAreaInfo.hallType}` : ''}
+                            </span>
+                          )}
                           {envObj.fromFloor && (
                             <span className="bg-gray-100 text-gray-800 px-1.5 py-0.2 rounded font-bold border border-gray-300">
                               {envObj.fromFloor}층
@@ -456,8 +464,16 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                   <td colSpan={3} className="border border-gray-300 px-2.5 py-1.5 print:px-2 print:py-1 font-semibold text-gray-900">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                       <span>{estimate.toAddress || '-'}</span>
-                      {(envObj.toFloor || (envObj.toWorkTypes && envObj.toWorkTypes.length > 0)) ? (
+                      {(envObj.toUnitAreaInfo?.pyeongType || envObj.toFloor || (envObj.toWorkTypes && envObj.toWorkTypes.length > 0)) ? (
                         <div className="flex flex-wrap items-center gap-1 text-xs print:text-[10.5px] font-normal shrink-0">
+                          {envObj.toUnitAreaInfo?.pyeongType && (
+                            <span className="bg-indigo-50 text-indigo-800 px-1.5 py-0.2 rounded font-bold border border-indigo-200 print:bg-transparent print:border-gray-400 print:text-black">
+                              {envObj.toUnitAreaInfo.pyeongType}평형
+                              {envObj.toUnitAreaInfo.exclusiveAreaM2 ? ` (전용 ${envObj.toUnitAreaInfo.exclusiveAreaM2}㎡)` : ''}
+                              {envObj.toUnitAreaInfo.tenureLabel ? ` · [${envObj.toUnitAreaInfo.tenureLabel}]` : ''}
+                              {envObj.toUnitAreaInfo.hallType ? ` · ${envObj.toUnitAreaInfo.hallType}` : ''}
+                            </span>
+                          )}
                           {envObj.toFloor && (
                             <span className="bg-gray-100 text-gray-800 px-1.5 py-0.2 rounded font-bold border border-gray-300">
                               {envObj.toFloor}층
