@@ -5,8 +5,10 @@ import KoreanLunarCalendar from 'korean-lunar-calendar'
 import { Sun, Star } from 'lucide-react'
 import Link from 'next/link'
 import { CalendarWeatherProvider, CalendarDayWeatherBadge } from './CalendarWeatherClient'
+import { CalendarTooltipProvider, CalendarEventItem, type CalendarEventBalloonData } from './CalendarEventItem'
 import { getVehicleCalendarEvents } from '@/app/actions/vehicleLog'
-import { formatKstDate, formatKstTime, getKstMonthRange } from '@/lib/kstDate'
+import { formatKstDate, formatKstDateTime, formatKstTime, getKstMonthRange } from '@/lib/kstDate'
+import { formatPhoneNumber } from '@/lib/format'
 
 // 한국 표준시(KST, Asia/Seoul) 기준 오늘 날짜 정보 구하기 (Vercel/Render UTC 서버 환경 대응)
 function getKoreaToday(): { year: number, month: number, day: number, dateString: string } {
@@ -67,7 +69,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   
   const prefixDays = Array(startDay).fill(null)
   
-  // KST(Asia/Seoul) 기준 해당 월의 시작~말일 범위로 조회하여 UTC/KST 경계 누락 방지
+  // KST(Asia/Seoul) 기준 해당 월의 시작~말일 범위로 조회하여 UTC/KST 경계 누락 방지 (대용량 서명 이미지 제외)
   const { start: kstMonthStart, end: kstMonthEnd } = getKstMonthRange(targetYear, targetMonth)
   const estimates = await prisma.estimate.findMany({
     where: {
@@ -75,8 +77,123 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
         { movingDate: { gte: kstMonthStart, lte: kstMonthEnd } },
         { visitDate: { gte: kstMonthStart, lte: kstMonthEnd } }
       ]
+    },
+    select: {
+      id: true,
+      movingType: true,
+      customerName: true,
+      contact: true,
+      fromAddress: true,
+      toAddress: true,
+      visitDate: true,
+      movingDate: true,
+      cbmItems: true,
+      environment: true,
+      paymentPlan: true,
+      totalAmount: true,
     }
   })
+
+  const MOVING_TYPE_MAP: Record<string, string> = {
+    P: '포장이사',
+    G: '일반이사',
+    K: '보관이사',
+    H: '반포장이사',
+    O: '사무실이사',
+  }
+
+  function buildEstimateSummary(
+    est: (typeof estimates)[number],
+    kind: 'VISIT' | 'MOVING'
+  ): CalendarEventBalloonData {
+    let env: any = {}
+    let pay: any = {}
+    let totalCbm = 0
+
+    try {
+      if (est.environment) env = JSON.parse(est.environment) || {}
+    } catch {}
+    try {
+      if (est.paymentPlan) pay = JSON.parse(est.paymentPlan) || {}
+    } catch {}
+    try {
+      if (est.cbmItems) {
+        const arr = JSON.parse(est.cbmItems)
+        if (Array.isArray(arr)) {
+          totalCbm = arr.reduce((sum: number, item: any) => {
+            const qty = item?.quantity !== undefined ? Number(item.quantity) : 1
+            if (!qty || qty <= 0) return sum
+            const excluded =
+              item?.treatment === '폐기' || item?.treatment === '내림' || item?.treatment === '존치'
+            const base = excluded ? 0 : Number(item?.cbm) || 0
+            const inner = Number(item?.innerBoxCbm) || 0
+            return sum + (base + inner) * qty
+          }, 0)
+        }
+      }
+    } catch {}
+
+    const partnerBadge = String(env?.partnerShortName || env?.partnerName || '').trim()
+    const partnerFullName = String(env?.partnerName || env?.partnerShortName || '').trim()
+    const estimatorName = String(env?.estimatorName || '').trim()
+    const specialNotes = typeof env?.specialNotes === 'string' ? env.specialNotes.trim() : ''
+
+    const fromParts: string[] = []
+    if (env?.fromFloor) fromParts.push(`${env.fromFloor}층`)
+    if (Array.isArray(env?.fromWorkTypes) && env.fromWorkTypes.length > 0) {
+      fromParts.push(env.fromWorkTypes.filter(Boolean).join('/'))
+    }
+    if (env?.fromUnitAreaInfo?.supplyPyeong) {
+      fromParts.push(`${env.fromUnitAreaInfo.supplyPyeong}평형`)
+    }
+
+    const toParts: string[] = []
+    if (env?.toFloor) toParts.push(`${env.toFloor}층`)
+    if (Array.isArray(env?.toWorkTypes) && env.toWorkTypes.length > 0) {
+      toParts.push(env.toWorkTypes.filter(Boolean).join('/'))
+    }
+    if (env?.toUnitAreaInfo?.supplyPyeong) {
+      toParts.push(`${env.toUnitAreaInfo.supplyPyeong}평형`)
+    }
+
+    const avs = Array.isArray(env?.dispatch?.assignedVehicles) ? env.dispatch.assignedVehicles : []
+    const leader = String(env?.dispatch?.teamLeader || '').trim()
+    const vShort = avs.length > 0 && avs[0]?.name ? String(avs[0].name).split(' ')[0] : ''
+    let dispatchLabel = ''
+    if (vShort && leader) dispatchLabel = `${vShort}·${leader}`
+    else if (vShort) dispatchLabel = vShort
+    else if (leader) dispatchLabel = leader
+
+    const vehicleNames = avs.map((v: any) => String(v?.name || '').split(' ')[0]).filter(Boolean).join(', ')
+    const dispatchDetail = [vehicleNames, leader ? `팀장 ${leader}` : ''].filter(Boolean).join(' · ')
+
+    return {
+      kind,
+      eventKey: `${kind.toLowerCase()}-${est.id}`,
+      href: `/estimates/${est.id}`,
+      estimateId: est.id,
+      customerName: est.customerName,
+      contact: est.contact ? formatPhoneNumber(est.contact) : '',
+      rawContact: (est.contact || '').replace(/[^0-9]/g, ''),
+      movingTypeLabel: MOVING_TYPE_MAP[est.movingType] || '포장이사',
+      visitDateTimeStr: est.visitDate ? formatKstDateTime(est.visitDate) : '',
+      visitTimeStr: est.visitDate ? formatKstTime(est.visitDate) : '',
+      movingDateStr: est.movingDate ? formatKstDate(est.movingDate) : '',
+      fromAddress: est.fromAddress || '',
+      toAddress: est.toAddress || '',
+      fromEnvSummary: fromParts.join(' · '),
+      toEnvSummary: toParts.join(' · '),
+      partnerBadge,
+      partnerFullName,
+      estimatorName,
+      dispatchLabel,
+      dispatchDetail,
+      totalCbm: Math.round(totalCbm * 10) / 10,
+      totalAmount: est.totalAmount || 0,
+      isContracted: Boolean(pay?.downPaymentPaid),
+      specialNotes,
+    }
+  }
 
   const targetYearMonthStr = `${targetYear}-${String(targetMonth).padStart(2, '0')}`
   const [weatherData, vehicleEvents] = await Promise.all([
@@ -157,6 +274,9 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
           <div className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
             <span className="w-3 h-3 rounded-full bg-amber-500 shadow-sm"></span> 차량검사/정비
           </div>
+          <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+            💡 길게 누르면 상세보기
+          </span>
           <Link
             href="/vehicles?tab=LOGBOOK"
             className="ml-1 px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold shadow-2xs transition-colors"
@@ -171,6 +291,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
         koreaTodayStr={koreaToday.dateString}
         targetMonthTodayStr={`${targetYear}-${String(targetMonth).padStart(2, '0')}-${String(koreaToday.day).padStart(2, '0')}`}
       >
+      <CalendarTooltipProvider>
       <div className="bg-white rounded-xl shadow-sm border border-gray-300 overflow-hidden">
         <div className="overflow-x-auto">
           <div className="min-w-[560px]">
@@ -246,75 +367,27 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                     </div>
                     <div className="flex-1 space-y-1 overflow-y-auto no-scrollbar">
                       {dayEstimates.map(est => {
-                        const visitTimeStr = est.visitDate ? formatKstTime(est.visitDate) : ''
-                        let partnerBadge = ''
-                        try {
-                          if (est.environment) {
-                            const env = JSON.parse(est.environment)
-                            partnerBadge = String(env?.partnerShortName || env?.partnerName || '').trim()
-                          }
-                        } catch {}
+                        const itemData = buildEstimateSummary(est, 'VISIT')
                         return (
-                          <Link
-                            href={`/estimates/${est.id}`}
+                          <CalendarEventItem
                             key={`est-${est.id}`}
-                            title={
-                              `${partnerBadge ? `[${partnerBadge}] ` : ''}방문: ${est.customerName}` +
-                              (visitTimeStr ? ` (${visitTimeStr})` : '')
-                            }
-                            className="block text-[11px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 bg-blue-100 text-blue-900 font-bold rounded truncate cursor-pointer hover:bg-blue-200 shadow-sm border border-blue-300"
-                          >
-                            {partnerBadge && (
-                              <span className="mr-1 text-[10px] font-extrabold text-indigo-800 bg-white/95 px-1 rounded border border-indigo-200">
-                                {partnerBadge}
-                              </span>
-                            )}
-                            <span>방문: {est.customerName}</span>
-                            {visitTimeStr && (
-                              <span className="ml-1 text-[10px] font-extrabold text-blue-700 bg-white/90 px-1 rounded">
-                                {visitTimeStr}
-                              </span>
-                            )}
-                          </Link>
+                            data={{
+                              ...itemData,
+                              eventKey: `visit-${dateStr}-${est.id}`,
+                            }}
+                          />
                         )
                       })}
                       {dayMovings.map(est => {
-                        let dispatchLabel = ''
-                        let partnerBadge = ''
-                        try {
-                          if (est.environment) {
-                            const env = JSON.parse(est.environment)
-                            const avs = env?.dispatch?.assignedVehicles || []
-                            const leader = (env?.dispatch?.teamLeader || '').trim()
-                            const vShort = avs.length > 0 ? avs[0].name.split(' ')[0] : ''
-                            if (vShort && leader) dispatchLabel = `${vShort}·${leader}`
-                            else if (vShort) dispatchLabel = vShort
-                            else if (leader) dispatchLabel = leader
-                            partnerBadge = String(env?.partnerShortName || env?.partnerName || '').trim()
-                          }
-                        } catch {}
+                        const itemData = buildEstimateSummary(est, 'MOVING')
                         return (
-                          <Link
-                            href={`/estimates/${est.id}`}
+                          <CalendarEventItem
                             key={`mov-${est.id}`}
-                            title={
-                              `${partnerBadge ? `[${partnerBadge}] ` : ''}이사: ${est.customerName} ` +
-                              (dispatchLabel ? `(${dispatchLabel})` : '(미배차)')
-                            }
-                            className="block text-[11px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 bg-red-100 text-red-900 font-bold rounded truncate cursor-pointer hover:bg-red-200 shadow-sm border border-red-300"
-                          >
-                            {partnerBadge && (
-                              <span className="mr-1 text-[10px] font-extrabold text-rose-800 bg-white/95 px-1 rounded border border-rose-200">
-                                {partnerBadge}
-                              </span>
-                            )}
-                            <span>이사: {est.customerName}</span>
-                            {dispatchLabel && (
-                              <span className="ml-1 text-[10px] font-extrabold text-emerald-800 bg-white/90 px-1 rounded">
-                                {dispatchLabel}
-                              </span>
-                            )}
-                          </Link>
+                            data={{
+                              ...itemData,
+                              eventKey: `mov-${dateStr}-${est.id}`,
+                            }}
+                          />
                         )
                       })}
                       {dayVehicleEvents.map(ev => {
@@ -323,18 +396,17 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                           ev.type === 'EXPIRY_INSURANCE' ||
                           ev.type === 'DUE_DATE'
                         return (
-                          <Link
-                            href={`/vehicles?tab=LOGBOOK&vehicleId=${ev.vehicleId}&ym=${targetYearMonthStr}`}
+                          <CalendarEventItem
                             key={ev.id}
-                            title={ev.tooltip}
-                            className={`block text-[11px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 font-bold rounded truncate cursor-pointer shadow-sm border ${
-                              isExpiryOrDue
-                                ? 'bg-purple-100 text-purple-900 hover:bg-purple-200 border-purple-300'
-                                : 'bg-amber-100 text-amber-950 hover:bg-amber-200 border-amber-300'
-                            }`}
-                          >
-                            <span>{ev.label}</span>
-                          </Link>
+                            data={{
+                              kind: 'VEHICLE',
+                              eventKey: `veh-${dateStr}-${ev.id}`,
+                              href: `/vehicles?tab=LOGBOOK&vehicleId=${ev.vehicleId}&ym=${targetYearMonthStr}`,
+                              vehicleLabel: ev.label,
+                              vehicleTooltip: ev.tooltip,
+                              isVehicleExpiryOrDue: isExpiryOrDue,
+                            }}
+                          />
                         )
                       })}
                     </div>
@@ -345,6 +417,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
           </div>
         </div>
       </div>
+      </CalendarTooltipProvider>
       </CalendarWeatherProvider>
     </div>
   )
