@@ -3,10 +3,11 @@ import Link from 'next/link'
 import prisma from '@/lib/prisma'
 import { getLocationCategories } from '@/app/actions/item'
 import { getCostStandards } from '@/app/actions/costStandards'
-import { isCurrentSessionAdminAccount } from '@/app/actions/estimate'
+import { getCurrentUserAuthContext } from '@/lib/adminSchema'
+import { canUserAccessEstimate } from '@/lib/menuPermissionUtils'
 import { calculatePackingMaterials, isExcludedMaterial, type PackingMaterialItem } from '@/lib/packingMaterialCalculator'
-import { formatKstDate, formatKstShortDateTime } from '@/lib/kstDate'
-import { MapPin, Phone } from 'lucide-react'
+import { formatKstDate, formatKstDateOrDateTime, formatKstShortDateTime } from '@/lib/kstDate'
+import { MapPin, Phone, ShieldAlert, ArrowLeft } from 'lucide-react'
 import { PrintButton } from '@/components/PrintButton'
 import { DeleteEstimateButton } from '@/components/DeleteEstimateButton'
 import { formatPhoneNumber } from '@/lib/format'
@@ -51,8 +52,10 @@ const getItemEffectiveCbm = (item: any): number => {
 
 export default async function EstimateViewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const currentUser = await getCurrentUserAuthContext()
+  const isAdmin = Boolean(currentUser?.isMasterAdmin)
   
-  const [estimate, locationCategories, costStandards, dbMaterials, isAdmin] = await Promise.all([
+  const [estimate, locationCategories, costStandards, dbMaterials] = await Promise.all([
     prisma.estimate.findUnique({
       where: { id }
     }),
@@ -61,11 +64,35 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
     prisma.materialItem.findMany({
       orderBy: { name: 'asc' }
     }).catch(() => []),
-    isCurrentSessionAdminAccount(),
   ])
   
   if (!estimate) {
     notFound()
+  }
+
+  if (!canUserAccessEstimate(estimate, currentUser)) {
+    return (
+      <div className="max-w-md mx-auto mt-14 p-7 bg-white rounded-2xl border border-red-200 shadow-sm text-center space-y-4">
+        <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto border border-red-100">
+          <ShieldAlert size={24} />
+        </div>
+        <div className="space-y-1.5">
+          <h2 className="text-lg sm:text-xl font-black text-gray-900">견적 조회 권한이 없습니다</h2>
+          <p className="text-xs sm:text-sm text-gray-600 font-medium leading-relaxed">
+            <strong>USER</strong> 역할 계정은 <strong>본인이 작성한 견적만</strong> 조회 및 수정할 수 있습니다.
+          </p>
+        </div>
+        <div className="pt-2">
+          <Link
+            href="/estimates"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold transition-colors"
+          >
+            <ArrowLeft size={15} />
+            <span>견적 목록으로 돌아가기</span>
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   const safeJsonParse = (str: string | null | undefined, fallback: any = {}): any => {
@@ -401,9 +428,9 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                   </td>
                 </tr>
                 <tr>
-                  <th className="border border-gray-300 bg-gray-100 px-2.5 py-1.5 print:px-2 print:py-1 text-left font-bold text-gray-900 whitespace-nowrap">이사 예정일</th>
+                  <th className="border border-gray-300 bg-gray-100 px-2.5 py-1.5 print:px-2 print:py-1 text-left font-bold text-gray-900 whitespace-nowrap">이사 예정일정</th>
                   <td className="border border-gray-300 px-2.5 py-1.5 print:px-2 print:py-1 font-extrabold text-gray-900">
-                    {estimate.movingDate ? formatKstDate(estimate.movingDate) : '-'}
+                    {estimate.movingDate ? formatKstDateOrDateTime(estimate.movingDate) : '-'}
                     {estimate.movingType === 'K' && estimate.organizeDate && (
                       <span className="text-xs text-gray-600 font-normal ml-1.5">
                         (정리일: {formatKstDate(estimate.organizeDate)})

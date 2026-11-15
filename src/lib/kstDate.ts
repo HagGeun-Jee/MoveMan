@@ -120,6 +120,16 @@ export function formatKstDateTime(input?: string | Date | null): string {
   return `${p.yyyy}-${p.MM}-${p.dd} ${p.HH}:${p.mm}`
 }
 
+/** KST 기준 시간이 00:00이면 'YYYY-MM-DD', 시간이 지정되어 있으면 'YYYY-MM-DD HH:mm' 반환 */
+export function formatKstDateOrDateTime(input?: string | Date | null): string {
+  const p = getKstParts(input)
+  if (!p) return ''
+  if (p.HH === '00' && p.mm === '00') {
+    return `${p.yyyy}-${p.MM}-${p.dd}`
+  }
+  return `${p.yyyy}-${p.MM}-${p.dd} ${p.HH}:${p.mm}`
+}
+
 /** KST 기준 'MM-DD HH:mm' 반환 */
 export function formatKstShortDateTime(input?: string | Date | null): string {
   const p = getKstParts(input)

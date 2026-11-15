@@ -12,34 +12,42 @@ model Admin {
   userId    String   @unique // 로그인 아이디
   password  String   // 암호화된 비밀번호
   name      String
-  phone     String   @default("") // 연락처
-  role      String   @default("ADMIN")
-  level     Int      @default(1) // 사용자 레벨 (숫자가 높을수록 높은 권한)
-  isActive  Boolean  @default(true) // 사용 가능 여부 (false: 사용중지/로그인불가)
+  phone     String   @default("") // 모바일 연락처
+  role      String   @default("ADMIN") // ADMIN | USER
+  level     Int      @default(1) // 프로그램 접근 레벨 (1~9)
+  isActive  Boolean  @default(true) // 계정상태 (true: 사용중, false: 사용중지)
+  email     String   @default("") // 메일주소
+  ssn       String   @default("") // 주민번호
+  zipCode   String   @default("") // 우편번호
+  address   String   @default("") // 집주소
+  memo      String   @default("") // 비고사항
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model MenuPermission {
-  id        String   @id @default(cuid())
-  menuPath  String   @unique // 메뉴 경로 (예: /items)
-  menuName  String   // 메뉴명
-  minLevel  Int      @default(1) // 접근 가능한 최소 레벨
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  menuPath    String   @unique // 메뉴 경로 (예: /items)
+  menuName    String   // 메뉴명
+  minLevel    Int      @default(1) // 접근 가능한 최소 레벨 (1~9)
+  allowedRole String   @default("ALL") // 접근 허용 역할: ALL(전체), ADMIN(관리자 전용), USER(일반사용자 전용)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Estimate {
-  id             String   @id // 견적식별코드 (예: P2609070001)
-  movingType     String   // P: 포장이사, G: 일반이사, K: 보관이사 등
-  customerName   String
-  contact        String
-  fromAddress    String
-  toAddress      String
-  estimateDate   DateTime // 견적일자
-  movingDate     DateTime? // 이사일
-  organizeDate   DateTime? // 정리일
-  visitDate      DateTime? // 방문일정
+  id              String   @id // 견적식별코드 (예: P2609070001)
+  movingType      String   // P: 포장이사, G: 일반이사, K: 보관이사 등
+  customerName    String
+  contact         String
+  fromAddress     String
+  toAddress       String
+  estimateDate    DateTime // 견적일자
+  movingDate      DateTime? // 이사일
+  organizeDate    DateTime? // 정리일
+  visitDate       DateTime? // 방문일정
+  createdById     String   @default("") // 작성자 Admin.id
+  createdByUserId String   @default("") // 작성자 Admin.userId (로그인 아이디)
   
   // JSON 문자열 필드 (SQLite에서는 String으로 저장 후 애플리케이션에서 파싱)
   cbmItems       String?  // 물품 기본 CBM 및 내부 짐 추가 CBM

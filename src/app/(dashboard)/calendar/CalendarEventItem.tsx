@@ -40,6 +40,7 @@ export interface CalendarEventBalloonData {
   visitDateTimeStr?: string
   visitTimeStr?: string
   movingDateStr?: string
+  movingTimeStr?: string
   fromAddress?: string
   toAddress?: string
   fromEnvSummary?: string // 예: "12층 · 엘리베이터 · 32평형"
@@ -310,6 +311,8 @@ export function CalendarTooltipProvider({ children }: { children: React.ReactNod
       : 'bg-red-600 text-white'
     const displayVisitTime =
       d.visitTimeStr && d.visitTimeStr !== '00:00' ? d.visitTimeStr : ''
+    const displayMovingTime =
+      d.movingTimeStr && d.movingTimeStr !== '00:00' ? d.movingTimeStr : ''
 
     return (
       <div
@@ -347,10 +350,15 @@ export function CalendarTooltipProvider({ children }: { children: React.ReactNod
             <span className={`px-1.5 py-0.5 rounded-md text-[11px] font-extrabold ${primaryBadge}`}>
               {isVisit ? '방문견적' : '이사작업'}
             </span>
-            {isVisit && (
+            {isVisit ? (
               <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-xs font-black bg-white text-blue-800 border border-blue-200 tabular-nums">
                 <Clock size={11} className="text-blue-600" />
                 {displayVisitTime || '시간미정'}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-xs font-black bg-white text-red-800 border border-red-200 tabular-nums">
+                <Clock size={11} className="text-red-600" />
+                {displayMovingTime || '시간미정'}
               </span>
             )}
             {d.movingTypeLabel && (
@@ -436,11 +444,20 @@ export function CalendarTooltipProvider({ children }: { children: React.ReactNod
                 <strong className="text-gray-900">{d.movingDateStr || '미정'}</strong>
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1">
-                <Truck size={12} className="text-red-500" />
-                <span>배차:</span>
-                <strong className="text-gray-900">{d.dispatchDetail || d.dispatchLabel || '미배차'}</strong>
-              </span>
+              <>
+                {d.movingDateStr && (
+                  <span className="inline-flex items-center gap-1">
+                    <Calendar size={12} className="text-red-500" />
+                    <span>이사일시:</span>
+                    <strong className="text-gray-900">{d.movingDateStr}</strong>
+                  </span>
+                )}
+                <span className="inline-flex items-center gap-1">
+                  <Truck size={12} className="text-red-500" />
+                  <span>배차:</span>
+                  <strong className="text-gray-900">{d.dispatchDetail || d.dispatchLabel || '미배차'}</strong>
+                </span>
+              </>
             )}
             {d.estimatorName && (
               <span className="text-gray-500">
@@ -683,8 +700,11 @@ export function CalendarEventItem({ data }: { data: CalendarEventBalloonData }) 
     )
   }
 
-  // 2) 이사/작업건
+  // 2) 이사/작업건: 방문견적과 동일하게 시간을 최우선(맨 앞)으로 고정 표시
   if (data.kind === 'MOVING') {
+    const displayMoveTime =
+      data.movingTimeStr && data.movingTimeStr !== '00:00' ? data.movingTimeStr : '이사'
+
     return (
       <Link
         ref={linkRef}
@@ -703,23 +723,28 @@ export function CalendarEventItem({ data }: { data: CalendarEventBalloonData }) 
           WebkitUserSelect: 'none',
           userSelect: 'none',
         }}
-        className={`block text-[11px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 bg-red-100 text-red-900 font-bold rounded truncate cursor-pointer hover:bg-red-200 shadow-2xs border transition-all select-none ${
+        className={`flex items-center gap-1 text-[11px] sm:text-xs px-1 sm:px-1.5 py-0.5 sm:py-1 bg-red-100 text-red-950 font-bold rounded cursor-pointer hover:bg-red-200 shadow-2xs border transition-all select-none ${
           isActive
             ? 'border-red-600 ring-2 ring-red-400/60 bg-red-200'
             : 'border-red-300'
         }`}
       >
-        {data.partnerBadge && (
-          <span className="mr-1 text-[10px] font-extrabold text-rose-800 bg-white/95 px-1 rounded border border-rose-200">
-            {data.partnerBadge}
-          </span>
-        )}
-        <span>이사: {data.customerName}</span>
-        {data.dispatchLabel && (
-          <span className="ml-1 text-[10px] font-extrabold text-emerald-800 bg-white/90 px-1 rounded">
-            {data.dispatchLabel}
-          </span>
-        )}
+        <span className="shrink-0 text-[10px] sm:text-[11px] font-black text-red-800 bg-white/95 px-1 py-0.2 rounded border border-red-200 leading-tight tabular-nums">
+          {displayMoveTime}
+        </span>
+        <span className="truncate min-w-0 flex-1 leading-tight">
+          <span>{data.customerName}</span>
+          {data.partnerBadge && (
+            <span className="ml-1 text-[10px] font-extrabold text-rose-800 bg-white/95 px-1 rounded border border-rose-200">
+              {data.partnerBadge}
+            </span>
+          )}
+          {data.dispatchLabel && (
+            <span className="ml-1 text-[10px] font-extrabold text-emerald-800 bg-white/95 px-1 rounded border border-emerald-200">
+              {data.dispatchLabel}
+            </span>
+          )}
+        </span>
       </Link>
     )
   }

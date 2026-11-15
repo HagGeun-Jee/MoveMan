@@ -7,8 +7,10 @@ import Link from 'next/link'
 import { CalendarWeatherProvider, CalendarDayWeatherBadge } from './CalendarWeatherClient'
 import { CalendarTooltipProvider, CalendarEventItem, type CalendarEventBalloonData } from './CalendarEventItem'
 import { getVehicleCalendarEvents } from '@/app/actions/vehicleLog'
-import { formatKstDate, formatKstDateTime, formatKstTime, getKstMonthRange } from '@/lib/kstDate'
+import { formatKstDate, formatKstDateOrDateTime, formatKstDateTime, formatKstTime, getKstMonthRange } from '@/lib/kstDate'
 import { formatPhoneNumber } from '@/lib/format'
+import { getCurrentUserAuthContext } from '@/lib/adminSchema'
+import { filterEstimatesForUser } from '@/lib/menuPermissionUtils'
 
 // 한국 표준시(KST, Asia/Seoul) 기준 오늘 날짜 정보 구하기 (Vercel/Render UTC 서버 환경 대응)
 function getKoreaToday(): { year: number, month: number, day: number, dateString: string } {
@@ -70,8 +72,9 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const prefixDays = Array(startDay).fill(null)
   
   // KST(Asia/Seoul) 기준 해당 월의 시작~말일 범위로 조회하여 UTC/KST 경계 누락 방지 (대용량 서명 이미지 제외)
+  const currentUser = await getCurrentUserAuthContext()
   const { start: kstMonthStart, end: kstMonthEnd } = getKstMonthRange(targetYear, targetMonth)
-  const estimates = await prisma.estimate.findMany({
+  const rawEstimates = await prisma.estimate.findMany({
     where: {
       OR: [
         { movingDate: { gte: kstMonthStart, lte: kstMonthEnd } },
@@ -91,8 +94,10 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
       environment: true,
       paymentPlan: true,
       totalAmount: true,
+      adminHistory: true,
     }
   })
+  const estimates = filterEstimatesForUser(rawEstimates, currentUser)
 
   const MOVING_TYPE_MAP: Record<string, string> = {
     P: '포장이사',
@@ -178,7 +183,8 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
       movingTypeLabel: MOVING_TYPE_MAP[est.movingType] || '포장이사',
       visitDateTimeStr: est.visitDate ? formatKstDateTime(est.visitDate) : '',
       visitTimeStr: est.visitDate ? formatKstTime(est.visitDate) : '',
-      movingDateStr: est.movingDate ? formatKstDate(est.movingDate) : '',
+      movingDateStr: est.movingDate ? formatKstDateOrDateTime(est.movingDate) : '',
+      movingTimeStr: est.movingDate ? formatKstTime(est.movingDate) : '',
       fromAddress: est.fromAddress || '',
       toAddress: est.toAddress || '',
       fromEnvSummary: fromParts.join(' · '),
@@ -277,6 +283,11 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
           <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
             💡 길게 누르면 상세보기
           </span>
+          {currentUser?.role === 'USER' && (
+            <span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">
+              본인 작성 견적 표시
+            </span>
+          )}
           <Link
             href="/vehicles?tab=LOGBOOK"
             className="ml-1 px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold shadow-2xs transition-colors"
@@ -310,8 +321,22 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
 
                 const dayEstimates = estimates
                   .filter(e => e.visitDate && formatKstDate(e.visitDate) === dateStr)
-                  .sort((a, b) => new Date(a.visitDate!).getTime() - new Date(b.visitDate!).getTime())
-                const dayMovings = estimates.filter(e => e.movingDate && formatKstDate(e.movingDate) === dateStr)
+                  .sort((a, b) => {
+                    const ta = formatKstTime(a.visitDate)
+                    const tb = formatKstTime(b.visitDate)
+                    const sa = !ta || ta === '00:00' ? '99:99' : ta
+                    const sb = !tb || tb === '00:00' ? '99:99' : tb
+                    return sa.localeCompare(sb)
+                  })
+                const dayMovings = estimates
+                  .filter(e => e.movingDate && formatKstDate(e.movingDate) === dateStr)
+                  .sort((a, b) => {
+                    const ta = formatKstTime(a.movingDate)
+                    const tb = formatKstTime(b.movingDate)
+                    const sa = !ta || ta === '00:00' ? '99:99' : ta
+                    const sb = !tb || tb === '00:00' ? '99:99' : tb
+                    return sa.localeCompare(sb)
+                  })
                 const dayVehicleEvents = vehicleEvents.filter(ev => ev.date === dateStr)
                 
                 const solar = Solar.fromYmd(date.getFullYear(), date.getMonth() + 1, date.getDate())

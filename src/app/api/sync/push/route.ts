@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { verifyActiveAdmin } from '@/lib/adminSchema'
+import { getVerifiedAdminProfile } from '@/lib/adminSchema'
+import { canUserAccessEstimate } from '@/lib/menuPermissionUtils'
 import { cookies } from 'next/headers'
 import { decrypt } from '@/lib/session'
 import { parseKstDateTime, parseKstDateOnly, getKstParts } from '@/lib/kstDate'
@@ -18,8 +19,8 @@ export async function POST(request: Request) {
       )
     }
 
-    const isActive = await verifyActiveAdmin(session.userId as string)
-    if (!isActive) {
+    const profile = await getVerifiedAdminProfile(session.userId as string)
+    if (!profile || !profile.isActive) {
       return NextResponse.json(
         { error: '사용이 중지된 계정입니다. 동기화를 진행할 수 없습니다.' },
         { status: 403 }
@@ -86,6 +87,24 @@ export async function POST(request: Request) {
               serverId = `${prefix}${seq.toString().padStart(4, '0')}`
 
               try {
+                let envParsed: any = {}
+                try {
+                  envParsed = JSON.parse(toValidJsonString(data.environment, '{}')) || {}
+                } catch {}
+                envParsed.createdByAdminId = envParsed.createdByAdminId || profile.id
+                envParsed.createdByUserId = envParsed.createdByUserId || profile.userId
+                envParsed.estimatorName = envParsed.estimatorName || profile.name
+
+                const adminHistory = JSON.stringify([
+                  {
+                    action: 'CREATE',
+                    by: envParsed.estimatorName || profile.name,
+                    byAdminId: profile.id,
+                    byUserId: profile.userId,
+                    at: new Date().toISOString(),
+                  },
+                ])
+
                 await prisma.estimate.create({
                   data: {
                     id: serverId,
@@ -96,13 +115,14 @@ export async function POST(request: Request) {
                     toAddress: data.toAddress || '',
                     estimateDate: estDate,
                     visitDate: parseKstDateTime(data.visitDate),
-                    movingDate: parseKstDateOnly(data.movingDate),
+                    movingDate: parseKstDateTime(data.movingDate),
                     organizeDate: parseKstDateOnly(data.organizeDate),
                     cbmItems: toValidJsonString(data.cbmItems, '[]'),
                     materials: toValidJsonString(data.materials, '{}'),
                     assemblyItems: toValidJsonString(data.assemblyItems, '[]'),
-                    environment: toValidJsonString(data.environment, '{}'),
+                    environment: JSON.stringify(envParsed),
                     paymentPlan: toValidJsonString(data.paymentPlan, '{}'),
+                    adminHistory,
                     movingCost: Math.round(Number(data.movingCost) || 0),
                     storageCost: Math.round(Number(data.storageCost) || 0),
                     additionalCost: Math.round(Number(data.additionalCost) || 0),
@@ -110,6 +130,12 @@ export async function POST(request: Request) {
                     totalAmount: Math.round(Number(data.totalAmount) || 0),
                   }
                 })
+                await prisma.$executeRaw`
+                  UPDATE "Estimate"
+                  SET "createdById" = ${profile.id},
+                      "createdByUserId" = ${profile.userId}
+                  WHERE "id" = ${serverId}
+                `.catch(() => {})
                 break
               } catch (createErr: any) {
                 const isUniqueCollision = createErr?.code === 'P2002' || String(createErr?.message || '').includes('Unique constraint')
@@ -136,6 +162,17 @@ export async function POST(request: Request) {
             })
 
             if (existing) {
+              if (!canUserAccessEstimate(existing, profile)) {
+                results.push({
+                  queueId: item.id,
+                  serverId: serverId,
+                  action: 'UPDATE',
+                  status: 'error',
+                  message: '본인이 작성한 견적만 수정할 수 있습니다.'
+                })
+                continue
+              }
+
               await prisma.estimate.update({
                 where: { id: serverId },
                 data: {
@@ -146,7 +183,7 @@ export async function POST(request: Request) {
                   toAddress: data.toAddress !== undefined ? data.toAddress : existing.toAddress,
                   estimateDate: data.estimateDate !== undefined ? (parseKstDateOnly(data.estimateDate) || existing.estimateDate) : existing.estimateDate,
                   visitDate: data.visitDate !== undefined ? parseKstDateTime(data.visitDate) : existing.visitDate,
-                  movingDate: data.movingDate !== undefined ? parseKstDateOnly(data.movingDate) : existing.movingDate,
+                  movingDate: data.movingDate !== undefined ? parseKstDateTime(data.movingDate) : existing.movingDate,
                   organizeDate: data.organizeDate !== undefined ? parseKstDateOnly(data.organizeDate) : existing.organizeDate,
                   cbmItems: data.cbmItems !== undefined ? toValidJsonString(data.cbmItems, '[]') : existing.cbmItems,
                   materials: data.materials !== undefined ? toValidJsonString(data.materials, '{}') : existing.materials,
@@ -188,6 +225,16 @@ export async function POST(request: Request) {
             }
           } else if (item.action === 'DELETE') {
             const serverId = item.entityId
+            if (!profile.isMasterAdmin) {
+              results.push({
+                queueId: item.id,
+                serverId: serverId,
+                action: 'DELETE',
+                status: 'error',
+                message: 'admin 계정으로 로그인했을 때만 견적을 삭제할 수 있습니다.'
+              })
+              continue
+            }
             await prisma.estimate.delete({
               where: { id: serverId }
             }).catch(() => {}) // 이미 없는 경우 무시

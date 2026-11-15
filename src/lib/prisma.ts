@@ -18,7 +18,7 @@ declare global {
   var prismaGlobalSchemaRev: undefined | string
 }
 
-const PRISMA_SCHEMA_REV = '2026-11-13-space-orders-v2'
+const PRISMA_SCHEMA_REV = '2026-11-15-user-roles-v3'
 
 const getPrismaInstance = () => {
   // 캐시된 인스턴스가 있고 최신 스키마 리비전 및 모델(costStandardMaster)이 일치하면 재사용

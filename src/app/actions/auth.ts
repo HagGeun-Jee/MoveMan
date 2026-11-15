@@ -21,6 +21,7 @@ export async function login(prevState: any, formData: FormData) {
     userId: string
     password: string
     name: string
+    role: string
     level: number
     isActive: boolean
   }>>`
@@ -29,6 +30,7 @@ export async function login(prevState: any, formData: FormData) {
       "userId",
       "password",
       "name",
+      COALESCE("role", 'ADMIN') AS "role",
       "level",
       COALESCE("isActive", true) AS "isActive"
     FROM "Admin"
@@ -41,7 +43,7 @@ export async function login(prevState: any, formData: FormData) {
     return { error: '존재하지 않는 아이디거나 비밀번호가 틀렸습니다.' }
   }
 
-  if (user.isActive === false) {
+  if (user.isActive === false && user.userId.toLowerCase() !== 'admin') {
     return {
       error: `'${user.name}(${user.userId})' 계정은 현재 사용중지(사용불가) 상태입니다. 관리자에게 문의해주세요.`,
       isDisabled: true,
@@ -54,7 +56,13 @@ export async function login(prevState: any, formData: FormData) {
     return { error: '존재하지 않는 아이디거나 비밀번호가 틀렸습니다.' }
   }
   
+  const effectiveRole =
+    user.userId.toLowerCase() === 'admin'
+      ? 'ADMIN'
+      : String(user.role || 'ADMIN').toUpperCase() === 'USER'
+        ? 'USER'
+        : 'ADMIN'
   const requiresPasswordChange = password === userId
-  await createSession(user.id, user.name, user.level, requiresPasswordChange)
+  await createSession(user.id, user.name, user.level, requiresPasswordChange, effectiveRole, user.userId)
   redirect('/')
 }

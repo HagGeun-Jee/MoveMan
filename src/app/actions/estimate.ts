@@ -6,6 +6,8 @@ import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { decrypt } from '@/lib/session'
 import { parseKstDateTime, parseKstDateOnly, getKstParts } from '@/lib/kstDate'
+import { getCurrentUserAuthContext } from '@/lib/adminSchema'
+import { canUserAccessEstimate } from '@/lib/menuPermissionUtils'
 
 function sanitizeCbmItems(raw: string | null | undefined): string {
   if (!raw) return '[]'
@@ -27,11 +29,9 @@ function sanitizeCbmItems(raw: string | null | undefined): string {
 }
 
 export async function createEstimate(formData: FormData) {
-  // 인증 확인
-  const cookieStore = await cookies()
-  const cookie = cookieStore.get('session')?.value
-  const session = await decrypt(cookie)
-  if (!session?.userId) {
+  // 인증 및 활성 계정 확인
+  const currentUser = await getCurrentUserAuthContext()
+  if (!currentUser || !currentUser.isActive) {
     throw new Error('Unauthorized')
   }
 
@@ -122,7 +122,9 @@ export async function createEstimate(formData: FormData) {
       : (Array.isArray(parsedEnv.installRequestItems) ? parsedEnv.installRequestItems : []),
     scheduledMessages: Array.isArray(parsedEnv.scheduledMessages) ? parsedEnv.scheduledMessages : [],
     specialNotes: String(formData.get('specialNotes') ?? parsedEnv.specialNotes ?? '').trim(),
-    estimatorName: String(formData.get('estimatorName') || parsedEnv.estimatorName || session.name || '').trim(),
+    estimatorName: String(formData.get('estimatorName') || parsedEnv.estimatorName || currentUser.name || '').trim(),
+    createdByAdminId: currentUser.id,
+    createdByUserId: currentUser.userId,
     partnerId: String(formData.get('partnerId') ?? parsedEnv.partnerId ?? '').trim(),
     partnerName: String(formData.get('partnerName') ?? parsedEnv.partnerName ?? '').trim(),
     partnerShortName: String(formData.get('partnerShortName') ?? parsedEnv.partnerShortName ?? '').trim(),
@@ -132,7 +134,13 @@ export async function createEstimate(formData: FormData) {
   
   // 이력 저장
   const adminHistory = JSON.stringify([
-    { action: 'CREATE', by: environmentObj.estimatorName || session.name, at: new Date().toISOString() }
+    {
+      action: 'CREATE',
+      by: environmentObj.estimatorName || currentUser.name,
+      byAdminId: currentUser.id,
+      byUserId: currentUser.userId,
+      at: new Date().toISOString()
+    }
   ])
 
   const baseData = {
@@ -142,7 +150,7 @@ export async function createEstimate(formData: FormData) {
     fromAddress: formData.get('fromAddress') as string,
     toAddress: formData.get('toAddress') as string,
     estimateDate,
-    movingDate: parseKstDateOnly(formData.get('movingDate') as string),
+    movingDate: parseKstDateTime(formData.get('movingDate') as string),
     organizeDate: parseKstDateOnly(formData.get('organizeDate') as string),
     visitDate: parseKstDateTime(formData.get('visitDate') as string),
     cbmItems,
@@ -177,6 +185,12 @@ export async function createEstimate(formData: FormData) {
           ...baseData,
         },
       })
+      await prisma.$executeRaw`
+        UPDATE "Estimate"
+        SET "createdById" = ${currentUser.id},
+            "createdByUserId" = ${currentUser.userId}
+        WHERE "id" = ${currentId}
+      `.catch(() => {})
       break
     } catch (err: any) {
       const isUniqueCollision = err?.code === 'P2002' || String(err?.message || '').includes('Unique constraint')
@@ -191,17 +205,26 @@ export async function createEstimate(formData: FormData) {
 }
 
 export async function updateEstimate(formData: FormData) {
-  // 인증 확인
-  const cookieStore = await cookies()
-  const cookie = cookieStore.get('session')?.value
-  const session = await decrypt(cookie)
-  if (!session?.userId) {
+  // 인증 및 활성 계정 확인
+  const currentUser = await getCurrentUserAuthContext()
+  if (!currentUser || !currentUser.isActive) {
     throw new Error('Unauthorized')
   }
 
   const id = formData.get('id') as string
   if (!id) {
     throw new Error('Estimate ID is required for update')
+  }
+
+  // 기존 이력 및 배차 정보 조회 + ROLE 기반 수정 권한 검증
+  const existingEstimate = await prisma.estimate.findUnique({
+    where: { id }
+  })
+  if (!existingEstimate) {
+    throw new Error('수정할 견적 정보를 찾을 수 없습니다.')
+  }
+  if (!canUserAccessEstimate(existingEstimate, currentUser)) {
+    throw new Error('본인이 작성한 견적만 수정할 수 있습니다.')
   }
 
   const movingType = formData.get('movingType') as string
@@ -230,10 +253,6 @@ export async function updateEstimate(formData: FormData) {
     ? JSON.parse(formData.get('vehicles') as string) 
     : (Array.isArray(parsedEnv.vehicles) ? parsedEnv.vehicles : [])
 
-  // 기존 이력 및 배차 정보 조회
-  const existingEstimate = await prisma.estimate.findUnique({
-    where: { id }
-  })
   let existingEnv: any = {}
   if (existingEstimate?.environment) {
     try {
@@ -292,9 +311,11 @@ export async function updateEstimate(formData: FormData) {
       formData.get('estimatorName') ||
       parsedEnv.estimatorName ||
       existingEnv.estimatorName ||
-      session.name ||
+      currentUser.name ||
       ''
     ).trim(),
+    createdByAdminId: existingEnv.createdByAdminId || (existingEstimate as any).createdById || undefined,
+    createdByUserId: existingEnv.createdByUserId || (existingEstimate as any).createdByUserId || undefined,
     partnerId: String(formData.get('partnerId') ?? parsedEnv.partnerId ?? existingEnv.partnerId ?? '').trim(),
     partnerName: String(formData.get('partnerName') ?? parsedEnv.partnerName ?? existingEnv.partnerName ?? '').trim(),
     partnerShortName: String(formData.get('partnerShortName') ?? parsedEnv.partnerShortName ?? existingEnv.partnerShortName ?? '').trim(),
@@ -304,7 +325,13 @@ export async function updateEstimate(formData: FormData) {
   const environment = JSON.stringify(environmentObj)
   
   const adminHistoryArray = existingEstimate?.adminHistory ? JSON.parse(existingEstimate.adminHistory) : []
-  adminHistoryArray.push({ action: 'UPDATE', by: environmentObj.estimatorName || session.name, at: new Date().toISOString() })
+  adminHistoryArray.push({
+    action: 'UPDATE',
+    by: currentUser.name,
+    byAdminId: currentUser.id,
+    byUserId: currentUser.userId,
+    at: new Date().toISOString()
+  })
   const adminHistory = JSON.stringify(adminHistoryArray)
 
   await prisma.estimate.update({
@@ -316,7 +343,7 @@ export async function updateEstimate(formData: FormData) {
       fromAddress: formData.get('fromAddress') as string,
       toAddress: formData.get('toAddress') as string,
       estimateDate,
-      movingDate: parseKstDateOnly(formData.get('movingDate') as string),
+      movingDate: parseKstDateTime(formData.get('movingDate') as string),
       organizeDate: parseKstDateOnly(formData.get('organizeDate') as string),
       visitDate: parseKstDateTime(formData.get('visitDate') as string),
       
@@ -340,10 +367,8 @@ export async function updateEstimate(formData: FormData) {
 }
 
 export async function saveEstimateScheduledMessages(estimateId: string, scheduledMessages: any[]) {
-  const cookieStore = await cookies()
-  const cookie = cookieStore.get('session')?.value
-  const session = await decrypt(cookie)
-  if (!session?.userId) {
+  const currentUser = await getCurrentUserAuthContext()
+  if (!currentUser || !currentUser.isActive) {
     return { success: false, error: '인증이 필요합니다.' }
   }
   if (!estimateId) {
@@ -354,6 +379,9 @@ export async function saveEstimateScheduledMessages(estimateId: string, schedule
     const existing = await prisma.estimate.findUnique({ where: { id: estimateId } })
     if (!existing) {
       return { success: false, error: '견적 정보를 찾을 수 없습니다.' }
+    }
+    if (!canUserAccessEstimate(existing, currentUser)) {
+      return { success: false, error: '본인이 작성한 견적만 수정할 수 있습니다.' }
     }
 
     let envObj: any = {}
@@ -383,10 +411,8 @@ export async function saveEstimateScheduledMessages(estimateId: string, schedule
 }
 
 export async function saveEstimateTaxFiling(estimateId: string, taxFiling: any) {
-  const cookieStore = await cookies()
-  const cookie = cookieStore.get('session')?.value
-  const session = await decrypt(cookie)
-  if (!session?.userId) {
+  const currentUser = await getCurrentUserAuthContext()
+  if (!currentUser || !currentUser.isActive) {
     return { success: false, error: '인증이 필요합니다.' }
   }
   if (!estimateId) {
@@ -397,6 +423,9 @@ export async function saveEstimateTaxFiling(estimateId: string, taxFiling: any) 
     const existing = await prisma.estimate.findUnique({ where: { id: estimateId } })
     if (!existing) {
       return { success: false, error: '견적 정보를 찾을 수 없습니다.' }
+    }
+    if (!canUserAccessEstimate(existing, currentUser)) {
+      return { success: false, error: '본인이 작성한 견적만 수정할 수 있습니다.' }
     }
 
     let envObj: any = {}

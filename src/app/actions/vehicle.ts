@@ -2,6 +2,9 @@
 
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { getCurrentUserAuthContext } from '@/lib/adminSchema'
+import { canUserAccessEstimate, filterEstimatesForUser } from '@/lib/menuPermissionUtils'
+import { formatKstDate, getKstMonthRange } from '@/lib/kstDate'
 
 export interface VehicleItem {
   id: string
@@ -363,15 +366,21 @@ export async function getDispatchSchedule(yearMonth?: string): Promise<DispatchS
 
     if (yearMonth && /^\d{4}-\d{2}$/.test(yearMonth)) {
       const [y, m] = yearMonth.split('-').map(Number)
-      startDate = new Date(y, m - 1, 1, 0, 0, 0)
-      endDate = new Date(y, m, 0, 23, 59, 59)
+      const range = getKstMonthRange(y, m)
+      startDate = range.start
+      endDate = range.end
     } else {
       const now = new Date()
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0)
-      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)
+      const kstYmd = formatKstDate(now)
+      const [y, m] = kstYmd.split('-').map(Number)
+      const range = getKstMonthRange(y, m)
+      startDate = range.start
+      endDate = range.end
     }
 
-    const estimates = await prisma.estimate.findMany({
+    const currentUser = await getCurrentUserAuthContext()
+
+    const rawEstimates = await prisma.estimate.findMany({
       where: {
         movingDate: {
           gte: startDate,
@@ -380,6 +389,10 @@ export async function getDispatchSchedule(yearMonth?: string): Promise<DispatchS
       },
       orderBy: [{ movingDate: 'asc' }, { createdAt: 'asc' }]
     })
+
+    const estimates = currentUser
+      ? filterEstimatesForUser(rawEstimates, currentUser)
+      : rawEstimates
 
     return estimates.map((est) => {
       let envObj: any = {}
@@ -408,17 +421,14 @@ export async function getDispatchSchedule(yearMonth?: string): Promise<DispatchS
         updatedAt: rawDispatch.updatedAt || ''
       }
 
-      const mDate = est.movingDate ? new Date(est.movingDate) : new Date()
-      const yyyy = mDate.getFullYear()
-      const mm = String(mDate.getMonth() + 1).padStart(2, '0')
-      const dd = String(mDate.getDate()).padStart(2, '0')
+      const movingDateKst = est.movingDate ? formatKstDate(est.movingDate) : formatKstDate(new Date())
 
       return {
         id: est.id,
         customerName: est.customerName,
         contact: est.contact,
         movingType: est.movingType,
-        movingDate: `${yyyy}-${mm}-${dd}`,
+        movingDate: movingDateKst,
         fromAddress: est.fromAddress || '',
         toAddress: est.toAddress || '',
         totalAmount: est.totalAmount || 0,
@@ -438,8 +448,17 @@ export async function getDispatchSchedule(yearMonth?: string): Promise<DispatchS
  */
 export async function updateEstimateDispatch(estimateId: string, dispatchData: EstimateDispatchInfo) {
   try {
+    const currentUser = await getCurrentUserAuthContext()
+    if (!currentUser || !currentUser.isActive) {
+      return { error: '로그인이 필요합니다.' }
+    }
+
     const est = await prisma.estimate.findUnique({ where: { id: estimateId } })
     if (!est) return { error: '해당 견적서를 찾을 수 없습니다.' }
+
+    if (!canUserAccessEstimate(est, currentUser)) {
+      return { error: '본인이 작성한 견적만 배차 정보를 수정할 수 있습니다.' }
+    }
 
     let envObj: any = {}
     try {

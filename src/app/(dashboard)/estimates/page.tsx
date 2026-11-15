@@ -1,22 +1,28 @@
 import prisma from '@/lib/prisma'
 import { getPartnerCompanies } from '@/app/actions/partner'
-import { isCurrentSessionAdminAccount } from '@/app/actions/estimate'
+import { getCurrentUserAuthContext } from '@/lib/adminSchema'
+import { filterEstimatesForUser } from '@/lib/menuPermissionUtils'
 import { EstimatesClientView } from './EstimatesClientView'
 
 export default async function EstimatesPage() {
-  const [estimates, partners, isAdmin] = await Promise.all([
+  const currentUser = await getCurrentUserAuthContext()
+
+  const [rawEstimates, partners] = await Promise.all([
     prisma.estimate.findMany({
       orderBy: { createdAt: 'desc' },
     }),
     getPartnerCompanies().catch(() => []),
-    isCurrentSessionAdminAccount(),
   ])
+
+  const estimates = filterEstimatesForUser(rawEstimates, currentUser)
+  const isAdmin = Boolean(currentUser?.isMasterAdmin)
 
   return (
     <EstimatesClientView
       initialEstimates={estimates}
       initialPartners={partners}
       isAdmin={isAdmin}
+      userRole={currentUser?.role || 'ADMIN'}
     />
   )
 }

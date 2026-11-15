@@ -6,6 +6,8 @@ import { formatPhoneNumber } from '@/lib/format'
 import { Calendar, CalendarDays, FilePlus } from 'lucide-react'
 import { getPartnerCompanies } from '@/app/actions/partner'
 import { QuickVisitBookingTrigger } from '@/components/PartnerQuickBookingAndStatsModals'
+import { getCurrentUserAuthContext } from '@/lib/adminSchema'
+import { filterEstimatesForUser } from '@/lib/menuPermissionUtils'
 
 // 한국 표준시(KST, Asia/Seoul) 기준 오늘 날짜 정보 구하기 (Vercel UTC 환경 대응)
 function getKoreaToday() {
@@ -37,13 +39,31 @@ function getKoreaToday() {
 }
 
 export default async function DashboardPage() {
-  const [recentEstimates, partners] = await Promise.all([
+  const currentUser = await getCurrentUserAuthContext()
+
+  const [allEstimates, partners] = await Promise.all([
     prisma.estimate.findMany({
       orderBy: { createdAt: 'desc' },
-      take: 5,
+      select: {
+        id: true,
+        movingType: true,
+        customerName: true,
+        contact: true,
+        estimateDate: true,
+        visitDate: true,
+        movingDate: true,
+        paymentPlan: true,
+        createdAt: true,
+        environment: true,
+        adminHistory: true,
+      },
     }),
     getPartnerCompanies().catch(() => []),
   ])
+
+  const scopedEstimates = filterEstimatesForUser(allEstimates, currentUser)
+  const recentEstimates = scopedEstimates.slice(0, 5)
+  const isUserScoped = currentUser?.role === 'USER'
 
   const koreaToday = getKoreaToday()
 
@@ -55,31 +75,24 @@ export default async function DashboardPage() {
   const kstStartOfMonth = new Date(Date.UTC(koreaToday.year, koreaToday.month - 1, 1, 0, 0, 0) - 9 * 3600 * 1000)
   const kstEndOfMonth = new Date(Date.UTC(koreaToday.year, koreaToday.month, 0, 23, 59, 59, 999) - 9 * 3600 * 1000)
 
-  const todayVisitsCount = await prisma.estimate.count({
-    where: {
-      visitDate: {
-        gte: kstStartOfDay,
-        lte: kstEndOfDay
-      }
-    }
-  })
+  const todayVisitsCount = scopedEstimates.filter((e) => {
+    if (!e.visitDate) return false
+    const t = new Date(e.visitDate).getTime()
+    return t >= kstStartOfDay.getTime() && t <= kstEndOfDay.getTime()
+  }).length
 
-  const thisMonthMovingsCount = await prisma.estimate.count({
-    where: {
-      movingDate: {
-        gte: kstStartOfMonth,
-        lte: kstEndOfMonth
-      }
-    }
-  })
+  const thisMonthMovingsCount = scopedEstimates.filter((e) => {
+    if (!e.movingDate) return false
+    const t = new Date(e.movingDate).getTime()
+    return t >= kstStartOfMonth.getTime() && t <= kstEndOfMonth.getTime()
+  }).length
 
-  const allPayPlans = await prisma.estimate.findMany({
-    select: { paymentPlan: true }
-  })
-  
-  const pendingCount = allPayPlans.filter(e => {
-    const pay = e.paymentPlan ? JSON.parse(e.paymentPlan) : {}
-    return !pay.downPaymentPaid
+  const pendingCount = scopedEstimates.filter((e) => {
+    let pay: any = {}
+    try {
+      if (e.paymentPlan) pay = JSON.parse(e.paymentPlan)
+    } catch {}
+    return !pay?.downPaymentPaid
   }).length
 
   return (
@@ -87,11 +100,16 @@ export default async function DashboardPage() {
       {/* 대시보드 헤더 및 금일 날짜/요일 배너 */}
       <div className="bg-white p-3 sm:p-6 rounded-xl sm:rounded-2xl shadow-xs border border-gray-200/90 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 sm:gap-4">
         <div className="space-y-1 sm:space-y-1.5">
-          <div className="flex items-center gap-2 sm:gap-2.5">
+          <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
             <h1 className="text-xl sm:text-3xl font-black text-gray-900 tracking-tight">대시보드</h1>
             <span className="px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
               운영 현황
             </span>
+            {isUserScoped && (
+              <span className="px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                본인 작성 견적 기준
+              </span>
+            )}
           </div>
 
           {/* 금일 날짜와 요일 강조 표기 */}

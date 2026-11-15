@@ -19,21 +19,31 @@ import {
   Boxes,
   Smartphone,
   Coins,
-  Truck
+  Truck,
+  ShieldCheck
 } from 'lucide-react'
 import { ChangePasswordModal } from './ChangePasswordModal'
 import { APP_RELEASE_INFO } from '@/lib/appRelease'
 import { AppDownloadButton } from './AppDownloadButton'
+import {
+  evaluateMenuAccess,
+  type MenuPermissionRecord,
+  type UserRole,
+} from '@/lib/menuPermissionUtils'
 
 export function Sidebar({ 
   sessionName, 
   userLevel,
+  userRole = 'ADMIN',
+  loginUserId = '',
   permissions,
   logoutAction 
 }: { 
   sessionName: string, 
   userLevel: number,
-  permissions: { menuPath: string, minLevel: number }[],
+  userRole?: UserRole,
+  loginUserId?: string,
+  permissions: MenuPermissionRecord[],
   logoutAction: () => void 
 }) {
   const [collapsed, setCollapsed] = useState(false)
@@ -113,10 +123,17 @@ export function Sidebar({
   const isActive = (path: string) => pathname?.startsWith(path) && (path !== '/' || pathname === '/')
 
   const canAccess = (path: string) => {
-    const perm = permissions.find(p => p.menuPath === path)
-    if (!perm) return true // 권한 설정이 없으면 기본적으로 접근 가능
-    return userLevel >= perm.minLevel
+    return evaluateMenuAccess({
+      pathname: path,
+      userRole,
+      userLevel,
+      loginUserId,
+      permissions,
+    }).allowed
   }
+
+  const roleLabel = userRole === 'USER' ? 'USER' : 'ADMIN'
+  const titleSuffix = userRole === 'USER' ? '님' : '관리자님'
 
   const linkClass = (active: boolean) => 
     `flex items-center gap-3 py-3 rounded-xl transition-colors ${collapsed ? 'px-0 justify-center w-full' : 'px-4'} ${active ? 'bg-blue-50 text-blue-600 font-bold' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-medium'}`
@@ -192,7 +209,12 @@ export function Sidebar({
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-600 font-medium hidden sm:inline">{sessionName} 관리자님</span>
+          <span className="text-xs text-gray-600 font-medium hidden sm:inline">
+            {sessionName} {titleSuffix}{' '}
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200 ml-1">
+              {roleLabel} · Lv.{userLevel}
+            </span>
+          </span>
           <form action={logoutAction}>
             <button 
               type="submit" 
@@ -282,7 +304,13 @@ export function Sidebar({
                 {canAccess('/users') && (
                   <Link href="/users" onClick={() => setMobileOpen(false)} className={mobileLinkClass(isActive('/users'))}>
                     <Users size={20} className="shrink-0" />
-                    <span>사용자 및 권한</span>
+                    <span>사용자 정보 관리</span>
+                  </Link>
+                )}
+                {canAccess('/menu-permissions') && (
+                  <Link href="/menu-permissions" onClick={() => setMobileOpen(false)} className={mobileLinkClass(isActive('/menu-permissions'))}>
+                    <ShieldCheck size={20} className="shrink-0 text-indigo-600" />
+                    <span>메뉴 접근 권한</span>
                   </Link>
                 )}
               </div>
@@ -333,9 +361,15 @@ export function Sidebar({
             <div className="p-4 border-t border-gray-100 bg-gray-50/80 space-y-2.5">
               <div className="flex items-center justify-between px-1">
                 <div className="text-sm text-gray-700">
-                  <span className="font-bold text-blue-600">{sessionName}</span> 관리자님
+                  <span className="font-bold text-blue-600">{sessionName}</span> {titleSuffix}
                 </div>
-                <span className="text-[11px] text-gray-500 font-medium">Lv.{userLevel}</span>
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
+                  userRole === 'ADMIN'
+                    ? 'bg-purple-50 text-purple-700 border-purple-200'
+                    : 'bg-blue-50 text-blue-700 border-blue-200'
+                }`}>
+                  {roleLabel} · Lv.{userLevel}
+                </span>
               </div>
 
               <div className="flex gap-2">
@@ -409,7 +443,7 @@ export function Sidebar({
           )}
         </div>
         
-        <nav className="flex-1 mt-6 overflow-hidden">
+        <nav className="flex-1 mt-6 overflow-y-auto">
           <ul className={`space-y-2 ${collapsed ? 'px-2' : 'px-4'}`}>
             {canAccess('/') && (
               <li>
@@ -437,9 +471,17 @@ export function Sidebar({
             )}
             {canAccess('/users') && (
               <li>
-                <Link href="/users" className={linkClass(isActive('/users'))} title="사용자 및 권한">
+                <Link href="/users" className={linkClass(isActive('/users'))} title="사용자 정보 관리">
                   <Users size={20} className="shrink-0" />
-                  {!collapsed && <span>사용자 및 권한</span>}
+                  {!collapsed && <span>사용자 정보 관리</span>}
+                </Link>
+              </li>
+            )}
+            {canAccess('/menu-permissions') && (
+              <li>
+                <Link href="/menu-permissions" className={linkClass(isActive('/menu-permissions'))} title="메뉴 접근 권한">
+                  <ShieldCheck size={20} className="shrink-0 text-indigo-600" />
+                  {!collapsed && <span>메뉴 접근 권한</span>}
                 </Link>
               </li>
             )}
@@ -508,8 +550,8 @@ export function Sidebar({
                 {sessionName ? sessionName.slice(0, 1) : '관'}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-gray-800 truncate">{sessionName} 관리자님</p>
-                <p className="text-[11px] text-gray-500 font-medium">관리자 (Lv.{userLevel})</p>
+                <p className="text-xs font-bold text-gray-800 truncate">{sessionName} {titleSuffix}</p>
+                <p className="text-[11px] text-gray-500 font-medium">{roleLabel} · Lv.{userLevel}</p>
               </div>
             </div>
           )}

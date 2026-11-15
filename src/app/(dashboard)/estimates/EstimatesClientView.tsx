@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { formatKstDate, formatKstDateTime } from '@/lib/kstDate'
+import { formatKstDate, formatKstDateOrDateTime, formatKstDateTime } from '@/lib/kstDate'
 import { EstimateRow } from './EstimateRow'
 import { formatPhoneNumber } from '@/lib/format'
 import { OfflineEstimatesNotice } from '@/components/OfflineEstimatesNotice'
@@ -33,10 +33,12 @@ export function EstimatesClientView({
   initialEstimates,
   initialPartners,
   isAdmin = false,
+  userRole = 'ADMIN',
 }: {
   initialEstimates: any[]
   initialPartners: PartnerCompanyItem[]
   isAdmin?: boolean
+  userRole?: 'ADMIN' | 'USER'
 }) {
   const [estimatesList, setEstimatesList] = useState<any[]>(initialEstimates)
   const [partners, setPartners] = useState<PartnerCompanyItem[]>(initialPartners)
@@ -217,9 +219,18 @@ export function EstimatesClientView({
       {/* 상단 타이틀 및 액션 버튼 그룹 */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-200/80 shadow-2xs">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-gray-900">견적 목록</h1>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-xl sm:text-2xl font-black text-gray-900">견적 목록</h1>
+            {userRole === 'USER' && (
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                본인 작성 견적 조회
+              </span>
+            )}
+          </div>
           <p className="text-xs text-gray-500 mt-0.5">
-            의뢰 이사업체별 방문견적 접수 현황, 계약 상태 및 공급가액을 통합 관리합니다.
+            {userRole === 'USER'
+              ? '내 계정으로 작성한 견적 목록만 표시되며 조회 및 수정이 가능합니다.'
+              : '의뢰 이사업체별 방문견적 접수 현황, 계약 상태 및 공급가액을 통합 관리합니다.'}
           </p>
         </div>
 
@@ -496,7 +507,7 @@ export function EstimatesClientView({
                         )}
                       </td>
                       <td className="p-3.5 font-medium text-gray-900 whitespace-nowrap">
-                        {est.movingDate ? formatKstDate(est.movingDate) : '-'}
+                        {est.movingDate ? formatKstDateOrDateTime(est.movingDate) : '-'}
                       </td>
                       <td className="p-3.5 whitespace-nowrap">
                         <div className="flex flex-col items-start gap-1">

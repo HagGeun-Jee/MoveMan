@@ -2358,15 +2358,15 @@ export function EstimateForm({
       localStorage.removeItem(storageKey)
     } catch {}
 
-    // 타임존 오차 방지를 위해 방문일정은 정확한 ISO 타임스탬프(UTC Z), 날짜 전용 필드는 YYYY-MM-DD로 명시 전달
+    // 타임존 오차 방지를 위해 방문일정·이사예정일정은 정확한 ISO 타임스탬프(UTC Z), 날짜 전용 필드는 YYYY-MM-DD로 명시 전달
     const visitIso = visitDate ? visitDate.toISOString() : ''
     const estDateStr = estimateDate ? format(estimateDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
-    const movDateStr = movingDate ? format(movingDate, 'yyyy-MM-dd') : ''
+    const movDateIso = movingDate ? movingDate.toISOString() : ''
     const orgDateStr = organizeDate ? format(organizeDate, 'yyyy-MM-dd') : ''
 
     formData.set('visitDate', visitIso)
     formData.set('estimateDate', estDateStr)
-    formData.set('movingDate', movDateStr)
+    formData.set('movingDate', movDateIso)
     formData.set('organizeDate', orgDateStr)
 
     const rawItems = filterValidCbmItems(items)
@@ -2377,7 +2377,7 @@ export function EstimateForm({
       movingType,
       estimateDate: estDateStr,
       visitDate: visitIso || null,
-      movingDate: movDateStr || null,
+      movingDate: movDateIso || null,
       organizeDate: orgDateStr || null,
       fromAddress,
       toAddress,
@@ -2724,13 +2724,13 @@ export function EstimateForm({
                     />
                   </td>
                   <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-2 sm:px-3 py-2 text-left font-medium text-gray-700 w-20 sm:w-24 md:w-28">
-                    이사 예정일
+                    이사 예정일정
                   </th>
                   <td className="border border-gray-200 p-1.5 sm:p-2">
                     <input
                       type="hidden"
                       name="movingDate"
-                      value={movingDate ? format(movingDate, 'yyyy-MM-dd') : ''}
+                      value={movingDate ? movingDate.toISOString() : ''}
                     />
                     <CustomDatePicker 
                       selected={movingDate} 
@@ -2738,8 +2738,11 @@ export function EstimateForm({
                         hasUserEditedRef.current = true
                         setMovingDate(d)
                       }}
+                      showTimeSelect
+                      timeIntervals={15}
                       isClearable
-                      placeholderText="이사일자 선택"
+                      dateFormat="yyyy-MM-dd HH:mm"
+                      placeholderText="이사일시 선택"
                       className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 sm:py-2 outline-none focus:border-blue-500 text-xs sm:text-sm" 
                     />
                   </td>

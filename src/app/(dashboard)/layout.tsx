@@ -1,41 +1,39 @@
-import Link from 'next/link'
 import { ReactNode } from 'react'
-import { cookies } from 'next/headers'
-import { decrypt, deleteSession } from '@/lib/session'
+import { deleteSession } from '@/lib/session'
 import { redirect } from 'next/navigation'
-import { LayoutDashboard, FileText, Calendar, Settings } from 'lucide-react'
 
 import { Sidebar } from '@/components/Sidebar'
 import { GlobalInputEnhancer } from '@/components/GlobalInputEnhancer'
 import { SyncStatusBar } from '@/components/SyncStatusBar'
 import { GlobalBackExitHandler } from '@/components/GlobalBackExitHandler'
+import { MenuAccessGuard } from '@/components/MenuAccessGuard'
 
-import prisma from '@/lib/prisma'
-import { verifyActiveAdmin } from '@/lib/adminSchema'
+import { getCurrentUserAuthContext, getMenuPermissionsList } from '@/lib/adminSchema'
+
+export const dynamic = 'force-dynamic'
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
-  const cookieStore = await cookies()
-  const cookie = cookieStore.get('session')?.value
-  const session = await decrypt(cookie)
+  const profile = await getCurrentUserAuthContext()
 
-  if (!session?.userId) {
+  if (!profile) {
     redirect('/login')
   }
 
-  const isActive = await verifyActiveAdmin(session.userId as string)
-  if (!isActive) {
+  if (!profile.isActive) {
     redirect('/api/auth/logout?disabled=1')
   }
 
-  const permissions = await prisma.menuPermission.findMany()
+  const permissions = await getMenuPermissionsList()
 
   return (
     <div className="flex h-screen bg-gray-100 print:h-auto print:block print:bg-white flex-col lg:flex-row">
       <GlobalInputEnhancer />
       <GlobalBackExitHandler />
       <Sidebar 
-        sessionName={session?.name as string} 
-        userLevel={(session?.level as number) || 1}
+        sessionName={profile.name} 
+        userLevel={profile.level}
+        userRole={profile.role}
+        loginUserId={profile.userId}
         permissions={permissions}
         logoutAction={async () => {
           'use server'
@@ -50,7 +48,14 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           <SyncStatusBar />
         </div>
         <div className="p-2 sm:p-3 md:p-4 lg:p-5 xl:p-6 print:p-0 flex-1">
-          {children}
+          <MenuAccessGuard
+            userRole={profile.role}
+            userLevel={profile.level}
+            loginUserId={profile.userId}
+            permissions={permissions}
+          >
+            {children}
+          </MenuAccessGuard>
         </div>
       </main>
     </div>

@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { decrypt } from '@/lib/session'
 import { parseKstDateTime, parseKstDateOnly, getKstParts } from '@/lib/kstDate'
+import { getCurrentUserAuthContext } from '@/lib/adminSchema'
 
 export type PartnerBadgeColor =
   | 'blue'
@@ -340,10 +341,8 @@ export async function deletePartnerCompany(id: string) {
  * 문자 수신 후 10초 만에 방문견적 일정만 빠르게 접수하는 서버 액션
  */
 export async function createQuickVisitEstimate(input: CreateQuickVisitInput) {
-  const cookieStore = await cookies()
-  const cookie = cookieStore.get('session')?.value
-  const session = await decrypt(cookie)
-  if (!session?.userId) {
+  const currentUser = await getCurrentUserAuthContext()
+  if (!currentUser || !currentUser.isActive) {
     return { error: '로그인이 필요합니다.' }
   }
 
@@ -374,7 +373,7 @@ export async function createQuickVisitEstimate(input: CreateQuickVisitInput) {
     seq = (isNaN(lastSeq) ? 0 : lastSeq) + 1
   }
 
-  const estimatorName = String(session.name || '').trim()
+  const estimatorName = String(currentUser.name || '').trim()
 
   const environmentObj = {
     partnerId: (input.partnerId || '').trim(),
@@ -382,6 +381,8 @@ export async function createQuickVisitEstimate(input: CreateQuickVisitInput) {
     partnerShortName: (input.partnerShortName || input.partnerName || '').trim(),
     partnerColor: (input.partnerColor || 'blue').trim(),
     estimatorName,
+    createdByAdminId: currentUser.id,
+    createdByUserId: currentUser.userId,
     baseDistanceKm: 30,
     specialNotes: (input.specialNotes || '').trim(),
     labors: [],
@@ -404,7 +405,13 @@ export async function createQuickVisitEstimate(input: CreateQuickVisitInput) {
   }
 
   const adminHistory = JSON.stringify([
-    { action: 'CREATE_QUICK_VISIT', by: estimatorName, at: now.toISOString() }
+    {
+      action: 'CREATE_QUICK_VISIT',
+      by: estimatorName,
+      byAdminId: currentUser.id,
+      byUserId: currentUser.userId,
+      at: now.toISOString()
+    }
   ])
 
   const baseData = {
@@ -415,7 +422,13 @@ export async function createQuickVisitEstimate(input: CreateQuickVisitInput) {
     toAddress: (input.toAddress || '').trim() || '',
     estimateDate: now,
     visitDate: parseKstDateTime(input.visitDate),
-    movingDate: parseKstDateOnly(input.movingDate),
+    movingDate: input.movingDate
+      ? parseKstDateTime(
+          /^\d{4}-\d{1,2}-\d{1,2}$/.test(input.movingDate.trim())
+            ? `${input.movingDate.trim()}T00:00`
+            : input.movingDate
+        )
+      : null,
     organizeDate: null,
     cbmItems: '[]',
     materials: '[]',
@@ -448,6 +461,12 @@ export async function createQuickVisitEstimate(input: CreateQuickVisitInput) {
           ...baseData
         }
       })
+      await prisma.$executeRaw`
+        UPDATE "Estimate"
+        SET "createdById" = ${currentUser.id},
+            "createdByUserId" = ${currentUser.userId}
+        WHERE "id" = ${currentId}
+      `.catch(() => {})
       break
     } catch (err: any) {
       const isUniqueCollision =
