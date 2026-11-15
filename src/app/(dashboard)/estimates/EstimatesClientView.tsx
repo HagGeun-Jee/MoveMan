@@ -20,6 +20,7 @@ import {
 } from '@/components/SontaxFilingModal'
 import type { PartnerCompanyItem } from '@/app/actions/partner'
 import { DeleteEstimateButton } from '@/components/DeleteEstimateButton'
+import { canUserModifyEstimate, type UserIdentityInfo } from '@/lib/menuPermissionUtils'
 import {
   CalendarClock,
   BarChart3,
@@ -34,11 +35,13 @@ export function EstimatesClientView({
   initialPartners,
   isAdmin = false,
   userRole = 'ADMIN',
+  currentUser = null,
 }: {
   initialEstimates: any[]
   initialPartners: PartnerCompanyItem[]
   isAdmin?: boolean
   userRole?: 'ADMIN' | 'USER'
+  currentUser?: UserIdentityInfo | null
 }) {
   const [estimatesList, setEstimatesList] = useState<any[]>(initialEstimates)
   const [partners, setPartners] = useState<PartnerCompanyItem[]>(initialPartners)
@@ -223,13 +226,13 @@ export function EstimatesClientView({
             <h1 className="text-xl sm:text-2xl font-black text-gray-900">견적 목록</h1>
             {userRole === 'USER' && (
               <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                본인 작성 견적 조회
+                전체 조회 · 본인 견적만 수정
               </span>
             )}
           </div>
           <p className="text-xs text-gray-500 mt-0.5">
             {userRole === 'USER'
-              ? '내 계정으로 작성한 견적 목록만 표시되며 조회 및 수정이 가능합니다.'
+              ? '모든 견적을 자유롭게 조회할 수 있으며, 견적 수정은 관리자(ADMIN) 및 작성자만 가능합니다.'
               : '의뢰 이사업체별 방문견적 접수 현황, 계약 상태 및 공급가액을 통합 관리합니다.'}
           </p>
         </div>
@@ -493,7 +496,14 @@ export function EstimatesClientView({
                         </div>
                       </td>
                       <td className="p-3.5 font-semibold text-gray-800 whitespace-nowrap">
-                        {est.estimatorName || '-'}
+                        <div className="inline-flex items-center gap-1.5">
+                          <span>{est.estimatorName || '-'}</span>
+                          {userRole === 'USER' && currentUser && canUserModifyEstimate(est, currentUser) && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                              본인
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="p-3.5 font-medium text-gray-900 whitespace-nowrap">
                         {est.visitDate ? (

@@ -392,7 +392,7 @@ export function UserFormModal({
                       {isRoleLocked && <Lock size={13} className="text-indigo-600" />}
                     </div>
                     <p className="text-[11px] text-gray-600 mt-0.5 font-medium">
-                      모든 메뉴에서 <strong>전체 견적</strong> 조회 및 수정 가능
+                      전체 견적 조회 및 <strong>모든 견적 수정 가능</strong>
                     </p>
                   </button>
 
@@ -413,7 +413,7 @@ export function UserFormModal({
                       {!isCallerAdminRole && <Lock size={13} className="text-blue-600" />}
                     </div>
                     <p className="text-[11px] text-gray-600 mt-0.5 font-medium">
-                      모든 메뉴에서 <strong>본인이 작성한 견적만</strong> 조회 및 수정 가능
+                      전체 견적 조회 가능 · <strong>본인이 작성한 견적만 수정 가능</strong>
                     </p>
                   </button>
                 </div>

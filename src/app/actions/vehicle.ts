@@ -3,7 +3,7 @@
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { getCurrentUserAuthContext } from '@/lib/adminSchema'
-import { canUserAccessEstimate, filterEstimatesForUser } from '@/lib/menuPermissionUtils'
+import { canUserModifyEstimate } from '@/lib/menuPermissionUtils'
 import { formatKstDate, getKstMonthRange } from '@/lib/kstDate'
 
 export interface VehicleItem {
@@ -59,6 +59,7 @@ export interface DispatchScheduleItem {
   PlannedVehicles: { name: string; count: number }[]
   plannedLabors: { name: string; count: number }[]
   dispatch: EstimateDispatchInfo
+  canEdit?: boolean
 }
 
 let isSchemaEnsured = false
@@ -380,7 +381,7 @@ export async function getDispatchSchedule(yearMonth?: string): Promise<DispatchS
 
     const currentUser = await getCurrentUserAuthContext()
 
-    const rawEstimates = await prisma.estimate.findMany({
+    const estimates = await prisma.estimate.findMany({
       where: {
         movingDate: {
           gte: startDate,
@@ -389,10 +390,6 @@ export async function getDispatchSchedule(yearMonth?: string): Promise<DispatchS
       },
       orderBy: [{ movingDate: 'asc' }, { createdAt: 'asc' }]
     })
-
-    const estimates = currentUser
-      ? filterEstimatesForUser(rawEstimates, currentUser)
-      : rawEstimates
 
     return estimates.map((est) => {
       let envObj: any = {}
@@ -434,7 +431,8 @@ export async function getDispatchSchedule(yearMonth?: string): Promise<DispatchS
         totalAmount: est.totalAmount || 0,
         PlannedVehicles: Array.isArray(envObj.vehicles) ? envObj.vehicles : [],
         plannedLabors: Array.isArray(envObj.labors) ? envObj.labors : [],
-        dispatch
+        dispatch,
+        canEdit: currentUser ? canUserModifyEstimate(est, currentUser) : false,
       }
     })
   } catch (err) {
@@ -456,8 +454,8 @@ export async function updateEstimateDispatch(estimateId: string, dispatchData: E
     const est = await prisma.estimate.findUnique({ where: { id: estimateId } })
     if (!est) return { error: '해당 견적서를 찾을 수 없습니다.' }
 
-    if (!canUserAccessEstimate(est, currentUser)) {
-      return { error: '본인이 작성한 견적만 배차 정보를 수정할 수 있습니다.' }
+    if (!canUserModifyEstimate(est, currentUser)) {
+      return { error: '관리자(ADMIN) 또는 해당 견적 작성자만 배차 정보를 수정할 수 있습니다.' }
     }
 
     let envObj: any = {}

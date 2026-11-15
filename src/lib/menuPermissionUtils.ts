@@ -238,11 +238,11 @@ export function evaluateMenuAccess(params: {
 }
 
 /**
- * 견적 조회·수정 권한 판별
- * - ADMIN 역할 (또는 'admin' 마스터 계정): 모든 견적 조회 및 수정 가능
- * - USER 역할: 본인이 작성한 견적만 조회 및 수정 가능
+ * 견적 수정 권한 판별 (조회는 모든 활성 사용자에게 허용)
+ * - ADMIN 역할 (또는 'admin' 마스터 계정): 모든 견적 수정 가능
+ * - USER 역할: 본인이 작성한 견적(작성자)만 수정 가능
  */
-export function canUserAccessEstimate(
+export function canUserModifyEstimate(
   estimate: {
     createdById?: string | null
     createdByUserId?: string | null
@@ -274,7 +274,7 @@ export function canUserAccessEstimate(
     return Boolean(myLoginId && estCreatedByUserId === myLoginId)
   }
 
-  // 3순위: 기존 레거시 견적 데이터 호환 (environment / adminHistory 작성자 정보)
+  // 3순위: 기존 레거시 견적 및 environment / adminHistory 작성자 정보
   let envObj: any = null
   if (estimate.environment) {
     try {
@@ -334,17 +334,4 @@ export function canUserAccessEstimate(
   return false
 }
 
-export function filterEstimatesForUser<
-  T extends {
-    createdById?: string | null
-    createdByUserId?: string | null
-    environment?: string | null
-    adminHistory?: string | null
-  }
->(estimates: T[], user: UserIdentityInfo | null | undefined): T[] {
-  if (!user) return []
-  if (normalizeUserRole(user.role, user.userId) === 'ADMIN') {
-    return estimates
-  }
-  return estimates.filter((est) => canUserAccessEstimate(est, user))
-}
+export const canUserAccessEstimate = canUserModifyEstimate

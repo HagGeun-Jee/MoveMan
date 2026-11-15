@@ -7,7 +7,7 @@ import { cookies } from 'next/headers'
 import { decrypt } from '@/lib/session'
 import { parseKstDateTime, parseKstDateOnly, getKstParts } from '@/lib/kstDate'
 import { getCurrentUserAuthContext } from '@/lib/adminSchema'
-import { canUserAccessEstimate } from '@/lib/menuPermissionUtils'
+import { canUserModifyEstimate } from '@/lib/menuPermissionUtils'
 
 function sanitizeCbmItems(raw: string | null | undefined): string {
   if (!raw) return '[]'
@@ -223,8 +223,8 @@ export async function updateEstimate(formData: FormData) {
   if (!existingEstimate) {
     throw new Error('수정할 견적 정보를 찾을 수 없습니다.')
   }
-  if (!canUserAccessEstimate(existingEstimate, currentUser)) {
-    throw new Error('본인이 작성한 견적만 수정할 수 있습니다.')
+  if (!canUserModifyEstimate(existingEstimate, currentUser)) {
+    throw new Error('관리자(ADMIN) 또는 해당 견적 작성자만 수정할 수 있습니다.')
   }
 
   const movingType = formData.get('movingType') as string
@@ -380,8 +380,8 @@ export async function saveEstimateScheduledMessages(estimateId: string, schedule
     if (!existing) {
       return { success: false, error: '견적 정보를 찾을 수 없습니다.' }
     }
-    if (!canUserAccessEstimate(existing, currentUser)) {
-      return { success: false, error: '본인이 작성한 견적만 수정할 수 있습니다.' }
+    if (!canUserModifyEstimate(existing, currentUser)) {
+      return { success: false, error: '관리자(ADMIN) 또는 해당 견적 작성자만 수정할 수 있습니다.' }
     }
 
     let envObj: any = {}
@@ -424,8 +424,8 @@ export async function saveEstimateTaxFiling(estimateId: string, taxFiling: any) 
     if (!existing) {
       return { success: false, error: '견적 정보를 찾을 수 없습니다.' }
     }
-    if (!canUserAccessEstimate(existing, currentUser)) {
-      return { success: false, error: '본인이 작성한 견적만 수정할 수 있습니다.' }
+    if (!canUserModifyEstimate(existing, currentUser)) {
+      return { success: false, error: '관리자(ADMIN) 또는 해당 견적 작성자만 수정할 수 있습니다.' }
     }
 
     let envObj: any = {}

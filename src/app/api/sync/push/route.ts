@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getVerifiedAdminProfile } from '@/lib/adminSchema'
-import { canUserAccessEstimate } from '@/lib/menuPermissionUtils'
+import { canUserModifyEstimate } from '@/lib/menuPermissionUtils'
 import { cookies } from 'next/headers'
 import { decrypt } from '@/lib/session'
 import { parseKstDateTime, parseKstDateOnly, getKstParts } from '@/lib/kstDate'
@@ -162,13 +162,13 @@ export async function POST(request: Request) {
             })
 
             if (existing) {
-              if (!canUserAccessEstimate(existing, profile)) {
+              if (!canUserModifyEstimate(existing, profile)) {
                 results.push({
                   queueId: item.id,
                   serverId: serverId,
                   action: 'UPDATE',
                   status: 'error',
-                  message: '본인이 작성한 견적만 수정할 수 있습니다.'
+                  message: '관리자(ADMIN) 또는 해당 견적 작성자만 수정할 수 있습니다.'
                 })
                 continue
               }

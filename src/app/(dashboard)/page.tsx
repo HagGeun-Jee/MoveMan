@@ -6,8 +6,6 @@ import { formatPhoneNumber } from '@/lib/format'
 import { Calendar, CalendarDays, FilePlus } from 'lucide-react'
 import { getPartnerCompanies } from '@/app/actions/partner'
 import { QuickVisitBookingTrigger } from '@/components/PartnerQuickBookingAndStatsModals'
-import { getCurrentUserAuthContext } from '@/lib/adminSchema'
-import { filterEstimatesForUser } from '@/lib/menuPermissionUtils'
 
 // 한국 표준시(KST, Asia/Seoul) 기준 오늘 날짜 정보 구하기 (Vercel UTC 환경 대응)
 function getKoreaToday() {
@@ -39,8 +37,6 @@ function getKoreaToday() {
 }
 
 export default async function DashboardPage() {
-  const currentUser = await getCurrentUserAuthContext()
-
   const [allEstimates, partners] = await Promise.all([
     prisma.estimate.findMany({
       orderBy: { createdAt: 'desc' },
@@ -54,16 +50,12 @@ export default async function DashboardPage() {
         movingDate: true,
         paymentPlan: true,
         createdAt: true,
-        environment: true,
-        adminHistory: true,
       },
     }),
     getPartnerCompanies().catch(() => []),
   ])
 
-  const scopedEstimates = filterEstimatesForUser(allEstimates, currentUser)
-  const recentEstimates = scopedEstimates.slice(0, 5)
-  const isUserScoped = currentUser?.role === 'USER'
+  const recentEstimates = allEstimates.slice(0, 5)
 
   const koreaToday = getKoreaToday()
 
@@ -75,19 +67,19 @@ export default async function DashboardPage() {
   const kstStartOfMonth = new Date(Date.UTC(koreaToday.year, koreaToday.month - 1, 1, 0, 0, 0) - 9 * 3600 * 1000)
   const kstEndOfMonth = new Date(Date.UTC(koreaToday.year, koreaToday.month, 0, 23, 59, 59, 999) - 9 * 3600 * 1000)
 
-  const todayVisitsCount = scopedEstimates.filter((e) => {
+  const todayVisitsCount = allEstimates.filter((e) => {
     if (!e.visitDate) return false
     const t = new Date(e.visitDate).getTime()
     return t >= kstStartOfDay.getTime() && t <= kstEndOfDay.getTime()
   }).length
 
-  const thisMonthMovingsCount = scopedEstimates.filter((e) => {
+  const thisMonthMovingsCount = allEstimates.filter((e) => {
     if (!e.movingDate) return false
     const t = new Date(e.movingDate).getTime()
     return t >= kstStartOfMonth.getTime() && t <= kstEndOfMonth.getTime()
   }).length
 
-  const pendingCount = scopedEstimates.filter((e) => {
+  const pendingCount = allEstimates.filter((e) => {
     let pay: any = {}
     try {
       if (e.paymentPlan) pay = JSON.parse(e.paymentPlan)
@@ -105,11 +97,6 @@ export default async function DashboardPage() {
             <span className="px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
               운영 현황
             </span>
-            {isUserScoped && (
-              <span className="px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                본인 작성 견적 기준
-              </span>
-            )}
           </div>
 
           {/* 금일 날짜와 요일 강조 표기 */}

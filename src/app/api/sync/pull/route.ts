@@ -3,7 +3,6 @@ import prisma from '@/lib/prisma'
 import { getLocationCategories, getStandardItems } from '@/app/actions/item'
 import { getVehicles } from '@/app/actions/vehicle'
 import { getVerifiedAdminProfile } from '@/lib/adminSchema'
-import { filterEstimatesForUser } from '@/lib/menuPermissionUtils'
 import { cookies } from 'next/headers'
 import { decrypt } from '@/lib/session'
 
@@ -42,14 +41,13 @@ export async function GET(request: Request) {
     const materials = rawMaterials.sort((a, b) => a.name.localeCompare(b.name, 'ko'))
     const locations = await prisma.inventoryLocation.findMany({ orderBy: { order: 'asc' } })
 
-    // 2. 견적서 데이터 조회 (since가 있으면 변경분만, 없으면 최근 150건)
+    // 2. 견적서 데이터 조회 (모든 활성 사용자 전체 견적 조회 가능)
     const estimatesWhere = sinceDate ? { updatedAt: { gte: sinceDate } } : {}
-    const rawEstimates = await prisma.estimate.findMany({
+    const estimates = await prisma.estimate.findMany({
       where: estimatesWhere,
       orderBy: { updatedAt: 'desc' },
       take: 150
     })
-    const estimates = filterEstimatesForUser(rawEstimates, profile)
 
     return NextResponse.json({
       success: true,

@@ -9,8 +9,6 @@ import { CalendarTooltipProvider, CalendarEventItem, type CalendarEventBalloonDa
 import { getVehicleCalendarEvents } from '@/app/actions/vehicleLog'
 import { formatKstDate, formatKstDateOrDateTime, formatKstDateTime, formatKstTime, getKstMonthRange } from '@/lib/kstDate'
 import { formatPhoneNumber } from '@/lib/format'
-import { getCurrentUserAuthContext } from '@/lib/adminSchema'
-import { filterEstimatesForUser } from '@/lib/menuPermissionUtils'
 
 // 한국 표준시(KST, Asia/Seoul) 기준 오늘 날짜 정보 구하기 (Vercel/Render UTC 서버 환경 대응)
 function getKoreaToday(): { year: number, month: number, day: number, dateString: string } {
@@ -72,9 +70,8 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const prefixDays = Array(startDay).fill(null)
   
   // KST(Asia/Seoul) 기준 해당 월의 시작~말일 범위로 조회하여 UTC/KST 경계 누락 방지 (대용량 서명 이미지 제외)
-  const currentUser = await getCurrentUserAuthContext()
   const { start: kstMonthStart, end: kstMonthEnd } = getKstMonthRange(targetYear, targetMonth)
-  const rawEstimates = await prisma.estimate.findMany({
+  const estimates = await prisma.estimate.findMany({
     where: {
       OR: [
         { movingDate: { gte: kstMonthStart, lte: kstMonthEnd } },
@@ -94,10 +91,8 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
       environment: true,
       paymentPlan: true,
       totalAmount: true,
-      adminHistory: true,
     }
   })
-  const estimates = filterEstimatesForUser(rawEstimates, currentUser)
 
   const MOVING_TYPE_MAP: Record<string, string> = {
     P: '포장이사',
@@ -283,11 +278,6 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
           <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
             💡 길게 누르면 상세보기
           </span>
-          {currentUser?.role === 'USER' && (
-            <span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">
-              본인 작성 견적 표시
-            </span>
-          )}
           <Link
             href="/vehicles?tab=LOGBOOK"
             className="ml-1 px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold shadow-2xs transition-colors"

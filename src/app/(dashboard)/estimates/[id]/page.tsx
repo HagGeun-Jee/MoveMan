@@ -4,10 +4,10 @@ import prisma from '@/lib/prisma'
 import { getLocationCategories } from '@/app/actions/item'
 import { getCostStandards } from '@/app/actions/costStandards'
 import { getCurrentUserAuthContext } from '@/lib/adminSchema'
-import { canUserAccessEstimate } from '@/lib/menuPermissionUtils'
+import { canUserModifyEstimate } from '@/lib/menuPermissionUtils'
 import { calculatePackingMaterials, isExcludedMaterial, type PackingMaterialItem } from '@/lib/packingMaterialCalculator'
 import { formatKstDate, formatKstDateOrDateTime, formatKstShortDateTime } from '@/lib/kstDate'
-import { MapPin, Phone, ShieldAlert, ArrowLeft } from 'lucide-react'
+import { MapPin, Phone, Lock } from 'lucide-react'
 import { PrintButton } from '@/components/PrintButton'
 import { DeleteEstimateButton } from '@/components/DeleteEstimateButton'
 import { formatPhoneNumber } from '@/lib/format'
@@ -70,30 +70,7 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
     notFound()
   }
 
-  if (!canUserAccessEstimate(estimate, currentUser)) {
-    return (
-      <div className="max-w-md mx-auto mt-14 p-7 bg-white rounded-2xl border border-red-200 shadow-sm text-center space-y-4">
-        <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto border border-red-100">
-          <ShieldAlert size={24} />
-        </div>
-        <div className="space-y-1.5">
-          <h2 className="text-lg sm:text-xl font-black text-gray-900">견적 조회 권한이 없습니다</h2>
-          <p className="text-xs sm:text-sm text-gray-600 font-medium leading-relaxed">
-            <strong>USER</strong> 역할 계정은 <strong>본인이 작성한 견적만</strong> 조회 및 수정할 수 있습니다.
-          </p>
-        </div>
-        <div className="pt-2">
-          <Link
-            href="/estimates"
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold transition-colors"
-          >
-            <ArrowLeft size={15} />
-            <span>견적 목록으로 돌아가기</span>
-          </Link>
-        </div>
-      </div>
-    )
-  }
+  const canEdit = canUserModifyEstimate(estimate, currentUser)
 
   const safeJsonParse = (str: string | null | undefined, fallback: any = {}): any => {
     if (!str || str === 'null' || str === 'undefined') return fallback
@@ -325,12 +302,22 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
           >
             목록
           </Link>
-          <Link 
-            href={`/estimates/${estimate.id}/edit`} 
-            className="px-2 sm:px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs shrink-0 whitespace-nowrap"
-          >
-            수정
-          </Link>
+          {canEdit ? (
+            <Link 
+              href={`/estimates/${estimate.id}/edit`} 
+              className="px-2 sm:px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs shrink-0 whitespace-nowrap"
+            >
+              수정
+            </Link>
+          ) : (
+            <span
+              title="관리자(ADMIN) 또는 해당 견적 작성자만 수정할 수 있습니다"
+              className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1.5 bg-gray-100 text-gray-500 rounded-xl text-xs font-bold border border-gray-200 cursor-not-allowed shrink-0 whitespace-nowrap"
+            >
+              <Lock size={12} />
+              <span>수정불가</span>
+            </span>
+          )}
           {isAdmin && (
             <DeleteEstimateButton
               estimateId={estimate.id}

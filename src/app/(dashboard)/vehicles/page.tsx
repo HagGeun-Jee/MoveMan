@@ -1127,18 +1127,27 @@ export default function VehiclesPage() {
                                     </div>
                                   )}
 
-                                  <button
-                                    type="button"
-                                    onClick={() => startEditDispatch(item)}
-                                    className={`px-3.5 py-2.5 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap shadow-2xs ${
-                                      hasAssigned
-                                        ? 'bg-white hover:bg-gray-100 text-gray-800 border border-gray-300'
-                                        : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                                    }`}
-                                  >
-                                    <Edit2 className="w-3.5 h-3.5" />
-                                    <span>{hasAssigned ? '배차 변경' : '배차 · 팀장 지정'}</span>
-                                  </button>
+                                  {item.canEdit !== false ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => startEditDispatch(item)}
+                                      className={`px-3.5 py-2.5 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap shadow-2xs ${
+                                        hasAssigned
+                                          ? 'bg-white hover:bg-gray-100 text-gray-800 border border-gray-300'
+                                          : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                                      }`}
+                                    >
+                                      <Edit2 className="w-3.5 h-3.5" />
+                                      <span>{hasAssigned ? '배차 변경' : '배차 · 팀장 지정'}</span>
+                                    </button>
+                                  ) : (
+                                    <span
+                                      title="관리자(ADMIN) 또는 해당 견적 작성자만 배차 정보를 변경할 수 있습니다"
+                                      className="px-3 py-2 rounded-xl text-xs font-bold bg-gray-100 text-gray-500 border border-gray-200 flex items-center justify-center gap-1 whitespace-nowrap cursor-not-allowed"
+                                    >
+                                      <span>🔒 관리자·작성자 수정</span>
+                                    </span>
+                                  )}
                                 </div>
                               )}
                             </div>

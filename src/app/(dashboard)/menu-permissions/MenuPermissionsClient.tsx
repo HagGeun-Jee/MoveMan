@@ -297,7 +297,7 @@ export function MenuPermissionsClient({
       <div className="bg-indigo-50/70 border border-indigo-200/80 rounded-2xl p-4 text-xs text-indigo-950 space-y-1 font-medium">
         <p className="font-extrabold text-indigo-900">💡 권한 동작 규칙 안내</p>
         <p>• 메뉴 접근 조건은 <strong>[접근 허용 역할(ROLE)]</strong>과 <strong>[최소 접근 레벨(1~9)]</strong>을 모두 충족해야 접근할 수 있습니다.</p>
-        <p>• 메뉴 접근이 허용되더라도 사용자의 ROLE이 <strong>USER</strong>인 경우에는 모든 메뉴(대시보드, 견적목록, 일정캘린더, 차량배차 등)에서 <strong>본인이 작성한 견적만</strong> 조회 및 수정됩니다.</p>
+        <p>• 모든 사용자는 접근이 허용된 메뉴에서 <strong>전체 견적을 조회</strong>할 수 있으며, 견적 수정은 <strong>ADMIN(관리자)</strong> 및 <strong>해당 견적 작성자</strong>만 가능합니다.</p>
         <p>• 기본 마스터 계정(<strong>admin</strong>)은 권한 설정 실수로 인한 잠김을 방지하기 위해 항상 모든 메뉴에 접근 가능합니다.</p>
       </div>
     </div>

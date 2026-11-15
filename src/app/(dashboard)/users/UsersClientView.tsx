@@ -139,7 +139,7 @@ export function UsersClientView({
             </span>
           </div>
           <p className="text-xs sm:text-sm text-gray-600 font-medium">
-            <strong>ADMIN</strong>은 전체 견적을 조회·수정할 수 있으며, <strong>USER</strong>는 본인이 작성한 견적만 조회·수정할 수 있습니다.
+            모든 사용자는 전체 견적을 조회할 수 있으며, 견적 수정은 <strong>ADMIN(관리자)</strong> 및 <strong>해당 견적 작성자</strong>만 가능합니다.
           </p>
         </div>
 
@@ -309,14 +309,14 @@ export function UsersClientView({
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-indigo-100 text-indigo-800 border border-indigo-200">
                               ADMIN
                             </span>
-                            <div className="text-[10px] text-gray-500 mt-0.5">전체 견적 권한</div>
+                            <div className="text-[10px] text-gray-500 mt-0.5">전체 견적 수정</div>
                           </div>
                         ) : (
                           <div>
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-blue-100 text-blue-800 border border-blue-200">
                               USER
                             </span>
-                            <div className="text-[10px] text-gray-500 mt-0.5">본인 견적 전용</div>
+                            <div className="text-[10px] text-gray-500 mt-0.5">본인 견적만 수정</div>
                           </div>
                         )}
                       </td>
