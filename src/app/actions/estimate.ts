@@ -8,21 +8,26 @@ import { decrypt } from '@/lib/session'
 import { parseKstDateTime, parseKstDateOnly, getKstParts } from '@/lib/kstDate'
 import { getCurrentUserAuthContext } from '@/lib/adminSchema'
 import { canUserModifyEstimate } from '@/lib/menuPermissionUtils'
+import { isEstimatePreWork, type EstimateCancelInfo } from '@/lib/estimateStatus'
 
 function sanitizeCbmItems(raw: string | null | undefined): string {
   if (!raw) return '[]'
   try {
     const parsed = JSON.parse(raw)
     if (!Array.isArray(parsed)) return '[]'
-    const filtered = parsed.filter((item: any) => {
-      const qty = item.quantity !== undefined ? Number(item.quantity) : 1
-      const unitCbm = (Number(item.cbm) || 0) + (Number(item.innerBoxCbm) || 0)
-      return unitCbm > 0 && qty > 0
-    }).map((item: any) => ({
-      ...item,
-      treatment: item.treatment || '이동'
-    }))
-    return JSON.stringify(filtered)
+    const sanitized = parsed
+      .filter((item: any) => Boolean(item && typeof item === 'object'))
+      .map((item: any) => {
+        const { _uid, _isCopiedRow, ...rest } = item
+        return {
+          ...rest,
+          quantity: item.quantity !== undefined ? Number(item.quantity) || 0 : 0,
+          cbm: Number(item.cbm) || 0,
+          innerBoxCbm: Number(item.innerBoxCbm) || 0,
+          treatment: item.treatment || '이동',
+        }
+      })
+    return JSON.stringify(sanitized)
   } catch {
     return '[]'
   }
@@ -455,6 +460,132 @@ export async function saveEstimateTaxFiling(estimateId: string, taxFiling: any) 
   } catch (err) {
     console.error('saveEstimateTaxFiling error:', err)
     return { success: false, error: '손택스/세무신고 상태 저장 중 오류가 발생했습니다.' }
+  }
+}
+
+export async function cancelEstimateReservation(
+  estimateId: string,
+  reason: string
+): Promise<{ success: boolean; error?: string; cancelInfo?: EstimateCancelInfo }> {
+  const currentUser = await getCurrentUserAuthContext()
+  if (!currentUser || !currentUser.isActive) {
+    return { success: false, error: '로그인이 필요합니다.' }
+  }
+  if (currentUser.role !== 'ADMIN') {
+    return { success: false, error: '관리자(ADMIN) 계정만 예약취소 처리할 수 있습니다.' }
+  }
+  const trimmedReason = String(reason || '').trim()
+  if (!trimmedReason) {
+    return { success: false, error: '취소사유를 입력해주세요.' }
+  }
+  if (!estimateId) {
+    return { success: false, error: '견적 식별번호가 필요합니다.' }
+  }
+
+  try {
+    const existing = await prisma.estimate.findUnique({ where: { id: estimateId } })
+    if (!existing) return { success: false, error: '견적 정보를 찾을 수 없습니다.' }
+    if (!isEstimatePreWork(existing)) {
+      return { success: false, error: '견적작업이 진행된 건은 예약취소할 수 없습니다.' }
+    }
+
+    let envObj: any = {}
+    try {
+      if (existing.environment) envObj = JSON.parse(existing.environment) || {}
+    } catch {}
+
+    const cancelInfo: EstimateCancelInfo = {
+      cancelled: true,
+      at: new Date().toISOString(),
+      by: currentUser.name || currentUser.userId,
+      reason: trimmedReason,
+    }
+    envObj.cancelInfo = cancelInfo
+
+    const history = (() => {
+      try {
+        const arr = existing.adminHistory ? JSON.parse(existing.adminHistory) : []
+        return Array.isArray(arr) ? arr : []
+      } catch {
+        return []
+      }
+    })()
+    history.push({
+      action: 'CANCEL',
+      by: currentUser.name,
+      byAdminId: currentUser.id,
+      byUserId: currentUser.userId,
+      reason: trimmedReason,
+      at: cancelInfo.at,
+    })
+
+    await prisma.estimate.update({
+      where: { id: estimateId },
+      data: {
+        environment: JSON.stringify(envObj),
+        adminHistory: JSON.stringify(history),
+      },
+    })
+
+    revalidatePath('/estimates')
+    revalidatePath(`/estimates/${estimateId}`)
+    revalidatePath('/calendar')
+    revalidatePath('/')
+    return { success: true, cancelInfo }
+  } catch (err) {
+    console.error('cancelEstimateReservation error:', err)
+    return { success: false, error: '예약취소 처리 중 오류가 발생했습니다.' }
+  }
+}
+
+export async function restoreEstimateReservation(
+  estimateId: string
+): Promise<{ success: boolean; error?: string }> {
+  const currentUser = await getCurrentUserAuthContext()
+  if (!currentUser || !currentUser.isActive || currentUser.role !== 'ADMIN') {
+    return { success: false, error: '관리자(ADMIN) 계정만 취소를 되돌릴 수 있습니다.' }
+  }
+  try {
+    const existing = await prisma.estimate.findUnique({ where: { id: estimateId } })
+    if (!existing) return { success: false, error: '견적 정보를 찾을 수 없습니다.' }
+
+    let envObj: any = {}
+    try {
+      if (existing.environment) envObj = JSON.parse(existing.environment) || {}
+    } catch {}
+    delete envObj.cancelInfo
+
+    const history = (() => {
+      try {
+        const arr = existing.adminHistory ? JSON.parse(existing.adminHistory) : []
+        return Array.isArray(arr) ? arr : []
+      } catch {
+        return []
+      }
+    })()
+    history.push({
+      action: 'RESTORE',
+      by: currentUser.name,
+      byAdminId: currentUser.id,
+      byUserId: currentUser.userId,
+      at: new Date().toISOString(),
+    })
+
+    await prisma.estimate.update({
+      where: { id: estimateId },
+      data: {
+        environment: JSON.stringify(envObj),
+        adminHistory: JSON.stringify(history),
+      },
+    })
+    revalidatePath('/estimates')
+    revalidatePath(`/estimates/${estimateId}`)
+    revalidatePath('/calendar')
+    revalidatePath('/')
+    return { success: true }
+  } catch (err) {
+    console.error('restoreEstimateReservation error:', err)
+    return { success: false, error: '취소 복원 중 오류가 발생했습니다.' }
   }
 }
 

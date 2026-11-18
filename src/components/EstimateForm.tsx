@@ -72,7 +72,7 @@ import {
 
 const NumberInput = ({ value, onChange, className, name }: { value: number, onChange: (val: number) => void, className?: string, name?: string }) => {
   const [localVal, setLocalVal] = useState(value === 0 ? '' : value.toLocaleString())
-  
+
   useEffect(() => {
     setLocalVal(value === 0 ? '' : value.toLocaleString())
   }, [value])
@@ -88,8 +88,8 @@ const NumberInput = ({ value, onChange, className, name }: { value: number, onCh
   }
 
   return (
-    <input 
-      type="text" 
+    <input
+      type="text"
       name={name}
       value={localVal}
       onChange={handleChange}
@@ -105,7 +105,7 @@ export const isBoxItem = (name: string): boolean => {
   return upper === 'BOX' || upper.startsWith('BOX') || upper === '박스'
 }
 
-export const isBaseCbmExcluded = (treatment?: string): boolean => 
+export const isBaseCbmExcluded = (treatment?: string): boolean =>
   treatment === '폐기' || treatment === '내림' || treatment === '존치'
 
 export const getItemEffectiveCbm = (item: any): number => {
@@ -162,13 +162,17 @@ export const normalizeLocationName = (locName?: string): string => {
   return LEGACY_ROOM_NAME_MAP[trimmed] || trimmed
 }
 
+export const isFilledCbmItem = (item: any): boolean => {
+  if (!item) return false
+  const hasName = Boolean(String(item.name || '').trim())
+  const qty = item.quantity !== undefined ? Number(item.quantity) : 0
+  const unitCbm = (Number(item.cbm) || 0) + (Number(item.innerBoxCbm) || 0)
+  return hasName && qty > 0 && unitCbm > 0
+}
+
 const filterValidCbmItems = (itemsList: any[]): any[] => {
   if (!Array.isArray(itemsList)) return []
-  const filtered = itemsList.filter((item: any) => {
-    const qty = item.quantity !== undefined ? Number(item.quantity) : 1
-    const unitCbm = (Number(item.cbm) || 0) + (Number(item.innerBoxCbm) || 0)
-    return unitCbm > 0 && qty > 0
-  }).map((item: any) => {
+  const filtered = itemsList.filter(isFilledCbmItem).map((item: any) => {
     const { _isCopiedRow, ...rest } = item
     return {
       ...rest,
@@ -177,6 +181,23 @@ const filterValidCbmItems = (itemsList: any[]): any[] => {
     }
   })
   return sortCbmItems(filtered)
+}
+
+const serializeCbmItemsForSave = (itemsList: any[]): any[] => {
+  if (!Array.isArray(itemsList)) return []
+  return itemsList
+    .filter((item: any) => Boolean(item && typeof item === 'object'))
+    .map((item: any) => {
+      const { _uid, _isCopiedRow, ...rest } = item
+      return {
+        ...rest,
+        quantity: item.quantity !== undefined ? Number(item.quantity) || 0 : 0,
+        cbm: Number(item.cbm) || 0,
+        innerBoxCbm: Number(item.innerBoxCbm) || 0,
+        locationName: item.locationName ? normalizeLocationName(item.locationName) : item.locationName,
+        treatment: item.treatment || '이동',
+      }
+    })
 }
 
 let globalItemSeq = 0
@@ -341,10 +362,10 @@ export const sortSpaceItemsByConfiguredOrder = (itemsList: any[], cats: any[]): 
   if (!Array.isArray(itemsList)) return []
   const catMapById = new Map<string, any>()
   const catMapByName = new Map<string, any>()
-  ;(Array.isArray(cats) ? cats : []).forEach(c => {
-    if (c?.id) catMapById.set(c.id, c)
-    if (c?.name) catMapByName.set(normalizeLocationName(c.name), c)
-  })
+    ; (Array.isArray(cats) ? cats : []).forEach(c => {
+      if (c?.id) catMapById.set(c.id, c)
+      if (c?.name) catMapByName.set(normalizeLocationName(c.name), c)
+    })
 
   return [...itemsList].sort((a: any, b: any) => {
     const locIdA = a.locationId || ''
@@ -370,11 +391,23 @@ export const sortSpaceItemsByConfiguredOrder = (itemsList: any[], cats: any[]): 
   })
 }
 
-const parseAndFilterCbmItems = (cbmItemsStr: string | null | undefined): any[] => {
+const parseSavedCbmItems = (cbmItemsStr: string | null | undefined): any[] => {
   if (!cbmItemsStr) return []
   try {
     const parsed = JSON.parse(cbmItemsStr)
-    return filterValidCbmItems(parsed).map(ensureItemUid)
+    if (!Array.isArray(parsed)) return []
+    return parsed
+      .filter((item: any) => Boolean(item && typeof item === 'object'))
+      .map((item: any) =>
+        ensureItemUid({
+          ...item,
+          quantity: item.quantity !== undefined ? Number(item.quantity) || 0 : 0,
+          cbm: Number(item.cbm) || 0,
+          innerBoxCbm: Number(item.innerBoxCbm) || 0,
+          locationName: item.locationName ? normalizeLocationName(item.locationName) : item.locationName,
+          treatment: item.treatment || '이동',
+        })
+      )
   } catch {
     return []
   }
@@ -391,15 +424,15 @@ const safeJsonParse = (str: any, fallback: any = {}): any => {
   }
 }
 
-export function EstimateForm({ 
-  initialData, 
-  action, 
+export function EstimateForm({
+  initialData,
+  action,
   title = "새 견적 작성",
   costStandards: initialCostStandards,
   currentUserName = '',
   isAdmin = false,
-}: { 
-  initialData?: any, 
+}: {
+  initialData?: any,
   action: (formData: FormData) => Promise<void>,
   title?: string,
   costStandards?: CostStandardData,
@@ -414,11 +447,11 @@ export function EstimateForm({
     : ''
 
   // 임시 저장 키 (신규 견적 작성 또는 특정 견적 수정 구분 + 계정별 격리)
-  const storageKey = initialData?.id 
-    ? `meman_estimate_draft_edit_${initialData.id}` 
+  const storageKey = initialData?.id
+    ? `meman_estimate_draft_edit_${initialData.id}`
     : currentUserName?.trim()
-    ? `meman_estimate_draft_new_${currentUserName.trim()}`
-    : 'meman_estimate_draft_new'
+      ? `meman_estimate_draft_new_${currentUserName.trim()}`
+      : 'meman_estimate_draft_new'
 
   const [draftRestoredTime, setDraftRestoredTime] = useState<string | null>(null)
   const isDraftLoadedRef = useRef(false)
@@ -431,14 +464,14 @@ export function EstimateForm({
 
   useEffect(() => {
     if (!initialCostStandards) {
-      getCostStandards().then(data => setCostStandardsData(data)).catch(() => {})
+      getCostStandards().then(data => setCostStandardsData(data)).catch(() => { })
     }
   }, [initialCostStandards])
 
   const [additionalCost, setAdditionalCost] = useState(initialData?.additionalCost || 0)
   const [storageCost, setStorageCost] = useState(initialData?.storageCost || 0)
   const [vat, setVat] = useState(initialData?.vat || 0)
-  
+
   const supplyAmount = movingCost + additionalCost + storageCost
   const totalAmount = supplyAmount + vat
 
@@ -453,17 +486,17 @@ export function EstimateForm({
   const [downPayment, setDownPayment] = useState(payPlanObj.downPayment || 0)
   const [downPaymentDate, setDownPaymentDate] = useState<Date | null>(payPlanObj.downPaymentDate ? new Date(payPlanObj.downPaymentDate) : null)
   const [downPaymentPaid, setDownPaymentPaid] = useState(payPlanObj.downPaymentPaid || false)
-  
+
   const [intermediatePayment, setIntermediatePayment] = useState(payPlanObj.intermediatePayment || 0)
   const [intermediateDate, setIntermediateDate] = useState<Date | null>(payPlanObj.intermediateDate ? new Date(payPlanObj.intermediateDate) : null)
   const [intermediatePaymentPaid, setIntermediatePaymentPaid] = useState(payPlanObj.intermediatePaymentPaid || false)
-  
+
   const [balance, setBalance] = useState(payPlanObj.balance || 0)
   const [balanceDate, setBalanceDate] = useState<Date | null>(payPlanObj.balanceDate ? new Date(payPlanObj.balanceDate) : null)
   const [balancePaid, setBalancePaid] = useState(payPlanObj.balancePaid || false)
   const [taxFiling, setTaxFiling] = useState<TaxFilingInfo | null>(envObj.taxFiling || null)
   const [isSontaxModalOpen, setIsSontaxModalOpen] = useState(false)
-  
+
   const [estimateDate, setEstimateDate] = useState<Date | null>(initialData?.estimateDate ? new Date(initialData.estimateDate) : new Date())
   const [visitDate, setVisitDate] = useState<Date | null>(initialData?.visitDate ? new Date(initialData.visitDate) : null)
   const [movingDate, setMovingDate] = useState<Date | null>(initialData?.movingDate ? new Date(initialData.movingDate) : null)
@@ -541,7 +574,7 @@ export function EstimateForm({
   useEffect(() => {
     getPartnerCompanies()
       .then(list => setPartners(list))
-      .catch(() => {})
+      .catch(() => { })
   }, [])
 
   const handlePartnerSelectChange = (selectedId: string) => {
@@ -615,7 +648,7 @@ export function EstimateForm({
   const [isCalculatingDistance, setIsCalculatingDistance] = useState<boolean>(false)
   const [distanceCalcError, setDistanceCalcError] = useState<string | null>(null)
   const [distanceNotice, setDistanceNotice] = useState<string | null>(null)
-  
+
   // 사다리차 표준 운임표 관련 상태 (차량 톤수 및 층수 감안 자동 연동)
   const [ladderFares, setLadderFares] = useState<LadderFareItem[]>([])
   const [ladderTonnage, setLadderTonnage] = useState<string>(envObj.ladderTonnage || '5')
@@ -687,11 +720,11 @@ export function EstimateForm({
     }
   }
 
-  const [items, setItems] = useState<any[]>(() => parseAndFilterCbmItems(initialData?.cbmItems))
+  const [items, setItems] = useState<any[]>(() => parseSavedCbmItems(initialData?.cbmItems))
   const [standardItems, setStandardItems] = useState<any[]>([])
   const [categories, setCategories] = useState<any[]>([])
   const [activeCategoryIds, setActiveCategoryIds] = useState<string[]>([])
-  
+
   const [vehicles, setVehicles] = useState<any[]>(envObj.vehicles || [])
   const [standardVehicles, setStandardVehicles] = useState<any[]>([])
   const [isVehiclesManuallyEdited, setIsVehiclesManuallyEdited] = useState<boolean>(false)
@@ -776,8 +809,8 @@ export function EstimateForm({
 
   const [tollFare, setTollFare] = useState<number>(Number(envObj.tollFare) || 0)
   const [roundTollFare, setRoundTollFare] = useState<number>(
-    envObj.roundTollFare !== undefined 
-      ? Number(envObj.roundTollFare) 
+    envObj.roundTollFare !== undefined
+      ? Number(envObj.roundTollFare)
       : (Number(envObj.tollFare) ? Number(envObj.tollFare) * 2 : 0)
   )
   const [tollFareByClass, setTollFareByClass] = useState<{ class1: number; class2: number; class3: number } | null>(
@@ -819,7 +852,7 @@ export function EstimateForm({
           setCustomInstallOptions(parsed)
         }
       }
-    } catch {}
+    } catch { }
   }, [])
 
   const allInstallOptions = useMemo(() => {
@@ -846,7 +879,7 @@ export function EstimateForm({
       setCustomInstallOptions(nextCustom)
       try {
         localStorage.setItem('meman_custom_install_options', JSON.stringify(nextCustom))
-      } catch {}
+      } catch { }
     }
     if (!installRequestItems.includes(trimmed)) {
       setInstallRequestItems(prev => [...prev, trimmed])
@@ -860,7 +893,7 @@ export function EstimateForm({
     setInstallRequestItems(prev => prev.filter(i => i !== item))
     try {
       localStorage.setItem('meman_custom_install_options', JSON.stringify(nextCustom))
-    } catch {}
+    } catch { }
   }
 
   // 특기사항 (내용이 없으면 조회/출력 시 숨김)
@@ -897,8 +930,8 @@ export function EstimateForm({
         // 카카오맵 기본 표시 금액(1종 진입IC~진출TG 실경로 통행료)과 100% 일치하도록 기본 세팅
         setTollFare(fare1)
         setRoundTollFare(fare1 * 2)
-        const tollText = fare1 > 0 
-          ? ` | 카카오맵(1종) 편도 ${fare1.toLocaleString()}원 (왕복 ${(fare1 * 2).toLocaleString()}원) · 3종(5톤) 편도 ${byClass.class3.toLocaleString()}원` 
+        const tollText = fare1 > 0
+          ? ` | 카카오맵(1종) 편도 ${fare1.toLocaleString()}원 (왕복 ${(fare1 * 2).toLocaleString()}원) · 3종(5톤) 편도 ${byClass.class3.toLocaleString()}원`
           : ' | 통행료 없음 (0원)'
         setDistanceNotice(`거리 계산 완료: ${res.distanceKm}km (${res.durationText})${tollText}`)
         setTimeout(() => setDistanceNotice(null), 6000)
@@ -1027,9 +1060,9 @@ export function EstimateForm({
   }
 
   const totalExtraCost = totalLadderCost + calculatedExtraCost
-  const isAllApplied = (totalLadderCost > 0 ? isLadderApplied : true) && 
-                       (calculatedExtraCost > 0 ? isDistanceApplied : true) && 
-                       totalExtraCost > 0
+  const isAllApplied = (totalLadderCost > 0 ? isLadderApplied : true) &&
+    (calculatedExtraCost > 0 ? isDistanceApplied : true) &&
+    totalExtraCost > 0
 
   const handleApplyAllAdditionalCosts = () => {
     const totalExtra = totalLadderCost + calculatedExtraCost
@@ -1086,11 +1119,74 @@ export function EstimateForm({
     return allCategoriesWithUnassigned.filter((c: any) => !displayedIdSet.has(c.id))
   }, [allCategoriesWithUnassigned, displayedCategories])
 
+  const [emptyItemsCleared, setEmptyItemsCleared] = useState<boolean>(
+    Boolean(envObj.emptyItemsCleared)
+  )
+
+  const emptyItemsCount = useMemo(
+    () => items.filter(it => !isFilledCbmItem(it)).length,
+    [items]
+  )
+
+  // 빈 물품(수량 0 또는 규격·CBM 미입력 항목) 수동 일괄 삭제 핸들러
+  const handleRemoveEmptyItems = () => {
+    if (emptyItemsCount <= 0) {
+      alert('삭제할 빈 물품(수량 0 또는 규격·CBM 미입력 항목)이 없습니다.')
+      return
+    }
+    if (
+      !confirm(
+        `수량이 0이거나 규격·CBM이 입력되지 않은 빈 물품 ${emptyItemsCount}개를 목록에서 일괄 삭제하시겠습니까?`
+      )
+    ) {
+      return
+    }
+
+    hasUserEditedRef.current = true
+    setEmptyItemsCleared(true)
+
+    const filledOnly = sortSpaceItemsByConfiguredOrder(
+      items
+        .filter(isFilledCbmItem)
+        .map(({ _isCopiedRow, ...rest }) =>
+          ensureItemUid({
+            ...rest,
+            locationName: rest.locationName
+              ? normalizeLocationName(rest.locationName)
+              : rest.locationName,
+            treatment: rest.treatment || '이동',
+          })
+        ),
+      categories
+    )
+
+    setItems(filledOnly)
+
+    const remainingCatIds = Array.from(
+      new Set(filledOnly.map(i => i.locationId || ''))
+    ) as string[]
+    const fallbackCatId = categories[0]?.id
+    const nextActiveIds =
+      remainingCatIds.length > 0
+        ? remainingCatIds
+        : fallbackCatId
+          ? [fallbackCatId]
+          : []
+
+    setActiveCategoryIds(nextActiveIds)
+    const nextExpanded: Record<string, boolean> = {}
+    nextActiveIds.forEach(id => {
+      nextExpanded[id] = true
+    })
+    setExpandedCategories(nextExpanded)
+  }
+
   // 공간 추가 핸들러 (물품 기준정보의 해당 공간 지정 물품 및 디스플레이 순서 그대로 초기 나열)
   const handleAddCategory = (catId: string) => {
     const targetCat = allCategoriesWithUnassigned.find((c: any) => c.id === catId)
     if (!targetCat) return
 
+    setEmptyItemsCleared(false)
     setActiveCategoryIds(prev => Array.from(new Set([...prev, catId])))
 
     const curatedDefaultItems = getDefaultCuratedRoomItems(
@@ -1311,6 +1407,7 @@ export function EstimateForm({
 
   const handleApplyPreset = (presetItems: PresetItem[], mode: 'replace' | 'append') => {
     if (!presetItems || presetItems.length === 0) return
+    setEmptyItemsCleared(false)
 
     // 템플릿에 포함된 공간들을 활성 공간 목록으로 설정 (초기 수량 0 상태에서도 모두 탭 노출)
     const presetLocIds = Array.from(
@@ -1440,8 +1537,8 @@ export function EstimateForm({
 
         const existingIdx = nextList.findIndex(
           it => (it.locationId || '') === locId &&
-                it.name === aiItem.name &&
-                (it.spec || '') === (aiItem.spec || '')
+            it.name === aiItem.name &&
+            (it.spec || '') === (aiItem.spec || '')
         )
 
         if (existingIdx >= 0) {
@@ -1734,7 +1831,7 @@ export function EstimateForm({
       const saved = localStorage.getItem(storageKey)
       if (saved) {
         const draft = JSON.parse(saved)
-        
+
         // 수정 모드인 경우: 서버 데이터가 드래프트보다 최신이거나 같으면 오래된 드래프트 삭제 후 서버 원본 사용
         if (initialData?.id && initialData?.updatedAt && draft?.savedAt) {
           const serverUpdatedTime = new Date(initialData.updatedAt).getTime()
@@ -1776,7 +1873,7 @@ export function EstimateForm({
 
           if (draft.fromAddress !== undefined) setFromAddress(draft.fromAddress)
           if (draft.toAddress !== undefined) setToAddress(draft.toAddress)
-          
+
           // 층수·동호수·평형 및 작업조건: draft에 유효값이 있으면 우선 적용, 없으면 서버 DB값 유지
           if (draft.fromFloor !== undefined && draft.fromFloor !== '') setFromFloor(draft.fromFloor)
           else if (envObj.fromFloor) setFromFloor(envObj.fromFloor)
@@ -1822,7 +1919,7 @@ export function EstimateForm({
           else if (Array.isArray(envObj.installRequestItems)) setInstallRequestItems(envObj.installRequestItems)
           if (Array.isArray(draft.scheduledMessages)) setScheduledMessages(draft.scheduledMessages)
           else if (Array.isArray(envObj.scheduledMessages)) setScheduledMessages(envObj.scheduledMessages)
-          
+
           if (draft.ladderTonnage) setLadderTonnage(draft.ladderTonnage)
           else if (envObj.ladderTonnage) setLadderTonnage(envObj.ladderTonnage)
 
@@ -1836,11 +1933,15 @@ export function EstimateForm({
           if (Array.isArray(draft.labors) && draft.labors.length > 0) setLabors(draft.labors)
           else if (Array.isArray(envObj.labors) && envObj.labors.length > 0) setLabors(envObj.labors)
 
-          if (draft.items && draft.items.length > 0) {
-            const restoredItems = initialData?.cbmItems
-              ? draft.items
-              : draft.items.filter((i: any) => (Number(i.quantity) || 0) > 0)
-            if (restoredItems.length > 0) {
+          if (draft.emptyItemsCleared !== undefined) {
+            setEmptyItemsCleared(Boolean(draft.emptyItemsCleared))
+          }
+          if (Array.isArray(draft.items)) {
+            const restoredItems =
+              initialData?.cbmItems || draft.emptyItemsCleared
+                ? draft.items
+                : draft.items.filter((i: any) => (Number(i.quantity) || 0) > 0)
+            if (restoredItems.length > 0 || draft.emptyItemsCleared) {
               setItems(
                 restoredItems.map((i: any) =>
                   ensureItemUid({
@@ -1928,11 +2029,11 @@ export function EstimateForm({
             const latest = regMap.get(item.code)
             return latest
               ? {
-                  ...item,
-                  name: latest.name,
-                  unit: latest.unit || item.unit,
-                  spec: latest.memo ?? item.spec ?? '',
-                }
+                ...item,
+                name: latest.name,
+                unit: latest.unit || item.unit,
+                spec: latest.memo ?? item.spec ?? '',
+              }
               : item
           })
         )
@@ -1967,7 +2068,12 @@ export function EstimateForm({
       const effectiveInitialCats =
         initialDefaultCats.length > 0 ? initialDefaultCats : defaultCat ? [defaultCat] : []
 
-      if (!initialData?.cbmItems) {
+      const savedServerItems = parseSavedCbmItems(initialData?.cbmItems)
+      const isServerItemsUninitialized =
+        !initialData?.cbmItems ||
+        (savedServerItems.length === 0 && !envObj.emptyItemsCleared)
+
+      if (isServerItemsUninitialized) {
         let initialItems: any[] = []
 
         // 물품 기준정보에 설정된 기본 공간 순서 및 공간별 초기 물품 순서대로 세팅 (수량 0)
@@ -1976,7 +2082,7 @@ export function EstimateForm({
           initialItems.push(...roomItems)
         })
 
-        // draft items가 저장되어 있는지 검사하여 병합 (실제 수량 > 0 인 작성 중 품목은 유지하되, 모든 방의 기본 물품 세팅은 동일하게 보장)
+        // draft items가 저장되어 있는지 검사하여 병합 (빈 물품 삭제 버튼을 누른 상태면 그 상태 유지)
         let finalItems = [...initialItems]
         let loadedActiveCats = effectiveInitialCats.map((c: any) => c.id)
 
@@ -1984,48 +2090,73 @@ export function EstimateForm({
           const saved = localStorage.getItem(storageKey)
           if (saved) {
             const draft = JSON.parse(saved)
-            const draftItemsWithQty = Array.isArray(draft?.items)
-              ? draft.items.filter((i: any) => (Number(i.quantity) || 0) > 0)
-              : []
+            const isStaleEditDraft = Boolean(
+              initialData?.id &&
+              initialData?.updatedAt &&
+              draft?.savedAt &&
+              new Date(initialData.updatedAt).getTime() >= new Date(draft.savedAt).getTime()
+            )
 
-            if (draftItemsWithQty.length > 0) {
-              draftItemsWithQty.forEach((dItem: any) => {
-                const locId = dItem.locationId || ''
-                if (!loadedActiveCats.includes(locId)) {
-                  loadedActiveCats.push(locId)
-                }
-                const matchIdx = finalItems.findIndex(
-                  fi =>
-                    (fi.locationId || '') === locId &&
-                    fi.name === dItem.name &&
-                    ((Number(fi.quantity) || 0) === 0 ||
-                      ((fi.spec || '') === (dItem.spec || '') &&
-                        (fi.treatment || '이동') === (dItem.treatment || '이동')))
+            if (!isStaleEditDraft) {
+              if (draft?.emptyItemsCleared && Array.isArray(draft?.items)) {
+                setEmptyItemsCleared(true)
+                finalItems = draft.items.map((dItem: any) =>
+                  ensureItemUid({ ...dItem, treatment: dItem.treatment || '이동' })
                 )
-                if (matchIdx >= 0) {
-                  finalItems[matchIdx] = ensureItemUid({
-                    ...finalItems[matchIdx],
-                    ...dItem,
-                    treatment: dItem.treatment || '이동',
-                  })
-                } else {
-                  const newRestored = ensureItemUid({ ...dItem, treatment: dItem.treatment || '이동' })
-                  let lastSameNameIdx = -1
-                  for (let k = 0; k < finalItems.length; k++) {
-                    if ((finalItems[k].locationId || '') === locId && finalItems[k].name === dItem.name) {
-                      lastSameNameIdx = k
+                const draftCatIds = Array.from(
+                  new Set(finalItems.map((i: any) => i.locationId || ''))
+                ) as string[]
+                loadedActiveCats =
+                  draftCatIds.length > 0
+                    ? draftCatIds
+                    : defaultCat
+                      ? [defaultCat.id]
+                      : []
+              } else {
+                const draftItemsWithQty = Array.isArray(draft?.items)
+                  ? draft.items.filter((i: any) => (Number(i.quantity) || 0) > 0)
+                  : []
+
+                if (draftItemsWithQty.length > 0) {
+                  draftItemsWithQty.forEach((dItem: any) => {
+                    const locId = dItem.locationId || ''
+                    if (!loadedActiveCats.includes(locId)) {
+                      loadedActiveCats.push(locId)
                     }
-                  }
-                  if (lastSameNameIdx >= 0) {
-                    finalItems.splice(lastSameNameIdx + 1, 0, newRestored)
-                  } else {
-                    finalItems.push(newRestored)
-                  }
+                    const matchIdx = finalItems.findIndex(
+                      fi =>
+                        (fi.locationId || '') === locId &&
+                        fi.name === dItem.name &&
+                        ((Number(fi.quantity) || 0) === 0 ||
+                          ((fi.spec || '') === (dItem.spec || '') &&
+                            (fi.treatment || '이동') === (dItem.treatment || '이동')))
+                    )
+                    if (matchIdx >= 0) {
+                      finalItems[matchIdx] = ensureItemUid({
+                        ...finalItems[matchIdx],
+                        ...dItem,
+                        treatment: dItem.treatment || '이동',
+                      })
+                    } else {
+                      const newRestored = ensureItemUid({ ...dItem, treatment: dItem.treatment || '이동' })
+                      let lastSameNameIdx = -1
+                      for (let k = 0; k < finalItems.length; k++) {
+                        if ((finalItems[k].locationId || '') === locId && finalItems[k].name === dItem.name) {
+                          lastSameNameIdx = k
+                        }
+                      }
+                      if (lastSameNameIdx >= 0) {
+                        finalItems.splice(lastSameNameIdx + 1, 0, newRestored)
+                      } else {
+                        finalItems.push(newRestored)
+                      }
+                    }
+                  })
                 }
-              })
+              }
             }
           }
-        } catch {}
+        } catch { }
 
         const activeCatObjs = loadedActiveCats.map(id => {
           const found = sortedCatsRes.find((c: any) => c.id === id)
@@ -2036,7 +2167,7 @@ export function EstimateForm({
         setItems(finalItems.map(ensureItemUid))
         setActiveCategoryIds(loadedActiveCats)
 
-        const firstDefaultCatId = effectiveInitialCats[0]?.id || sortedCatsRes[0]?.id
+        const firstDefaultCatId = loadedActiveCats[0] || effectiveInitialCats[0]?.id || sortedCatsRes[0]?.id
         const initialExpanded: Record<string, boolean> = {}
         sortedCatsRes.forEach((c: any) => {
           const catItems = finalItems.filter((i: any) => (i.locationId || '') === c.id)
@@ -2045,18 +2176,25 @@ export function EstimateForm({
         initialExpanded[''] = finalItems.some(i => !i.locationId && (i.quantity || 0) > 0)
         setExpandedCategories(initialExpanded)
       } else {
-        const validItems = parseAndFilterCbmItems(initialData.cbmItems)
-        
-        let finalItems = validItems
+        let finalItems = savedServerItems
         try {
           const saved = localStorage.getItem(storageKey)
           if (saved) {
             const draft = JSON.parse(saved)
-            if (draft.items && draft.items.length > 0) {
+            const isStaleEditDraft = Boolean(
+              initialData?.id &&
+              initialData?.updatedAt &&
+              draft?.savedAt &&
+              new Date(initialData.updatedAt).getTime() >= new Date(draft.savedAt).getTime()
+            )
+            if (!isStaleEditDraft && Array.isArray(draft?.items)) {
               finalItems = draft.items.map((i: any) => ({ ...i, treatment: i.treatment || '이동' }))
+              if (draft.emptyItemsCleared !== undefined) {
+                setEmptyItemsCleared(Boolean(draft.emptyItemsCleared))
+              }
             }
           }
-        } catch {}
+        } catch { }
 
         // 수정 모드: 이미 물량작업을 마친 위치(수량 > 0인 물품이 존재하는 위치)에는 수량 0인 빈 BOX를 노출하지 않음
         const workedCatIdSet = new Set(
@@ -2075,7 +2213,7 @@ export function EstimateForm({
         // 각 공간 내 품목 순서를 물품 기준정보 디스플레이 순서대로 정렬
         finalItems = sortSpaceItemsByConfiguredOrder(finalItems, sortedCatsRes)
 
-        // 기존 견적의 짐이 있는 공간들을 활성화
+        // 기존 견적에 저장된 공간들을 모두 활성화 (빈 물품 포함)
         const existingCatIds = Array.from(new Set(
           finalItems.map((i: any) => i.locationId || '')
         )) as string[]
@@ -2084,10 +2222,14 @@ export function EstimateForm({
         setItems(finalItems.map(ensureItemUid))
         setActiveCategoryIds(activeIdsForEdit)
 
+        const hasAnyFilled = finalItems.some(isFilledCbmItem)
+        const firstActiveCatId = activeIdsForEdit[0] || defaultCat?.id
         const initialExpanded: Record<string, boolean> = {}
         catsRes.forEach((c: any) => {
           const catItems = finalItems.filter((i: any) => (i.locationId || '') === c.id)
-          initialExpanded[c.id] = catItems.length > 0
+          initialExpanded[c.id] = hasAnyFilled
+            ? catItems.some(isFilledCbmItem)
+            : c.id === firstActiveCatId && catItems.length > 0
         })
         initialExpanded[''] = finalItems.some(i => !i.locationId && (i.quantity || 0) > 0)
         setExpandedCategories(initialExpanded)
@@ -2100,11 +2242,11 @@ export function EstimateForm({
     if (!isDraftLoadedRef.current || !hasUserEditedRef.current) return
 
     const hasContent = Boolean(
-      customerName || 
-      contact || 
-      fromAddress || 
-      toAddress || 
-      movingCost > 0 || 
+      customerName ||
+      contact ||
+      fromAddress ||
+      toAddress ||
+      movingCost > 0 ||
       additionalCost > 0 ||
       specialNotes.trim() ||
       installRequestItems.length > 0 ||
@@ -2160,6 +2302,7 @@ export function EstimateForm({
           vehicles,
           labors,
           items,
+          emptyItemsCleared,
           deadSpaceRatio,
           movingCost,
           additionalCost,
@@ -2232,6 +2375,7 @@ export function EstimateForm({
     vehicles,
     labors,
     items,
+    emptyItemsCleared,
     deadSpaceRatio,
     movingCost,
     additionalCost,
@@ -2287,7 +2431,7 @@ export function EstimateForm({
       ...dispatchInfo,
       dispatchStatus:
         (Array.isArray(dispatchInfo.assignedVehicles) && dispatchInfo.assignedVehicles.length > 0) ||
-        Boolean(dispatchInfo.teamLeader?.trim())
+          Boolean(dispatchInfo.teamLeader?.trim())
           ? 'CONFIRMED'
           : 'UNASSIGNED'
     },
@@ -2326,6 +2470,7 @@ export function EstimateForm({
     ladderToCost: toLadderCalc.cost,
     ladderTotalCost: totalLadderCost,
     deadSpaceRatio,
+    emptyItemsCleared,
     installRequestItems,
     specialNotes: specialNotes.trim(),
     scheduledMessages,
@@ -2341,13 +2486,13 @@ export function EstimateForm({
   // 임시 저장 삭제 및 초기화 (수정 모드 시 서버 원본 복원)
   const handleClearDraft = () => {
     const isEdit = Boolean(initialData?.id)
-    const msg = isEdit 
+    const msg = isEdit
       ? '작성 중이던 임시 저장 데이터를 비우고, 서버에 저장된 원래 견적 데이터로 다시 불러오시겠습니까?'
       : '작성 중이던 임시 저장 데이터를 모두 삭제하고 새로 작성하시겠습니까?'
     if (confirm(msg)) {
       try {
         localStorage.removeItem(storageKey)
-      } catch {}
+      } catch { }
       window.location.reload()
     }
   }
@@ -2356,7 +2501,7 @@ export function EstimateForm({
   const handleFormSubmit = async (formData: FormData) => {
     try {
       localStorage.removeItem(storageKey)
-    } catch {}
+    } catch { }
 
     // 타임존 오차 방지를 위해 방문일정·이사예정일정은 정확한 ISO 타임스탬프(UTC Z), 날짜 전용 필드는 YYYY-MM-DD로 명시 전달
     const visitIso = visitDate ? visitDate.toISOString() : ''
@@ -2369,7 +2514,7 @@ export function EstimateForm({
     formData.set('movingDate', movDateIso)
     formData.set('organizeDate', orgDateStr)
 
-    const rawItems = filterValidCbmItems(items)
+    const rawItems = serializeCbmItemsForSave(items)
     const offlineData = {
       id: initialData?.id,
       customerName,
@@ -2411,11 +2556,11 @@ export function EstimateForm({
     } catch (e: any) {
       // Next.js Server Action의 redirect()는 내부적으로 NEXT_REDIRECT 에러를 throw함.
       // 이는 정상적인 리다이렉트 흐름이므로 catch로 잡지 않고 다시 던져야 함!
-      const isRedirect = 
-        e?.message === 'NEXT_REDIRECT' || 
+      const isRedirect =
+        e?.message === 'NEXT_REDIRECT' ||
         e?.digest?.startsWith?.('NEXT_REDIRECT') ||
         (typeof e?.message === 'string' && e.message.includes('NEXT_REDIRECT'))
-      
+
       if (isRedirect) {
         throw e
       }
@@ -2428,7 +2573,7 @@ export function EstimateForm({
           alert('네트워크 통신 오류로 인해 단말기 자체 DB에 안전하게 보관되었습니다.\n통신이 원활해지면 상단 [서버 동기화]를 눌러주세요.')
           window.location.href = '/estimates'
           return
-        } catch {}
+        } catch { }
       }
       throw e
     }
@@ -2500,10 +2645,10 @@ export function EstimateForm({
           </div>
         </div>
       )}
-      
+
       <form action={handleFormSubmit} className="space-y-3 sm:space-y-4">
         {initialData && <input type="hidden" name="id" value={initialData.id} />}
-        
+
         {/* 기본 정보 */}
         <div className="bg-white p-3 sm:p-4 md:p-5 rounded-xl shadow-sm border border-gray-100 space-y-3">
           <div className="flex items-center justify-between border-b pb-2">
@@ -2533,14 +2678,14 @@ export function EstimateForm({
                 고객명 <span className="text-red-500">*</span>
               </label>
               <div className="flex-1 p-1 sm:p-1.5 min-w-0">
-                <input 
-                  type="text" 
-                  name="customerName" 
-                  value={customerName} 
-                  onChange={e => setCustomerName(e.target.value)} 
-                  required 
-                  className="w-full rounded border border-gray-200 px-2.5 py-1.5 outline-none focus:border-blue-500 text-xs sm:text-sm" 
-                  placeholder="홍길동" 
+                <input
+                  type="text"
+                  name="customerName"
+                  value={customerName}
+                  onChange={e => setCustomerName(e.target.value)}
+                  required
+                  className="w-full rounded border border-gray-200 px-2.5 py-1.5 outline-none focus:border-blue-500 text-xs sm:text-sm"
+                  placeholder="홍길동"
                 />
               </div>
             </div>
@@ -2551,17 +2696,17 @@ export function EstimateForm({
                 연락처 <span className="text-red-500">*</span>
               </label>
               <div className="flex-1 p-1 sm:p-1.5 min-w-0">
-                <input 
-                  type="tel" 
-                  name="contact" 
-                  value={contact} 
-                  onChange={e => handlePhoneInputChange(e, setContact)} 
+                <input
+                  type="tel"
+                  name="contact"
+                  value={contact}
+                  onChange={e => handlePhoneInputChange(e, setContact)}
                   onFocus={handleSelectAllOnFocus}
                   maxLength={13}
                   autoComplete="tel"
-                  required 
-                  className="w-full rounded border border-gray-200 px-2.5 py-1.5 outline-none focus:border-blue-500 text-xs sm:text-sm font-medium" 
-                  placeholder="010-0000-0000" 
+                  required
+                  className="w-full rounded border border-gray-200 px-2.5 py-1.5 outline-none focus:border-blue-500 text-xs sm:text-sm font-medium"
+                  placeholder="010-0000-0000"
                 />
               </div>
             </div>
@@ -2572,10 +2717,10 @@ export function EstimateForm({
                 이사 종류 <span className="text-red-500">*</span>
               </label>
               <div className="flex-1 p-1 sm:p-1.5 min-w-0">
-                <select 
-                  name="movingType" 
-                  value={movingType} 
-                  onChange={e => setMovingType(e.target.value)} 
+                <select
+                  name="movingType"
+                  value={movingType}
+                  onChange={e => setMovingType(e.target.value)}
                   className="w-full rounded border border-gray-200 px-2.5 py-1.5 outline-none focus:border-blue-500 bg-white text-xs sm:text-sm"
                 >
                   <option value="P">포장이사 (P)</option>
@@ -2596,14 +2741,14 @@ export function EstimateForm({
                   name="estimateDate"
                   value={estimateDate ? format(estimateDate, 'yyyy-MM-dd') : ''}
                 />
-                <CustomDatePicker 
-                  selected={estimateDate} 
+                <CustomDatePicker
+                  selected={estimateDate}
                   onChange={d => {
                     hasUserEditedRef.current = true
                     setEstimateDate(d)
                   }}
-                  required 
-                  className="w-full rounded border border-gray-200 px-2.5 py-1.5 outline-none focus:border-blue-500 text-xs sm:text-sm" 
+                  required
+                  className="w-full rounded border border-gray-200 px-2.5 py-1.5 outline-none focus:border-blue-500 text-xs sm:text-sm"
                 />
               </div>
             </div>
@@ -2633,8 +2778,8 @@ export function EstimateForm({
                       {p.feeType === 'RATE' && p.feeValue > 0
                         ? ` · 수수료 ${p.feeValue}%`
                         : p.feeType === 'FIXED' && p.feeValue > 0
-                        ? ` · 건당 ${p.feeValue.toLocaleString()}원`
-                        : ''}
+                          ? ` · 건당 ${p.feeValue.toLocaleString()}원`
+                          : ''}
                     </option>
                   ))}
                   {partnerId && !partners.some(p => p.id === partnerId) && partnerName && (
@@ -2685,13 +2830,13 @@ export function EstimateForm({
                 </span>
               )}
               {fromAddress && toAddress && (
-                <a 
-                  href={`https://map.kakao.com/?sName=${encodeURIComponent(fromAddress)}&eName=${encodeURIComponent(toAddress)}`} 
-                  target="_blank" 
-                  rel="noreferrer" 
+                <a
+                  href={`https://map.kakao.com/?sName=${encodeURIComponent(fromAddress)}&eName=${encodeURIComponent(toAddress)}`}
+                  target="_blank"
+                  rel="noreferrer"
                   className="px-2.5 sm:px-3 py-1 sm:py-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 flex items-center gap-1 font-medium text-xs sm:text-sm shadow-sm"
                 >
-                  <MapPin size={15}/> 경로 길찾기
+                  <MapPin size={15} /> 경로 길찾기
                 </a>
               )}
             </div>
@@ -2709,18 +2854,18 @@ export function EstimateForm({
                       name="visitDate"
                       value={visitDate ? visitDate.toISOString() : ''}
                     />
-                    <CustomDatePicker 
-                      selected={visitDate} 
+                    <CustomDatePicker
+                      selected={visitDate}
                       onChange={d => {
                         hasUserEditedRef.current = true
                         setVisitDate(d)
                       }}
-                      showTimeSelect 
+                      showTimeSelect
                       timeIntervals={15}
                       isClearable
-                      dateFormat="yyyy-MM-dd HH:mm" 
+                      dateFormat="yyyy-MM-dd HH:mm"
                       placeholderText="방문일시 선택"
-                      className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 sm:py-2 outline-none focus:border-blue-500 text-xs sm:text-sm" 
+                      className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 sm:py-2 outline-none focus:border-blue-500 text-xs sm:text-sm"
                     />
                   </td>
                   <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-2 sm:px-3 py-2 text-left font-medium text-gray-700 w-20 sm:w-24 md:w-28">
@@ -2732,8 +2877,8 @@ export function EstimateForm({
                       name="movingDate"
                       value={movingDate ? movingDate.toISOString() : ''}
                     />
-                    <CustomDatePicker 
-                      selected={movingDate} 
+                    <CustomDatePicker
+                      selected={movingDate}
                       onChange={d => {
                         hasUserEditedRef.current = true
                         setMovingDate(d)
@@ -2743,7 +2888,7 @@ export function EstimateForm({
                       isClearable
                       dateFormat="yyyy-MM-dd HH:mm"
                       placeholderText="이사일시 선택"
-                      className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 sm:py-2 outline-none focus:border-blue-500 text-xs sm:text-sm" 
+                      className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 sm:py-2 outline-none focus:border-blue-500 text-xs sm:text-sm"
                     />
                   </td>
                 </tr>
@@ -2759,15 +2904,15 @@ export function EstimateForm({
                         name="organizeDate"
                         value={organizeDate ? format(organizeDate, 'yyyy-MM-dd') : ''}
                       />
-                      <CustomDatePicker 
-                        selected={organizeDate} 
+                      <CustomDatePicker
+                        selected={organizeDate}
                         onChange={d => {
                           hasUserEditedRef.current = true
                           setOrganizeDate(d)
                         }}
                         isClearable
                         placeholderText="정리일자 선택"
-                        className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 sm:py-2 outline-none focus:border-blue-500 text-xs sm:text-sm" 
+                        className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 sm:py-2 outline-none focus:border-blue-500 text-xs sm:text-sm"
                       />
                     </td>
                     <th className="whitespace-nowrap bg-gray-50 border border-gray-200 px-2 sm:px-3 py-2 text-left font-medium text-gray-700 w-20 sm:w-24 md:w-28">
@@ -2776,24 +2921,24 @@ export function EstimateForm({
                     <td className="border border-gray-200 p-1.5 sm:p-2">
                       <div className="flex gap-3 items-center h-full px-1">
                         <label className="flex items-center gap-1.5 text-xs sm:text-sm text-gray-700 cursor-pointer">
-                          <input 
-                            type="radio" 
-                            name="organizeStatus" 
-                            checked={organizeStatus === '정리'} 
-                            onChange={() => setOrganizeStatus('정리')} 
-                            value="정리" 
-                            className="w-3.5 h-3.5 text-blue-600 focus:ring-blue-500 border-gray-300" 
+                          <input
+                            type="radio"
+                            name="organizeStatus"
+                            checked={organizeStatus === '정리'}
+                            onChange={() => setOrganizeStatus('정리')}
+                            value="정리"
+                            className="w-3.5 h-3.5 text-blue-600 focus:ring-blue-500 border-gray-300"
                           />
                           정리
                         </label>
                         <label className="flex items-center gap-1.5 text-xs sm:text-sm text-gray-700 cursor-pointer">
-                          <input 
-                            type="radio" 
-                            name="organizeStatus" 
-                            checked={organizeStatus === '미정리'} 
-                            onChange={() => setOrganizeStatus('미정리')} 
-                            value="미정리" 
-                            className="w-3.5 h-3.5 text-blue-600 focus:ring-blue-500 border-gray-300" 
+                          <input
+                            type="radio"
+                            name="organizeStatus"
+                            checked={organizeStatus === '미정리'}
+                            onChange={() => setOrganizeStatus('미정리')}
+                            value="미정리"
+                            className="w-3.5 h-3.5 text-blue-600 focus:ring-blue-500 border-gray-300"
                           />
                           미정리
                         </label>
@@ -2809,30 +2954,30 @@ export function EstimateForm({
                   </th>
                   <td colSpan={3} className="border border-gray-200 p-2 sm:p-2.5 space-y-2">
                     <div className="flex gap-1.5 sm:gap-2">
-                      <input 
-                        type="text" 
-                        name="fromAddress" 
-                        value={fromAddress} 
-                        onChange={e => setFromAddress(e.target.value)} 
-                        required 
-                        className="flex-1 min-w-0 rounded-lg border border-gray-300 px-2.5 py-1.5 sm:py-2 outline-none focus:border-blue-500 text-xs sm:text-sm" 
-                        placeholder="출발지 주소를 검색하세요" 
+                      <input
+                        type="text"
+                        name="fromAddress"
+                        value={fromAddress}
+                        onChange={e => setFromAddress(e.target.value)}
+                        required
+                        className="flex-1 min-w-0 rounded-lg border border-gray-300 px-2.5 py-1.5 sm:py-2 outline-none focus:border-blue-500 text-xs sm:text-sm"
+                        placeholder="출발지 주소를 검색하세요"
                       />
-                      <button 
-                        type="button" 
-                        onClick={() => { setPostcodeTarget('from'); setPostcodeOpen(true); }} 
+                      <button
+                        type="button"
+                        onClick={() => { setPostcodeTarget('from'); setPostcodeOpen(true); }}
                         className="px-2.5 sm:px-3 py-1.5 sm:py-2 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 flex items-center gap-1 font-medium text-xs sm:text-sm whitespace-nowrap shadow-xs transition-colors shrink-0"
                       >
-                        <Search size={14}/> 검색
+                        <Search size={14} /> 검색
                       </button>
                       {fromAddress && (
-                        <a 
-                          href={`https://map.kakao.com/link/search/${fromAddress}`} 
-                          target="_blank" 
-                          rel="noreferrer" 
+                        <a
+                          href={`https://map.kakao.com/link/search/${fromAddress}`}
+                          target="_blank"
+                          rel="noreferrer"
                           className="px-2.5 sm:px-3 py-1.5 sm:py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 flex items-center gap-1 font-medium text-xs sm:text-sm whitespace-nowrap shadow-xs transition-colors shrink-0"
                         >
-                          <MapPin size={14}/> 지도
+                          <MapPin size={14} /> 지도
                         </a>
                       )}
                     </div>
@@ -2859,13 +3004,13 @@ export function EstimateForm({
                       <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-1.5 border-t border-gray-200/80">
                         <div className="flex items-center gap-1.5 shrink-0">
                           <span className="text-gray-700 font-bold text-xs sm:text-sm whitespace-nowrap">층수:</span>
-                          <input 
-                            type="text" 
-                            value={fromFloor} 
-                            onChange={e => setFromFloor(e.target.value)} 
+                          <input
+                            type="text"
+                            value={fromFloor}
+                            onChange={e => setFromFloor(e.target.value)}
                             onFocus={handleSelectAllOnFocus}
-                            placeholder="예: 3" 
-                            className="w-14 sm:w-16 rounded-lg border border-gray-300 bg-white px-1.5 py-1 text-xs sm:text-sm text-center outline-none focus:border-blue-500 shadow-xs font-bold text-gray-800" 
+                            placeholder="예: 3"
+                            className="w-14 sm:w-16 rounded-lg border border-gray-300 bg-white px-1.5 py-1 text-xs sm:text-sm text-center outline-none focus:border-blue-500 shadow-xs font-bold text-gray-800"
                           />
                           <span className="text-gray-600 text-xs sm:text-sm font-medium">층</span>
                         </div>
@@ -2881,19 +3026,17 @@ export function EstimateForm({
                                 key={type}
                                 type="button"
                                 onClick={() => {
-                                  setFromWorkTypes(prev => 
+                                  setFromWorkTypes(prev =>
                                     prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
                                   )
                                 }}
-                                className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-xs sm:text-sm font-medium border transition-all flex items-center gap-1 shadow-xs whitespace-nowrap ${
-                                  isChecked 
-                                    ? 'bg-blue-600 border-blue-600 text-white font-bold' 
-                                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100'
-                                }`}
+                                className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-xs sm:text-sm font-medium border transition-all flex items-center gap-1 shadow-xs whitespace-nowrap ${isChecked
+                                  ? 'bg-blue-600 border-blue-600 text-white font-bold'
+                                  : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100'
+                                  }`}
                               >
-                                <span className={`w-3 h-3 rounded flex items-center justify-center text-[9px] font-bold ${
-                                  isChecked ? 'bg-white text-blue-600' : 'border border-gray-400'
-                                }`}>
+                                <span className={`w-3 h-3 rounded flex items-center justify-center text-[9px] font-bold ${isChecked ? 'bg-white text-blue-600' : 'border border-gray-400'
+                                  }`}>
                                   {isChecked ? '✓' : ''}
                                 </span>
                                 {type}
@@ -2913,30 +3056,30 @@ export function EstimateForm({
                   </th>
                   <td colSpan={3} className="border border-gray-200 p-2 sm:p-2.5 space-y-2">
                     <div className="flex gap-1.5 sm:gap-2">
-                      <input 
-                        type="text" 
-                        name="toAddress" 
-                        value={toAddress} 
-                        onChange={e => setToAddress(e.target.value)} 
-                        required 
-                        className="flex-1 min-w-0 rounded-lg border border-gray-300 px-2.5 py-1.5 sm:py-2 outline-none focus:border-blue-500 text-xs sm:text-sm" 
-                        placeholder="도착지 주소를 검색하세요" 
+                      <input
+                        type="text"
+                        name="toAddress"
+                        value={toAddress}
+                        onChange={e => setToAddress(e.target.value)}
+                        required
+                        className="flex-1 min-w-0 rounded-lg border border-gray-300 px-2.5 py-1.5 sm:py-2 outline-none focus:border-blue-500 text-xs sm:text-sm"
+                        placeholder="도착지 주소를 검색하세요"
                       />
-                      <button 
-                        type="button" 
-                        onClick={() => { setPostcodeTarget('to'); setPostcodeOpen(true); }} 
+                      <button
+                        type="button"
+                        onClick={() => { setPostcodeTarget('to'); setPostcodeOpen(true); }}
                         className="px-2.5 sm:px-3 py-1.5 sm:py-2 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 flex items-center gap-1 font-medium text-xs sm:text-sm whitespace-nowrap shadow-xs transition-colors shrink-0"
                       >
-                        <Search size={14}/> 검색
+                        <Search size={14} /> 검색
                       </button>
                       {toAddress && (
-                        <a 
-                          href={`https://map.kakao.com/link/search/${toAddress}`} 
-                          target="_blank" 
-                          rel="noreferrer" 
+                        <a
+                          href={`https://map.kakao.com/link/search/${toAddress}`}
+                          target="_blank"
+                          rel="noreferrer"
                           className="px-2.5 sm:px-3 py-1.5 sm:py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 flex items-center gap-1 font-medium text-xs sm:text-sm whitespace-nowrap shadow-xs transition-colors shrink-0"
                         >
-                          <MapPin size={14}/> 지도
+                          <MapPin size={14} /> 지도
                         </a>
                       )}
                     </div>
@@ -2959,13 +3102,13 @@ export function EstimateForm({
                       <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-1.5 border-t border-gray-200/80">
                         <div className="flex items-center gap-1.5 shrink-0">
                           <span className="text-gray-700 font-bold text-xs sm:text-sm whitespace-nowrap">층수:</span>
-                          <input 
-                            type="text" 
-                            value={toFloor} 
-                            onChange={e => setToFloor(e.target.value)} 
+                          <input
+                            type="text"
+                            value={toFloor}
+                            onChange={e => setToFloor(e.target.value)}
                             onFocus={handleSelectAllOnFocus}
-                            placeholder="예: 5" 
-                            className="w-14 sm:w-16 rounded-lg border border-gray-300 bg-white px-1.5 py-1 text-xs sm:text-sm text-center outline-none focus:border-blue-500 shadow-xs font-bold text-gray-800" 
+                            placeholder="예: 5"
+                            className="w-14 sm:w-16 rounded-lg border border-gray-300 bg-white px-1.5 py-1 text-xs sm:text-sm text-center outline-none focus:border-blue-500 shadow-xs font-bold text-gray-800"
                           />
                           <span className="text-gray-600 text-xs sm:text-sm font-medium">층</span>
                         </div>
@@ -2981,19 +3124,17 @@ export function EstimateForm({
                                 key={type}
                                 type="button"
                                 onClick={() => {
-                                  setToWorkTypes(prev => 
+                                  setToWorkTypes(prev =>
                                     prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
                                   )
                                 }}
-                                className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-xs sm:text-sm font-medium border transition-all flex items-center gap-1 shadow-xs whitespace-nowrap ${
-                                  isChecked 
-                                    ? 'bg-blue-600 border-blue-600 text-white font-bold' 
-                                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100'
-                                }`}
+                                className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-xs sm:text-sm font-medium border transition-all flex items-center gap-1 shadow-xs whitespace-nowrap ${isChecked
+                                  ? 'bg-blue-600 border-blue-600 text-white font-bold'
+                                  : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100'
+                                  }`}
                               >
-                                <span className={`w-3 h-3 rounded flex items-center justify-center text-[9px] font-bold ${
-                                  isChecked ? 'bg-white text-blue-600' : 'border border-gray-400'
-                                }`}>
+                                <span className={`w-3 h-3 rounded flex items-center justify-center text-[9px] font-bold ${isChecked ? 'bg-white text-blue-600' : 'border border-gray-400'
+                                  }`}>
                                   {isChecked ? '✓' : ''}
                                 </span>
                                 {type}
@@ -3032,11 +3173,10 @@ export function EstimateForm({
                                     setLadderTonnage(ton)
                                     setIsLadderTonnageManuallyEdited(ton !== effectiveVehiclePlanForCalc.tierKey)
                                   }}
-                                  className={`px-2 sm:px-2.5 py-0.5 sm:py-1 text-xs font-bold rounded-md border transition-all ${
-                                    ladderTonnage === ton
-                                      ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
-                                      : 'bg-gray-50 text-gray-700 border-gray-300 hover:bg-gray-100'
-                                  }`}
+                                  className={`px-2 sm:px-2.5 py-0.5 sm:py-1 text-xs font-bold rounded-md border transition-all ${ladderTonnage === ton
+                                    ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+                                    : 'bg-gray-50 text-gray-700 border-gray-300 hover:bg-gray-100'
+                                    }`}
                                 >
                                   {ton}톤{isRecommendedTon ? ' (추천차량)' : ''}
                                 </button>
@@ -3057,9 +3197,9 @@ export function EstimateForm({
                           </div>
                         </div>
 
-                        <a 
-                          href="/ladders" 
-                          target="_blank" 
+                        <a
+                          href="/ladders"
+                          target="_blank"
                           rel="noreferrer"
                           className="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1 hover:underline whitespace-nowrap"
                         >
@@ -3070,11 +3210,10 @@ export function EstimateForm({
                       {/* 출발지 / 도착지 사다리차 적용 현황 */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
                         {/* 출발지 */}
-                        <div className={`p-2.5 rounded-lg border text-xs space-y-1 ${
-                          isFromLadder 
-                            ? 'bg-amber-50/50 border-amber-200' 
-                            : 'bg-gray-50 border-gray-200 text-gray-400'
-                        }`}>
+                        <div className={`p-2.5 rounded-lg border text-xs space-y-1 ${isFromLadder
+                          ? 'bg-amber-50/50 border-amber-200'
+                          : 'bg-gray-50 border-gray-200 text-gray-400'
+                          }`}>
                           <div className="flex justify-between items-center font-bold">
                             <span className={isFromLadder ? 'text-amber-900' : 'text-gray-500'}>
                               출발지 사다리차 {isFromLadder ? '✓ 선택됨' : '(미선택)'}
@@ -3100,11 +3239,10 @@ export function EstimateForm({
                         </div>
 
                         {/* 도착지 */}
-                        <div className={`p-2.5 rounded-lg border text-xs space-y-1 ${
-                          isToLadder 
-                            ? 'bg-amber-50/50 border-amber-200' 
-                            : 'bg-gray-50 border-gray-200 text-gray-400'
-                        }`}>
+                        <div className={`p-2.5 rounded-lg border text-xs space-y-1 ${isToLadder
+                          ? 'bg-amber-50/50 border-amber-200'
+                          : 'bg-gray-50 border-gray-200 text-gray-400'
+                          }`}>
                           <div className="flex justify-between items-center font-bold">
                             <span className={isToLadder ? 'text-amber-900' : 'text-gray-500'}>
                               도착지 사다리차 {isToLadder ? '✓ 선택됨' : '(미선택)'}
@@ -3148,13 +3286,12 @@ export function EstimateForm({
                           type="button"
                           onClick={handleApplyLadderCost}
                           disabled={totalLadderCost <= 0}
-                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1 whitespace-nowrap ${
-                            totalLadderCost <= 0
-                              ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                              : isLadderApplied
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1 whitespace-nowrap ${totalLadderCost <= 0
+                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                            : isLadderApplied
                               ? 'bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200'
                               : 'bg-amber-600 hover:bg-amber-700 text-white active:scale-95'
-                          }`}
+                            }`}
                         >
                           {isLadderApplied ? <CheckCircle2 size={13} className="text-amber-700" /> : <Plus size={13} />}
                           <span>{isLadderApplied ? '운임 반영 완료' : '가산비용 반영'}</span>
@@ -3182,18 +3319,18 @@ export function EstimateForm({
                           <div className="flex items-center gap-1.5">
                             <span className="text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap">실제 주행거리:</span>
                             <div className="flex items-center gap-1 bg-blue-50/60 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border border-blue-200">
-                              <input 
-                                type="number" 
-                                step="0.1" 
-                                min="0" 
-                                value={distance === 0 ? '' : distance} 
+                              <input
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                value={distance === 0 ? '' : distance}
                                 onChange={e => {
                                   const val = parseFloat(e.target.value) || 0
                                   setDistance(val)
                                   setDistanceDuration(val > 0 ? calculate5TonTruckDuration(val).text : '')
-                                }} 
+                                }}
                                 onFocus={handleSelectAllOnFocus}
-                                placeholder="0.0" 
+                                placeholder="0.0"
                                 className="w-16 bg-transparent text-right font-black text-blue-700 text-sm sm:text-base outline-none focus:bg-white rounded px-0.5"
                               />
                               <span className="font-bold text-blue-900 text-xs sm:text-sm">km</span>
@@ -3241,13 +3378,12 @@ export function EstimateForm({
                             type="button"
                             onClick={() => handleCalculateDistance()}
                             disabled={isCalculatingDistance || !fromAddress || !toAddress}
-                            className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1 shadow-xs transition-all whitespace-nowrap ${
-                              isCalculatingDistance
-                                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                                : !fromAddress || !toAddress
+                            className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1 shadow-xs transition-all whitespace-nowrap ${isCalculatingDistance
+                              ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                              : !fromAddress || !toAddress
                                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
                                 : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95'
-                            }`}
+                              }`}
                           >
                             <RefreshCw size={12} className={isCalculatingDistance ? 'animate-spin' : ''} />
                             <span>{isCalculatingDistance ? '계산 중...' : '거리 재계산'}</span>
@@ -3296,11 +3432,10 @@ export function EstimateForm({
                                 <button
                                   type="button"
                                   onClick={() => handleRoundTollFareChange(tollFareByClass.class1 * 2)}
-                                  className={`px-1.5 py-0.5 border rounded text-[11px] font-bold transition-colors ${
-                                    tollFare === tollFareByClass.class1
-                                      ? 'bg-indigo-600 text-white border-indigo-600'
-                                      : 'bg-white hover:bg-indigo-100 text-indigo-700 border-indigo-300'
-                                  }`}
+                                  className={`px-1.5 py-0.5 border rounded text-[11px] font-bold transition-colors ${tollFare === tollFareByClass.class1
+                                    ? 'bg-indigo-600 text-white border-indigo-600'
+                                    : 'bg-white hover:bg-indigo-100 text-indigo-700 border-indigo-300'
+                                    }`}
                                   title="카카오맵 기본(1종 소형·1톤 화물차) 진입~진출 편도 통행료 적용"
                                 >
                                   1종(카카오맵) {tollFareByClass.class1.toLocaleString()}원
@@ -3309,11 +3444,10 @@ export function EstimateForm({
                                   <button
                                     type="button"
                                     onClick={() => handleRoundTollFareChange(tollFareByClass.class2 * 2)}
-                                    className={`px-1.5 py-0.5 border rounded text-[11px] font-bold transition-colors ${
-                                      tollFare === tollFareByClass.class2
-                                        ? 'bg-indigo-600 text-white border-indigo-600'
-                                        : 'bg-white hover:bg-indigo-100 text-indigo-700 border-indigo-300'
-                                    }`}
+                                    className={`px-1.5 py-0.5 border rounded text-[11px] font-bold transition-colors ${tollFare === tollFareByClass.class2
+                                      ? 'bg-indigo-600 text-white border-indigo-600'
+                                      : 'bg-white hover:bg-indigo-100 text-indigo-700 border-indigo-300'
+                                      }`}
                                     title="카카오내비 2종(2.5톤 중형화물차) 진입~진출 편도 통행료 적용"
                                   >
                                     2종(2.5톤) {tollFareByClass.class2.toLocaleString()}원
@@ -3322,11 +3456,10 @@ export function EstimateForm({
                                 <button
                                   type="button"
                                   onClick={() => handleRoundTollFareChange(tollFareByClass.class3 * 2)}
-                                  className={`px-1.5 py-0.5 border rounded text-[11px] font-bold transition-colors ${
-                                    tollFare === tollFareByClass.class3
-                                      ? 'bg-indigo-600 text-white border-indigo-600'
-                                      : 'bg-white hover:bg-indigo-100 text-indigo-700 border-indigo-300'
-                                  }`}
+                                  className={`px-1.5 py-0.5 border rounded text-[11px] font-bold transition-colors ${tollFare === tollFareByClass.class3
+                                    ? 'bg-indigo-600 text-white border-indigo-600'
+                                    : 'bg-white hover:bg-indigo-100 text-indigo-700 border-indigo-300'
+                                    }`}
                                   title="카카오내비 3종(5톤 대형화물차) 진입~진출 편도 통행료 적용"
                                 >
                                   3종(5톤) {tollFareByClass.class3.toLocaleString()}원
@@ -3369,11 +3502,10 @@ export function EstimateForm({
                                 key={spec.key}
                                 type="button"
                                 onClick={() => handleSelectDistanceTier(spec.key)}
-                                className={`px-2 py-0.5 rounded text-[11px] font-bold transition-all border ${
-                                  distanceTierKey === spec.key
-                                    ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
-                                    : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-100'
-                                }`}
+                                className={`px-2 py-0.5 rounded text-[11px] font-bold transition-all border ${distanceTierKey === spec.key
+                                  ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                                  : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-100'
+                                  }`}
                               >
                                 {spec.key}톤
                               </button>
@@ -3385,13 +3517,13 @@ export function EstimateForm({
                         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-xs bg-white p-2 rounded-md border border-gray-200/80">
                           <div className="flex items-center gap-1">
                             <span className="text-gray-600 font-semibold">기본포함:</span>
-                            <input 
-                              type="number" 
-                              min="0" 
-                              value={baseDistanceKm} 
-                              onChange={e => setBaseDistanceKm(Number(e.target.value) || 0)} 
+                            <input
+                              type="number"
+                              min="0"
+                              value={baseDistanceKm}
+                              onChange={e => setBaseDistanceKm(Number(e.target.value) || 0)}
                               onFocus={handleSelectAllOnFocus}
-                              className="w-11 text-center rounded border border-gray-300 bg-gray-50 py-0.5 px-1 font-bold text-gray-800 outline-none focus:border-blue-500 text-xs" 
+                              className="w-11 text-center rounded border border-gray-300 bg-gray-50 py-0.5 px-1 font-bold text-gray-800 outline-none focus:border-blue-500 text-xs"
                             />
                             <span className="text-gray-500">km</span>
                           </div>
@@ -3400,14 +3532,14 @@ export function EstimateForm({
 
                           <div className="flex items-center gap-1">
                             <span className="text-gray-600 font-semibold">근거리(~100km):</span>
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="100" 
-                              value={ratePerKm} 
-                              onChange={e => setRatePerKm(Number(e.target.value) || 0)} 
+                            <input
+                              type="number"
+                              min="0"
+                              step="100"
+                              value={ratePerKm}
+                              onChange={e => setRatePerKm(Number(e.target.value) || 0)}
                               onFocus={handleSelectAllOnFocus}
-                              className="w-14 text-right rounded border border-gray-300 bg-gray-50 py-0.5 px-1 font-bold text-blue-700 outline-none focus:border-blue-500 text-xs" 
+                              className="w-14 text-right rounded border border-gray-300 bg-gray-50 py-0.5 px-1 font-bold text-blue-700 outline-none focus:border-blue-500 text-xs"
                             />
                             <span className="text-gray-500">원/km</span>
                           </div>
@@ -3416,14 +3548,14 @@ export function EstimateForm({
 
                           <div className="flex items-center gap-1">
                             <span className="text-gray-600 font-semibold">장거리(101km~):</span>
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="100" 
-                              value={longRatePerKm} 
-                              onChange={e => setLongRatePerKm(Number(e.target.value) || 0)} 
+                            <input
+                              type="number"
+                              min="0"
+                              step="100"
+                              value={longRatePerKm}
+                              onChange={e => setLongRatePerKm(Number(e.target.value) || 0)}
                               onFocus={handleSelectAllOnFocus}
-                              className="w-14 text-right rounded border border-gray-300 bg-gray-50 py-0.5 px-1 font-bold text-indigo-700 outline-none focus:border-blue-500 text-xs" 
+                              className="w-14 text-right rounded border border-gray-300 bg-gray-50 py-0.5 px-1 font-bold text-indigo-700 outline-none focus:border-blue-500 text-xs"
                             />
                             <span className="text-gray-500">원/km</span>
                           </div>
@@ -3525,13 +3657,12 @@ export function EstimateForm({
                             type="button"
                             onClick={handleApplyDistanceCost}
                             disabled={calculatedExtraCost <= 0}
-                            className={`px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-md text-xs font-bold transition-all shadow-xs flex items-center gap-1 whitespace-nowrap ${
-                              calculatedExtraCost <= 0
-                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                : isDistanceApplied
+                            className={`px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-md text-xs font-bold transition-all shadow-xs flex items-center gap-1 whitespace-nowrap ${calculatedExtraCost <= 0
+                              ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                              : isDistanceApplied
                                 ? 'bg-indigo-100 text-indigo-800 border border-indigo-300 hover:bg-indigo-200'
                                 : 'bg-indigo-600 hover:bg-indigo-700 text-white active:scale-95'
-                            }`}
+                              }`}
                           >
                             {isDistanceApplied ? <CheckCircle2 size={12} className="text-indigo-700" /> : <Plus size={12} />}
                             <span>{isDistanceApplied ? '운임 반영 완료' : '+ 가산비용 반영'}</span>
@@ -3563,16 +3694,14 @@ export function EstimateForm({
                             <button
                               type="button"
                               onClick={() => handleToggleInstallItem(option)}
-                              className={`px-2.5 py-1 rounded-lg text-xs sm:text-sm font-medium border transition-all flex items-center gap-1.5 shadow-2xs whitespace-nowrap ${
-                                isChecked
-                                  ? 'bg-indigo-600 border-indigo-600 text-white font-bold ring-1 ring-indigo-300'
-                                  : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100'
-                              }`}
+                              className={`px-2.5 py-1 rounded-lg text-xs sm:text-sm font-medium border transition-all flex items-center gap-1.5 shadow-2xs whitespace-nowrap ${isChecked
+                                ? 'bg-indigo-600 border-indigo-600 text-white font-bold ring-1 ring-indigo-300'
+                                : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100'
+                                }`}
                             >
                               <span
-                                className={`w-3.5 h-3.5 rounded flex items-center justify-center text-[10px] font-bold ${
-                                  isChecked ? 'bg-white text-indigo-600' : 'border border-gray-400 bg-gray-50'
-                                }`}
+                                className={`w-3.5 h-3.5 rounded flex items-center justify-center text-[10px] font-bold ${isChecked ? 'bg-white text-indigo-600' : 'border border-gray-400 bg-gray-50'
+                                  }`}
                               >
                                 {isChecked ? '✓' : ''}
                               </span>
@@ -3703,13 +3832,13 @@ export function EstimateForm({
         {/* 물품 및 작업 환경 */}
         <div className="bg-white p-3.5 sm:p-5 md:p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
           <h2 className="text-base sm:text-lg font-bold text-blue-600 border-b pb-2">물품 및 작업 환경</h2>
-          
+
           <div className="space-y-3">
             {/* CBM 물품 목록 액션 바 */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 bg-gray-50/80 p-2 sm:p-2.5 rounded-xl border border-gray-200">
               <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                 <h3 className="font-bold text-gray-900 text-xs sm:text-sm md:text-base mr-1">물품 목록 (CBM)</h3>
-                
+
                 {/* 1. 평형별 템플릿 원클릭 버튼 */}
                 <button
                   type="button"
@@ -3733,12 +3862,31 @@ export function EstimateForm({
                 </button>
 
                 {/* 3. CBM 계산기 */}
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setIsCbmCalculatorOpen(true)}
                   className="px-2 py-1 bg-white text-blue-700 hover:bg-blue-50 text-xs rounded-lg font-bold transition-colors border border-blue-200 shadow-2xs whitespace-nowrap"
                 >
                   CBM 계산기
+                </button>
+
+                {/* 4. 빈 물품 일괄 삭제 버튼 */}
+                <button
+                  type="button"
+                  onClick={handleRemoveEmptyItems}
+                  disabled={emptyItemsCount === 0}
+                  title={
+                    emptyItemsCount > 0
+                      ? `수량이 0이거나 규격·CBM이 미입력된 빈 물품 ${emptyItemsCount}개를 일괄 삭제합니다`
+                      : '삭제할 빈 물품이 없습니다'
+                  }
+                  className={`px-2 sm:px-2.5 py-1 text-xs rounded-lg font-bold transition-all border flex items-center gap-1 whitespace-nowrap ${emptyItemsCount > 0
+                    ? 'bg-rose-50 text-rose-700 hover:bg-rose-100 border-rose-200 shadow-2xs active:scale-95 cursor-pointer'
+                    : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                    }`}
+                >
+                  <Trash2 size={12} />
+                  <span>빈 물품 삭제{emptyItemsCount > 0 ? ` (${emptyItemsCount})` : ''}</span>
                 </button>
 
                 {/* 특이 처리 항목 (폐기, 내림, 경유, 존치) 요약 뱃지 */}
@@ -3791,11 +3939,10 @@ export function EstimateForm({
                   <button
                     type="button"
                     onClick={() => setCbmInputMode('touch')}
-                    className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-md text-xs font-extrabold transition-all whitespace-nowrap ${
-                      cbmInputMode === 'touch'
-                        ? 'bg-blue-600 text-white shadow-2xs'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
+                    className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-md text-xs font-extrabold transition-all whitespace-nowrap ${cbmInputMode === 'touch'
+                      ? 'bg-blue-600 text-white shadow-2xs'
+                      : 'text-gray-600 hover:text-gray-900'
+                      }`}
                   >
                     <Smartphone size={12} />
                     <span>⚡ 터치</span>
@@ -3803,11 +3950,10 @@ export function EstimateForm({
                   <button
                     type="button"
                     onClick={() => setCbmInputMode('paper')}
-                    className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-md text-xs font-extrabold transition-all whitespace-nowrap ${
-                      cbmInputMode === 'paper'
-                        ? 'bg-neutral-800 text-white shadow-2xs'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
+                    className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-md text-xs font-extrabold transition-all whitespace-nowrap ${cbmInputMode === 'paper'
+                      ? 'bg-neutral-800 text-white shadow-2xs'
+                      : 'text-gray-600 hover:text-gray-900'
+                      }`}
                     title="현장 종이 체크시트(안방·방1~4·거실·주방·베란다 4단 표) 양식 그대로 입력"
                   >
                     <FileText size={12} />
@@ -3816,11 +3962,10 @@ export function EstimateForm({
                   <button
                     type="button"
                     onClick={() => setCbmInputMode('table')}
-                    className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-md text-xs font-extrabold transition-all whitespace-nowrap ${
-                      cbmInputMode === 'table'
-                        ? 'bg-white text-gray-900 shadow-2xs'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
+                    className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-md text-xs font-extrabold transition-all whitespace-nowrap ${cbmInputMode === 'table'
+                      ? 'bg-white text-gray-900 shadow-2xs'
+                      : 'text-gray-600 hover:text-gray-900'
+                      }`}
                   >
                     <Table size={12} />
                     <span>📋 테이블</span>
@@ -3839,13 +3984,12 @@ export function EstimateForm({
                 {backgroundAiTasks.map(task => (
                   <div
                     key={task.id}
-                    className={`px-3 py-2 rounded-xl text-xs font-bold border flex items-center justify-between gap-2 shadow-xs animate-in fade-in ${
-                      task.status === 'analyzing'
-                        ? 'bg-amber-50 text-amber-900 border-amber-200'
-                        : task.status === 'done'
+                    className={`px-3 py-2 rounded-xl text-xs font-bold border flex items-center justify-between gap-2 shadow-xs animate-in fade-in ${task.status === 'analyzing'
+                      ? 'bg-amber-50 text-amber-900 border-amber-200'
+                      : task.status === 'done'
                         ? 'bg-emerald-50 text-emerald-900 border-emerald-300'
                         : 'bg-red-50 text-red-900 border-red-200'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-1.5">
                       {task.status === 'analyzing' ? (
@@ -3859,8 +4003,8 @@ export function EstimateForm({
                         {task.status === 'analyzing'
                           ? `[${task.location}] AI 분석 중...`
                           : task.status === 'done'
-                          ? `🎉 [${task.location}] 분석 완료 (${task.items?.length || 0}개 감지)`
-                          : `[${task.location}] 실패: ${task.error}`}
+                            ? `🎉 [${task.location}] 분석 완료 (${task.items?.length || 0}개 감지)`
+                            : `[${task.location}] 실패: ${task.error}`}
                       </span>
                     </div>
 
@@ -3918,610 +4062,602 @@ export function EstimateForm({
               />
             ) : (
               <div className="space-y-3">
-              {/* 테이블 모드 스마트 필터 바 (선택됨만 보기 / 중분류 / 초성 ㄱ~ㅎ / 검색) */}
-              <div className="bg-slate-50/90 border border-slate-200/90 rounded-xl p-2.5 space-y-2">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
-                    {ITEM_MID_CATEGORIES.map(cat => {
-                      const isSelected = tableMidCat === cat.key
-                      const isSelectedTab = cat.key === 'selected'
-                      const selectedCount = items.filter(i => (Number(i.quantity) || 0) > 0).length
-                      return (
-                        <button
-                          key={cat.key}
-                          type="button"
-                          onClick={() => setTableMidCat(cat.key)}
-                          className={`px-2 sm:px-2.5 py-1 rounded-lg text-xs font-extrabold whitespace-nowrap transition-all flex items-center gap-1 border ${
-                            isSelected
+                {/* 테이블 모드 스마트 필터 바 (선택됨만 보기 / 중분류 / 초성 ㄱ~ㅎ / 검색) */}
+                <div className="bg-slate-50/90 border border-slate-200/90 rounded-xl p-2.5 space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+                      {ITEM_MID_CATEGORIES.map(cat => {
+                        const isSelected = tableMidCat === cat.key
+                        const isSelectedTab = cat.key === 'selected'
+                        const selectedCount = items.filter(i => (Number(i.quantity) || 0) > 0).length
+                        return (
+                          <button
+                            key={cat.key}
+                            type="button"
+                            onClick={() => setTableMidCat(cat.key)}
+                            className={`px-2 sm:px-2.5 py-1 rounded-lg text-xs font-extrabold whitespace-nowrap transition-all flex items-center gap-1 border ${isSelected
                               ? isSelectedTab
                                 ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
                                 : 'bg-blue-600 text-white border-blue-600 shadow-2xs'
                               : isSelectedTab && selectedCount > 0
-                              ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
-                              : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
-                          }`}
-                        >
-                          <span>{cat.shortLabel}</span>
-                          {isSelectedTab && (
-                            <span
-                              className={`text-[10px] px-1 rounded-full font-bold ${
-                                isSelected ? 'bg-white/25 text-white' : 'bg-emerald-200/80 text-emerald-900'
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
                               }`}
-                            >
-                              {selectedCount}
-                            </span>
-                          )}
+                          >
+                            <span>{cat.shortLabel}</span>
+                            {isSelectedTab && (
+                              <span
+                                className={`text-[10px] px-1 rounded-full font-bold ${isSelected ? 'bg-white/25 text-white' : 'bg-emerald-200/80 text-emerald-900'
+                                  }`}
+                              >
+                                {selectedCount}
+                              </span>
+                            )}
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    <div className="relative flex-1 sm:flex-initial sm:w-56">
+                      <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="text"
+                        lang="ko"
+                        inputMode="text"
+                        autoCapitalize="off"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        style={{ imeMode: 'active' } as React.CSSProperties}
+                        value={tableSearch}
+                        onChange={e => setTableSearch(convertEngInputToKor(e.target.value))}
+                        placeholder="테이블 내 품목·초성 검색 (예: 침대, ㅊㄷ)"
+                        className="w-full pl-7 pr-6 py-1 rounded-lg border border-gray-300 bg-white text-xs font-medium text-gray-800 outline-none focus:border-blue-500"
+                      />
+                      {tableSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setTableSearch('')}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          <X size={12} />
                         </button>
-                      )
-                    })}
+                      )}
+                    </div>
                   </div>
 
-                  <div className="relative flex-1 sm:flex-initial sm:w-56">
-                    <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input
-                      type="text"
-                      lang="ko"
-                      inputMode="text"
-                      autoCapitalize="off"
-                      autoCorrect="off"
-                      spellCheck={false}
-                      style={{ imeMode: 'active' } as React.CSSProperties}
-                      value={tableSearch}
-                      onChange={e => setTableSearch(convertEngInputToKor(e.target.value))}
-                      placeholder="테이블 내 품목·초성 검색 (예: 침대, ㅊㄷ)"
-                      className="w-full pl-7 pr-6 py-1 rounded-lg border border-gray-300 bg-white text-xs font-medium text-gray-800 outline-none focus:border-blue-500"
-                    />
-                    {tableSearch && (
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+                      {CHOSUNG_BUTTONS.map(ch => {
+                        const isSelected = tableChosung === ch
+                        return (
+                          <button
+                            key={ch}
+                            type="button"
+                            onClick={() => setTableChosung(prev => (prev === ch && ch !== '전체' ? '전체' : ch))}
+                            className={`min-w-[26px] h-6 sm:h-7 px-1.5 rounded-md text-[11px] sm:text-xs font-extrabold transition-all shrink-0 border ${isSelected
+                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
+                              : 'bg-white text-gray-700 border-gray-300 hover:bg-indigo-50 hover:border-indigo-300'
+                              }`}
+                          >
+                            {ch}
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    {(tableMidCat !== 'all' || tableChosung !== '전체' || tableSearch.trim()) && (
                       <button
                         type="button"
-                        onClick={() => setTableSearch('')}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        onClick={() => {
+                          setTableMidCat('all')
+                          setTableChosung('전체')
+                          setTableSearch('')
+                        }}
+                        className="text-[11px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 shrink-0 whitespace-nowrap"
                       >
-                        <X size={12} />
+                        필터 해제
                       </button>
                     )}
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
-                    {CHOSUNG_BUTTONS.map(ch => {
-                      const isSelected = tableChosung === ch
-                      return (
-                        <button
-                          key={ch}
-                          type="button"
-                          onClick={() => setTableChosung(prev => (prev === ch && ch !== '전체' ? '전체' : ch))}
-                          className={`min-w-[26px] h-6 sm:h-7 px-1.5 rounded-md text-[11px] sm:text-xs font-extrabold transition-all shrink-0 border ${
-                            isSelected
-                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
-                              : 'bg-white text-gray-700 border-gray-300 hover:bg-indigo-50 hover:border-indigo-300'
-                          }`}
-                        >
-                          {ch}
-                        </button>
-                      )
-                    })}
-                  </div>
+                {displayedCategories.map((cat: any) => {
+                  // 실시간 동적 정렬 제거: 타이핑 중 행 위치가 변경되어 모바일 한글 조합(IME)이 깨지는 현상 방지
+                  const allCatItems = items.filter(i => (i.locationId || '') === cat.id)
+                  const catItems = allCatItems.filter(it => {
+                    const qty = Number(it.quantity) || 0
+                    if (tableMidCat === 'selected' && qty <= 0 && !it._isCopiedRow) return false
+                    if (
+                      tableMidCat !== 'all' &&
+                      tableMidCat !== 'selected' &&
+                      classifyItemMidCategory(it.name) !== tableMidCat
+                    ) {
+                      return false
+                    }
+                    if (tableChosung !== '전체' && !matchesChosungFilter(it.name, tableChosung)) {
+                      return false
+                    }
+                    if (tableSearch.trim() && !matchesKoreanSearch(it.name, it.spec, tableSearch)) {
+                      return false
+                    }
+                    return true
+                  })
+                  // Hide '기타/미지정' if it has no items
+                  if (cat.id === '' && allCatItems.length === 0) return null
 
-                  {(tableMidCat !== 'all' || tableChosung !== '전체' || tableSearch.trim()) && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setTableMidCat('all')
-                        setTableChosung('전체')
-                        setTableSearch('')
-                      }}
-                      className="text-[11px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 shrink-0 whitespace-nowrap"
-                    >
-                      필터 해제
-                    </button>
-                  )}
-                </div>
-              </div>
+                  const isExpanded = expandedCategories[cat.id] !== false
 
-              {displayedCategories.map((cat: any) => {
-                // 실시간 동적 정렬 제거: 타이핑 중 행 위치가 변경되어 모바일 한글 조합(IME)이 깨지는 현상 방지
-                const allCatItems = items.filter(i => (i.locationId || '') === cat.id)
-                const catItems = allCatItems.filter(it => {
-                  const qty = Number(it.quantity) || 0
-                  if (tableMidCat === 'selected' && qty <= 0 && !it._isCopiedRow) return false
-                  if (
-                    tableMidCat !== 'all' &&
-                    tableMidCat !== 'selected' &&
-                    classifyItemMidCategory(it.name) !== tableMidCat
-                  ) {
-                    return false
-                  }
-                  if (tableChosung !== '전체' && !matchesChosungFilter(it.name, tableChosung)) {
-                    return false
-                  }
-                  if (tableSearch.trim() && !matchesKoreanSearch(it.name, it.spec, tableSearch)) {
-                    return false
-                  }
-                  return true
-                })
-                // Hide '기타/미지정' if it has no items
-                if (cat.id === '' && allCatItems.length === 0) return null
-                
-                const isExpanded = expandedCategories[cat.id] !== false
-
-                return (
-                  <div key={cat.id} className="border border-gray-200 rounded-lg overflow-hidden">
-                    <div 
-                      className="bg-blue-50/80 px-3 sm:px-4 py-2 font-bold text-gray-800 flex justify-between items-center cursor-pointer hover:bg-blue-100/70 transition-colors border-b border-blue-100"
-                      onClick={() => setExpandedCategories(prev => ({ ...prev, [cat.id]: !isExpanded }))}
-                    >
-                      <div className="flex items-center gap-1.5 sm:gap-2">
-                        {isExpanded ? <ChevronUp size={18} className="text-blue-600" /> : <ChevronDown size={18} className="text-gray-400" />}
-                        <span className="text-gray-900 font-bold text-xs sm:text-sm">{cat.name}</span>
-                        {(cat.name === '기타/미지정' || cat.id === '') && (
-                          <UnassignedBoxTooltip variant="badge" />
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs sm:text-sm font-semibold text-blue-700 bg-white/90 px-2 sm:px-2.5 py-0.5 rounded-full border border-blue-200 shadow-2xs">
-                          {allCatItems.reduce((acc, item) => acc + getItemEffectiveCbm(item), 0).toFixed(2)} CBM
-                        </span>
-                        {displayedCategories.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleRemoveCategory(cat.id)
-                            }}
-                            title="이 공간 삭제 (비우기)"
-                            className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 text-xs font-bold transition-colors"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    {isExpanded && (
-                      <div>
-                        {(cat.name === '기타/미지정' || cat.id === '') && (
-                          <div className="px-3 py-1.5 bg-gray-50/80 border-b border-gray-200">
-                            <UnassignedBoxTooltip variant="banner" className="w-full" />
-                          </div>
-                        )}
-                        <div className="overflow-x-auto">
-                        <table className="w-full text-xs sm:text-sm text-left bg-white min-w-[560px] sm:min-w-0">
-                          <thead className="bg-gray-50 text-gray-700 border-b border-gray-200">
-                            <tr>
-                              <th className="whitespace-nowrap px-1.5 sm:px-2 py-1.5 font-semibold w-28 sm:w-36 md:w-44">품목</th>
-                              <th className="whitespace-nowrap px-1.5 sm:px-2 py-1.5 font-semibold min-w-[160px] sm:min-w-[220px]">규격</th>
-                              <th className="whitespace-nowrap px-1 sm:px-1.5 py-1.5 font-semibold w-11 sm:w-14 text-right">수량</th>
-                              <th className="whitespace-nowrap px-1 sm:px-1.5 py-1.5 font-semibold w-13 sm:w-16 text-center">처리</th>
-                              <th className="whitespace-nowrap px-1 sm:px-1.5 py-1.5 font-semibold w-14 sm:w-18 text-right">기본 CBM</th>
-                              <th className="whitespace-nowrap px-1 sm:px-1.5 py-1.5 font-semibold w-14 sm:w-18 text-right">내품 CBM</th>
-                              <th className="whitespace-nowrap px-1 sm:px-1.5 py-1.5 font-semibold w-16 sm:w-20 text-center">복사/삭제</th>
-                            </tr>
-                          </thead>
-                        <tbody>
-                          {catItems.map((item) => {
-                            const idx = items.findIndex(i => (i._uid ? i._uid === item._uid : i === item))
-                            const availableSpecs = getMatchingStandardSpecs(item.name, standardItems)
-                            const sameNameSiblings = item.name && !isBoxItem(item.name)
-                              ? allCatItems.filter(x => x.name === item.name)
-                              : []
-                            const sameNameSeq =
-                              sameNameSiblings.length > 1
-                                ? sameNameSiblings.findIndex(x => x._uid === item._uid) + 1
-                                : 0
-                            const otherUsedSpecs = new Set(
-                              sameNameSiblings
-                                .filter(x => x._uid !== item._uid && (Number(x.quantity) || 0) > 0 && x.spec)
-                                .map(x => x.spec)
-                            )
-                            const isPendingCopiedSpec = Boolean(
-                              item._isCopiedRow && !item.spec && availableSpecs.length > 0
-                            )
-                            return (
-                              <tr
-                                key={item._uid || idx}
-                                className={`border-b last:border-0 transition-colors ${
-                                  isPendingCopiedSpec
-                                    ? 'bg-indigo-50/50 hover:bg-indigo-50/80'
-                                    : 'hover:bg-blue-50/30'
-                                }`}
-                              >
-                                <td className="px-1.5 sm:px-2 py-1">
-                                  <div className="flex items-center gap-1">
-                                    <input 
-                                      type="text" 
-                                      value={item.name} 
-                                      onChange={e => {
-                                        const newItems = [...items]
-                                        newItems[idx].name = e.target.value
-                                        setItems(newItems)
-                                      }} 
-                                      className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-xs sm:text-sm outline-none focus:border-blue-500 font-medium" 
-                                      placeholder="직접입력" 
-                                      autoComplete="off"
-                                      spellCheck={false}
-                                    />
-                                    {sameNameSeq > 0 && (
-                                      <span
-                                        className="px-1 py-0.5 rounded bg-indigo-100 text-indigo-800 border border-indigo-200 text-[10px] font-black shrink-0"
-                                        title={`같은 공간 동일 품목 ${sameNameSeq}번째 규격`}
-                                      >
-                                        #{sameNameSeq}
-                                      </span>
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="px-1.5 sm:px-2 py-1">
-                                  {(() => {
-                                    if (availableSpecs.length > 0) {
-                                      return (
-                                        <select
-                                          value={item.spec || ''}
-                                          title={item.spec || '규격 선택'}
-                                          onChange={e => {
-                                            const newItems = [...items]
-                                            newItems[idx].spec = e.target.value
-                                            
-                                            if (!e.target.value) {
-                                              newItems[idx].cbm = 0
-                                              newItems[idx].innerBoxCbm = 0
-                                              newItems[idx].quantity = 0
-                                            } else {
-                                              // 선택된 규격에 해당하는 CBM 정보 가져오기
-                                              const matched = availableSpecs.find(s => (s.spec || '기본') === e.target.value)
-                                              if (matched) {
-                                                newItems[idx].cbm = matched.defaultCbm
-                                                newItems[idx].innerBoxCbm = matched.defaultInnerCbm
-                                                // 규격을 처음 선택할 때 수량이 0이면 1로 자동 변경 (편의성)
-                                                if (newItems[idx].quantity === 0) {
-                                                  newItems[idx].quantity = 1
-                                                }
-                                              }
-                                            }
-                                            setItems(newItems)
-                                          }}
-                                          className={`w-full rounded border px-1.5 sm:px-2 py-1 text-xs sm:text-sm font-medium outline-none cursor-pointer ${
-                                            isPendingCopiedSpec
-                                              ? 'border-indigo-400 bg-indigo-50 text-indigo-950 font-bold ring-1 ring-indigo-300 focus:border-indigo-600'
-                                              : 'border-gray-300 bg-white text-gray-800 focus:border-blue-500'
-                                          }`}
-                                        >
-                                          <option value="">
-                                            {isPendingCopiedSpec || sameNameSeq > 0 ? '▾ 다른 규격 선택' : '규격 선택'}
-                                          </option>
-                                          {availableSpecs.map(s => {
-                                            const spLabel = s.spec || '기본'
-                                            const alreadyUsed = otherUsedSpecs.has(spLabel)
-                                            return (
-                                              <option key={s.id} value={spLabel}>
-                                                {spLabel} ({s.defaultCbm} CBM{(s.defaultInnerCbm || 0) > 0 ? ` + 내품 ${s.defaultInnerCbm}` : ''})
-                                                {alreadyUsed ? ' · 등록됨' : ''}
-                                              </option>
-                                            )
-                                          })}
-                                        </select>
-                                      )
-                                    }
-                                    
-                                    // 기준정보에 없는 직접 입력 항목인 경우 텍스트 입력창 유지
-                                    return (
-                                      <input 
-                                        type="text" 
-                                        value={item.spec || ''} 
-                                        onChange={e => {
-                                          const newItems = [...items]
-                                          newItems[idx].spec = e.target.value
-                                          setItems(newItems)
-                                        }} 
-                                        className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-xs sm:text-sm outline-none focus:border-blue-500 font-medium" 
-                                        placeholder="직접입력" 
-                                        autoComplete="off"
-                                        spellCheck={false}
-                                      />
-                                    )
-                                  })()}
-                                </td>
-                                <td className="px-1 sm:px-1.5 py-1 text-right">
-                                  <input 
-                                    type="number" 
-                                    min="0" 
-                                    value={item.quantity !== undefined ? item.quantity : 1} 
-                                    onChange={e => {
-                                      const newItems = [...items]
-                                      newItems[idx].quantity = e.target.value === '' ? 0 : parseInt(e.target.value)
-                                      setItems(newItems)
-                                    }} 
-                                    onFocus={handleSelectAllOnFocus} 
-                                    className="w-full rounded border border-gray-300 bg-white px-1.5 py-1 text-xs sm:text-sm outline-none focus:border-blue-500 text-right font-bold text-gray-900" 
-                                  />
-                                </td>
-                                <td className="px-1 py-1 text-center">
-                                  <select
-                                    value={item.treatment || '이동'}
-                                    onChange={e => {
-                                      const newItems = [...items]
-                                      newItems[idx].treatment = e.target.value
-                                      setItems(newItems)
-                                    }}
-                                    className={`w-full rounded border px-1 py-1 text-xs font-bold outline-none text-center cursor-pointer transition-colors ${
-                                      (item.treatment || '이동') === '폐기' 
-                                        ? 'bg-red-50 text-red-700 border-red-300'
-                                        : (item.treatment || '이동') === '내림'
-                                        ? 'bg-amber-50 text-amber-700 border-amber-300'
-                                        : (item.treatment || '이동') === '경유'
-                                        ? 'bg-purple-50 text-purple-700 border-purple-300'
-                                        : (item.treatment || '이동') === '존치'
-                                        ? 'bg-slate-100 text-slate-700 border-slate-300'
-                                        : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
-                                    }`}
-                                  >
-                                    <option value="이동">이동</option>
-                                    <option value="폐기">폐기</option>
-                                    <option value="내림">내림</option>
-                                    <option value="경유">경유</option>
-                                    <option value="존치">존치</option>
-                                  </select>
-                                </td>
-                                <td className="px-1 sm:px-1.5 py-1">
-                                  <div className="relative">
-                                    <input 
-                                      type="number" 
-                                      step="0.01" 
-                                      value={item.cbm} 
-                                      onChange={e => {
-                                        const newItems = [...items]
-                                        newItems[idx].cbm = parseFloat(e.target.value) || 0
-                                        setItems(newItems)
-                                      }} 
-                                      onFocus={handleSelectAllOnFocus} 
-                                      title={isBaseCbmExcluded(item.treatment) ? `${item.treatment} 품목: 기본 CBM은 차량적재 합산에서 제외됩니다.` : undefined}
-                                      className={`w-full rounded border px-1.5 py-1 text-xs sm:text-sm outline-none text-right transition-colors ${
-                                        isBaseCbmExcluded(item.treatment)
-                                          ? 'border-rose-300 bg-rose-50/70 text-rose-500 line-through decoration-rose-500 font-semibold focus:border-rose-500'
-                                          : 'border-gray-300 bg-white text-gray-900 focus:border-blue-500'
-                                      }`} 
-                                    />
-                                    {isBaseCbmExcluded(item.treatment) && (
-                                      <span className="text-[9px] sm:text-[10px] text-rose-600 block text-right font-bold mt-0.5 leading-none">
-                                        합산제외
-                                      </span>
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="px-1 sm:px-1.5 py-1">
-                                  <input 
-                                    type="number" 
-                                    step="0.01" 
-                                    value={item.innerBoxCbm} 
-                                    onChange={e => {
-                                      const newItems = [...items]
-                                      newItems[idx].innerBoxCbm = parseFloat(e.target.value) || 0
-                                      setItems(newItems)
-                                    }} 
-                                    onFocus={handleSelectAllOnFocus} 
-                                    className={`w-full rounded border px-1.5 py-1 text-xs sm:text-sm outline-none text-right transition-colors ${
-                                      (Number(item.innerBoxCbm) || 0) > 0
-                                        ? 'border-amber-300 bg-amber-50/80 text-amber-900 font-bold focus:border-amber-500'
-                                        : 'border-gray-300 bg-white text-gray-700 focus:border-blue-500'
-                                    }`} 
-                                    title="장농, 서랍장 등 내부 짐을 옷 박스로 포장하기 위해 가산되는 내품 CBM"
-                                  />
-                                </td>
-                                <td className="px-1 py-1 text-center">
-                                  <div className="inline-flex items-center justify-center gap-1">
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDuplicateTableItem(idx)}
-                                      title={`[${cat.name}]에 '${item.name || '품목'}' 다른 규격 복사등록`}
-                                      className="inline-flex items-center gap-0.5 px-1.5 py-1 rounded border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold text-[10px] sm:text-xs transition-colors shrink-0"
-                                    >
-                                      <Copy size={11} />
-                                      <span>복사</span>
-                                    </button>
-                                    <button 
-                                      type="button" 
-                                      onClick={() => {
-                                        const newItems = items.filter((_, i) => i !== idx)
-                                        setItems(newItems)
-                                      }} 
-                                      title="행 삭제"
-                                      className="text-red-500 hover:text-red-700 font-bold p-1 text-xs sm:text-sm shrink-0"
-                                    >
-                                      ✕
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            )
-                          })}
-                          {catItems.length === 0 && (
-                            <tr className="border-b">
-                              <td colSpan={7} className="px-3 py-3 text-center text-gray-400 text-xs">
-                                {allCatItems.length > 0
-                                  ? '필터 조건에 맞는 항목이 없습니다.'
-                                  : '등록된 항목이 없습니다.'}
-                              </td>
-                            </tr>
+                  return (
+                    <div key={cat.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                      <div
+                        className="bg-blue-50/80 px-3 sm:px-4 py-2 font-bold text-gray-800 flex justify-between items-center cursor-pointer hover:bg-blue-100/70 transition-colors border-b border-blue-100"
+                        onClick={() => setExpandedCategories(prev => ({ ...prev, [cat.id]: !isExpanded }))}
+                      >
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                          {isExpanded ? <ChevronUp size={18} className="text-blue-600" /> : <ChevronDown size={18} className="text-gray-400" />}
+                          <span className="text-gray-900 font-bold text-xs sm:text-sm">{cat.name}</span>
+                          {(cat.name === '기타/미지정' || cat.id === '') && (
+                            <UnassignedBoxTooltip variant="badge" />
                           )}
-                          <tr className="bg-gray-50/80 border-t border-gray-200">
-                            <td colSpan={7} className="px-2 sm:px-3 py-2">
-                              <div className="flex flex-wrap gap-1.5 sm:gap-2 items-center">
-                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-100 text-blue-900 border border-blue-200 text-xs font-extrabold shrink-0">
-                                  <MapPin size={12} className="text-blue-600" />
-                                  <span>{cat.name}</span>
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => setQuickAddModalCat({ id: cat.id, name: cat.name })}
-                                  className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-extrabold flex items-center gap-1 shadow-2xs transition-all active:scale-95"
-                                >
-                                  <PackagePlus size={14} />
-                                  <span>+ [{cat.name}] 품목 검색·추가</span>
-                                </button>
-
-                                <select 
-                                  className="min-w-[130px] sm:min-w-[170px] max-w-[210px] rounded-lg border-gray-300 border px-2 sm:px-2.5 py-1.5 text-xs sm:text-sm font-semibold outline-none text-gray-800 bg-white focus:border-blue-500 cursor-pointer shadow-2xs"
-                                  value={selectedItemNames[cat.id] || ''}
-                                  onChange={(e) => {
-                                    setSelectedItemNames(prev => ({ ...prev, [cat.id]: e.target.value }))
-                                  }}
-                                >
-                                  <option value="">+ [{cat.name}] 드롭다운 선택</option>
-                                  {(() => {
-                                    // 1. 현재 위치(카테고리)와 일치하는 품목명 목록 (BOX 최상단 우선, 그 외 해당 공간 디스플레이 순서 -> 가나다순)
-                                    const matchedNames = Array.from(new Set(
-                                      standardItems
-                                        .filter(i => cat.id ? i.locations?.some((l: any) => l.id === cat.id) : (!i.locations || i.locations.length === 0))
-                                        .map(i => i.name)
-                                    )).sort((a, b) => {
-                                      const aBox = isBoxItem(a)
-                                      const bBox = isBoxItem(b)
-                                      if (aBox && !bBox) return -1
-                                      if (!aBox && bBox) return 1
-                                      const oa = getItemOrderInSpace(cat, a, 9999)
-                                      const ob = getItemOrderInSpace(cat, b, 9999)
-                                      if (oa !== ob) return oa - ob
-                                      return a.localeCompare(b, 'ko')
-                                    })
-
-                                    // 2. 미지정 품목(위치 미지정 또는 타 위치 포함) 중 matchedNames에 없는 품목명 목록 (BOX 최상단 우선, 그 외 가나다순)
-                                    const otherNames = Array.from(new Set(
-                                      standardItems
-                                        .filter(i => !matchedNames.includes(i.name))
-                                        .map(i => i.name)
-                                    )).sort((a, b) => {
-                                      const aBox = isBoxItem(a)
-                                      const bBox = isBoxItem(b)
-                                      if (aBox && !bBox) return -1
-                                      if (!aBox && bBox) return 1
-                                      return a.localeCompare(b, 'ko')
-                                    })
-
-                                    return (
-                                      <>
-                                        {matchedNames.length > 0 && (
-                                          <optgroup label={`── ${cat.name || '현재 위치'} 지정 품목 ──`}>
-                                            {matchedNames.map(name => (
-                                              <option key={name} value={name}>{name}</option>
-                                            ))}
-                                          </optgroup>
-                                        )}
-                                        {otherNames.length > 0 && (
-                                          <optgroup label="── 미지정 / 기타 품목 ──">
-                                            {otherNames.map(name => (
-                                              <option key={name} value={name}>{name}</option>
-                                            ))}
-                                          </optgroup>
-                                        )}
-                                      </>
-                                    )
-                                  })()}
-                                </select>
-                                
-                                {selectedItemNames[cat.id] && (
-                                  <select
-                                    className="min-w-[150px] sm:min-w-[200px] max-w-[340px] rounded-lg border-blue-400 border px-2 sm:px-2.5 py-1.5 text-xs sm:text-sm font-semibold outline-none text-blue-900 bg-blue-50/80 focus:border-blue-600 cursor-pointer shadow-2xs"
-                                    value=""
-                                    onChange={(e) => {
-                                      if(!e.target.value) return;
-                                      const stdItem = standardItems.find(i => i.id === e.target.value)
-                                      if(stdItem) {
-                                        handleAddStandardItemToCategory(cat.id, cat.name, stdItem)
-                                        setSelectedItemNames(prev => ({ ...prev, [cat.id]: '' }))
-                                      }
-                                    }}
-                                  >
-                                    <option value="">+ 규격 선택</option>
-                                    {standardItems
-                                      .filter(i => i.name === selectedItemNames[cat.id])
-                                      .sort((a, b) => (a.spec || '').localeCompare(b.spec || '', 'ko'))
-                                      .map(i => (
-                                        <option key={i.id} value={i.id}>
-                                          {i.spec
-                                            ? `${i.spec} (${i.defaultCbm} CBM${(i.defaultInnerCbm || 0) > 0 ? ` + 내품 ${i.defaultInnerCbm}` : ''})`
-                                            : `기본 규격 (${i.defaultCbm} CBM${(i.defaultInnerCbm || 0) > 0 ? ` + 내품 ${i.defaultInnerCbm}` : ''})`}
-                                        </option>
-                                      ))}
-                                  </select>
-                                )}
-                                <span className="text-gray-400 text-xs mx-0.5">또는</span>
-                                <button 
-                                  type="button" 
-                                  onClick={() => setItems([...items, ensureItemUid({ locationId: cat.id, locationName: cat.name, name: '', spec: '', quantity: 1, treatment: '이동', cbm: 0, innerBoxCbm: 0 })])}
-                                  className="text-blue-600 hover:text-blue-800 text-xs sm:text-sm font-semibold px-2.5 sm:px-3 py-1.5 bg-white border border-blue-200 rounded-lg shadow-2xs hover:bg-blue-50 transition-colors"
-                                >
-                                  + [{cat.name}] 직접입력 추가
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs sm:text-sm font-semibold text-blue-700 bg-white/90 px-2 sm:px-2.5 py-0.5 rounded-full border border-blue-200 shadow-2xs">
+                            {allCatItems.reduce((acc, item) => acc + getItemEffectiveCbm(item), 0).toFixed(2)} CBM
+                          </span>
+                          {displayedCategories.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleRemoveCategory(cat.id)
+                              }}
+                              title="이 공간 삭제 (비우기)"
+                              className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 text-xs font-bold transition-colors"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
                         </div>
                       </div>
-                    )}
-                  </div>
-                )
-              })}
+                      {isExpanded && (
+                        <div>
+                          {(cat.name === '기타/미지정' || cat.id === '') && (
+                            <div className="px-3 py-1.5 bg-gray-50/80 border-b border-gray-200">
+                              <UnassignedBoxTooltip variant="banner" className="w-full" />
+                            </div>
+                          )}
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-xs sm:text-sm text-left bg-white min-w-[560px] sm:min-w-0">
+                              <thead className="bg-gray-50 text-gray-700 border-b border-gray-200">
+                                <tr>
+                                  <th className="whitespace-nowrap px-1.5 sm:px-2 py-1.5 font-semibold w-28 sm:w-36 md:w-44">품목</th>
+                                  <th className="whitespace-nowrap px-1.5 sm:px-2 py-1.5 font-semibold min-w-[160px] sm:min-w-[220px]">규격</th>
+                                  <th className="whitespace-nowrap px-1 sm:px-1.5 py-1.5 font-semibold w-11 sm:w-14 text-right">수량</th>
+                                  <th className="whitespace-nowrap px-1 sm:px-1.5 py-1.5 font-semibold w-13 sm:w-16 text-center">처리</th>
+                                  <th className="whitespace-nowrap px-1 sm:px-1.5 py-1.5 font-semibold w-14 sm:w-18 text-right">기본 CBM</th>
+                                  <th className="whitespace-nowrap px-1 sm:px-1.5 py-1.5 font-semibold w-14 sm:w-18 text-right">내품 CBM</th>
+                                  <th className="whitespace-nowrap px-1 sm:px-1.5 py-1.5 font-semibold w-16 sm:w-20 text-center">복사/삭제</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {catItems.map((item) => {
+                                  const idx = items.findIndex(i => (i._uid ? i._uid === item._uid : i === item))
+                                  const availableSpecs = getMatchingStandardSpecs(item.name, standardItems)
+                                  const sameNameSiblings = item.name && !isBoxItem(item.name)
+                                    ? allCatItems.filter(x => x.name === item.name)
+                                    : []
+                                  const sameNameSeq =
+                                    sameNameSiblings.length > 1
+                                      ? sameNameSiblings.findIndex(x => x._uid === item._uid) + 1
+                                      : 0
+                                  const otherUsedSpecs = new Set(
+                                    sameNameSiblings
+                                      .filter(x => x._uid !== item._uid && (Number(x.quantity) || 0) > 0 && x.spec)
+                                      .map(x => x.spec)
+                                  )
+                                  const isPendingCopiedSpec = Boolean(
+                                    item._isCopiedRow && !item.spec && availableSpecs.length > 0
+                                  )
+                                  return (
+                                    <tr
+                                      key={item._uid || idx}
+                                      className={`border-b last:border-0 transition-colors ${isPendingCopiedSpec
+                                        ? 'bg-indigo-50/50 hover:bg-indigo-50/80'
+                                        : 'hover:bg-blue-50/30'
+                                        }`}
+                                    >
+                                      <td className="px-1.5 sm:px-2 py-1">
+                                        <div className="flex items-center gap-1">
+                                          <input
+                                            type="text"
+                                            value={item.name}
+                                            onChange={e => {
+                                              const newItems = [...items]
+                                              newItems[idx].name = e.target.value
+                                              setItems(newItems)
+                                            }}
+                                            className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-xs sm:text-sm outline-none focus:border-blue-500 font-medium"
+                                            placeholder="직접입력"
+                                            autoComplete="off"
+                                            spellCheck={false}
+                                          />
+                                          {sameNameSeq > 0 && (
+                                            <span
+                                              className="px-1 py-0.5 rounded bg-indigo-100 text-indigo-800 border border-indigo-200 text-[10px] font-black shrink-0"
+                                              title={`같은 공간 동일 품목 ${sameNameSeq}번째 규격`}
+                                            >
+                                              #{sameNameSeq}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="px-1.5 sm:px-2 py-1">
+                                        {(() => {
+                                          if (availableSpecs.length > 0) {
+                                            return (
+                                              <select
+                                                value={item.spec || ''}
+                                                title={item.spec || '규격 선택'}
+                                                onChange={e => {
+                                                  const newItems = [...items]
+                                                  newItems[idx].spec = e.target.value
 
-              {/* 새 공간(위치) 추가 */}
-              {availableCategoriesToAdd.length > 0 && (
-                <div className="flex items-center justify-center p-3 bg-gray-50/80 rounded-xl border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-gray-700">+ 새 공간(위치) 추가:</span>
-                    <select
-                      value=""
-                      onChange={(e) => {
-                        if (e.target.value) handleAddCategory(e.target.value)
-                      }}
-                      className="px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-xs font-bold text-blue-600 outline-none focus:border-blue-500 cursor-pointer shadow-2xs hover:border-blue-400"
-                    >
-                      <option value="" disabled>공간 선택...</option>
-                      {availableCategoriesToAdd.map((c: any) => (
-                        <option key={c.id} value={c.id}>
-                          + {c.name} 추가
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              )}
+                                                  if (!e.target.value) {
+                                                    newItems[idx].cbm = 0
+                                                    newItems[idx].innerBoxCbm = 0
+                                                    newItems[idx].quantity = 0
+                                                  } else {
+                                                    // 선택된 규격에 해당하는 CBM 정보 가져오기
+                                                    const matched = availableSpecs.find(s => (s.spec || '기본') === e.target.value)
+                                                    if (matched) {
+                                                      newItems[idx].cbm = matched.defaultCbm
+                                                      newItems[idx].innerBoxCbm = matched.defaultInnerCbm
+                                                      // 규격을 처음 선택할 때 수량이 0이면 1로 자동 변경 (편의성)
+                                                      if (newItems[idx].quantity === 0) {
+                                                        newItems[idx].quantity = 1
+                                                      }
+                                                    }
+                                                  }
+                                                  setItems(newItems)
+                                                }}
+                                                className={`w-full rounded border px-1.5 sm:px-2 py-1 text-xs sm:text-sm font-medium outline-none cursor-pointer ${isPendingCopiedSpec
+                                                  ? 'border-indigo-400 bg-indigo-50 text-indigo-950 font-bold ring-1 ring-indigo-300 focus:border-indigo-600'
+                                                  : 'border-gray-300 bg-white text-gray-800 focus:border-blue-500'
+                                                  }`}
+                                              >
+                                                <option value="">
+                                                  {isPendingCopiedSpec || sameNameSeq > 0 ? '▾ 다른 규격 선택' : '규격 선택'}
+                                                </option>
+                                                {availableSpecs.map(s => {
+                                                  const spLabel = s.spec || '기본'
+                                                  const alreadyUsed = otherUsedSpecs.has(spLabel)
+                                                  return (
+                                                    <option key={s.id} value={spLabel}>
+                                                      {spLabel} ({s.defaultCbm} CBM{(s.defaultInnerCbm || 0) > 0 ? ` + 내품 ${s.defaultInnerCbm}` : ''})
+                                                      {alreadyUsed ? ' · 등록됨' : ''}
+                                                    </option>
+                                                  )
+                                                })}
+                                              </select>
+                                            )
+                                          }
 
-              {/* 테이블 모드용 품목 빠른 검색·추가 모달 */}
-              {quickAddModalCat && (
-                <ItemQuickAddModal
-                  isOpen={Boolean(quickAddModalCat)}
-                  onClose={() => setQuickAddModalCat(null)}
-                  categoryId={quickAddModalCat.id}
-                  categoryName={quickAddModalCat.name}
-                  categories={displayedCategories}
-                  onSelectCategory={(catId) => {
-                    const found = displayedCategories.find((c: any) => c.id === catId)
-                    if (found) setQuickAddModalCat({ id: found.id, name: found.name })
-                  }}
-                  standardItems={standardItems}
-                  currentCategoryItems={items.filter(i => (i.locationId || '') === quickAddModalCat.id)}
-                  onAddItem={(stdItem) => handleAddStandardItemToCategory(quickAddModalCat.id, quickAddModalCat.name, stdItem)}
-                  onAddCustomItem={(name, spec, cbm) => {
-                    setItems(prev => [
-                      ...prev,
-                      ensureItemUid({
-                        locationId: quickAddModalCat.id,
-                        locationName: quickAddModalCat.name,
-                        name,
-                        spec,
-                        quantity: 1,
-                        cbm,
-                        innerBoxCbm: 0,
-                        treatment: '이동',
-                      }),
-                    ])
-                  }}
-                />
-              )}
-            </div>
+                                          // 기준정보에 없는 직접 입력 항목인 경우 텍스트 입력창 유지
+                                          return (
+                                            <input
+                                              type="text"
+                                              value={item.spec || ''}
+                                              onChange={e => {
+                                                const newItems = [...items]
+                                                newItems[idx].spec = e.target.value
+                                                setItems(newItems)
+                                              }}
+                                              className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-xs sm:text-sm outline-none focus:border-blue-500 font-medium"
+                                              placeholder="직접입력"
+                                              autoComplete="off"
+                                              spellCheck={false}
+                                            />
+                                          )
+                                        })()}
+                                      </td>
+                                      <td className="px-1 sm:px-1.5 py-1 text-right">
+                                        <input
+                                          type="number"
+                                          min="0"
+                                          value={item.quantity !== undefined ? item.quantity : 1}
+                                          onChange={e => {
+                                            const newItems = [...items]
+                                            newItems[idx].quantity = e.target.value === '' ? 0 : parseInt(e.target.value)
+                                            setItems(newItems)
+                                          }}
+                                          onFocus={handleSelectAllOnFocus}
+                                          className="w-full rounded border border-gray-300 bg-white px-1.5 py-1 text-xs sm:text-sm outline-none focus:border-blue-500 text-right font-bold text-gray-900"
+                                        />
+                                      </td>
+                                      <td className="px-1 py-1 text-center">
+                                        <select
+                                          value={item.treatment || '이동'}
+                                          onChange={e => {
+                                            const newItems = [...items]
+                                            newItems[idx].treatment = e.target.value
+                                            setItems(newItems)
+                                          }}
+                                          className={`w-full rounded border px-1 py-1 text-xs font-bold outline-none text-center cursor-pointer transition-colors ${(item.treatment || '이동') === '폐기'
+                                            ? 'bg-red-50 text-red-700 border-red-300'
+                                            : (item.treatment || '이동') === '내림'
+                                              ? 'bg-amber-50 text-amber-700 border-amber-300'
+                                              : (item.treatment || '이동') === '경유'
+                                                ? 'bg-purple-50 text-purple-700 border-purple-300'
+                                                : (item.treatment || '이동') === '존치'
+                                                  ? 'bg-slate-100 text-slate-700 border-slate-300'
+                                                  : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                                            }`}
+                                        >
+                                          <option value="이동">이동</option>
+                                          <option value="폐기">폐기</option>
+                                          <option value="내림">내림</option>
+                                          <option value="경유">경유</option>
+                                          <option value="존치">존치</option>
+                                        </select>
+                                      </td>
+                                      <td className="px-1 sm:px-1.5 py-1">
+                                        <div className="relative">
+                                          <input
+                                            type="number"
+                                            step="0.01"
+                                            value={item.cbm}
+                                            onChange={e => {
+                                              const newItems = [...items]
+                                              newItems[idx].cbm = parseFloat(e.target.value) || 0
+                                              setItems(newItems)
+                                            }}
+                                            onFocus={handleSelectAllOnFocus}
+                                            title={isBaseCbmExcluded(item.treatment) ? `${item.treatment} 품목: 기본 CBM은 차량적재 합산에서 제외됩니다.` : undefined}
+                                            className={`w-full rounded border px-1.5 py-1 text-xs sm:text-sm outline-none text-right transition-colors ${isBaseCbmExcluded(item.treatment)
+                                              ? 'border-rose-300 bg-rose-50/70 text-rose-500 line-through decoration-rose-500 font-semibold focus:border-rose-500'
+                                              : 'border-gray-300 bg-white text-gray-900 focus:border-blue-500'
+                                              }`}
+                                          />
+                                          {isBaseCbmExcluded(item.treatment) && (
+                                            <span className="text-[9px] sm:text-[10px] text-rose-600 block text-right font-bold mt-0.5 leading-none">
+                                              합산제외
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="px-1 sm:px-1.5 py-1">
+                                        <input
+                                          type="number"
+                                          step="0.01"
+                                          value={item.innerBoxCbm}
+                                          onChange={e => {
+                                            const newItems = [...items]
+                                            newItems[idx].innerBoxCbm = parseFloat(e.target.value) || 0
+                                            setItems(newItems)
+                                          }}
+                                          onFocus={handleSelectAllOnFocus}
+                                          className={`w-full rounded border px-1.5 py-1 text-xs sm:text-sm outline-none text-right transition-colors ${(Number(item.innerBoxCbm) || 0) > 0
+                                            ? 'border-amber-300 bg-amber-50/80 text-amber-900 font-bold focus:border-amber-500'
+                                            : 'border-gray-300 bg-white text-gray-700 focus:border-blue-500'
+                                            }`}
+                                          title="장농, 서랍장 등 내부 짐을 옷 박스로 포장하기 위해 가산되는 내품 CBM"
+                                        />
+                                      </td>
+                                      <td className="px-1 py-1 text-center">
+                                        <div className="inline-flex items-center justify-center gap-1">
+                                          <button
+                                            type="button"
+                                            onClick={() => handleDuplicateTableItem(idx)}
+                                            title={`[${cat.name}]에 '${item.name || '품목'}' 다른 규격 복사등록`}
+                                            className="inline-flex items-center gap-0.5 px-1.5 py-1 rounded border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold text-[10px] sm:text-xs transition-colors shrink-0"
+                                          >
+                                            <Copy size={11} />
+                                            <span>복사</span>
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const newItems = items.filter((_, i) => i !== idx)
+                                              setItems(newItems)
+                                            }}
+                                            title="행 삭제"
+                                            className="text-red-500 hover:text-red-700 font-bold p-1 text-xs sm:text-sm shrink-0"
+                                          >
+                                            ✕
+                                          </button>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  )
+                                })}
+                                {catItems.length === 0 && (
+                                  <tr className="border-b">
+                                    <td colSpan={7} className="px-3 py-3 text-center text-gray-400 text-xs">
+                                      {allCatItems.length > 0
+                                        ? '필터 조건에 맞는 항목이 없습니다.'
+                                        : '등록된 항목이 없습니다.'}
+                                    </td>
+                                  </tr>
+                                )}
+                                <tr className="bg-gray-50/80 border-t border-gray-200">
+                                  <td colSpan={7} className="px-2 sm:px-3 py-2">
+                                    <div className="flex flex-wrap gap-1.5 sm:gap-2 items-center">
+                                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-100 text-blue-900 border border-blue-200 text-xs font-extrabold shrink-0">
+                                        <MapPin size={12} className="text-blue-600" />
+                                        <span>{cat.name}</span>
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => setQuickAddModalCat({ id: cat.id, name: cat.name })}
+                                        className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-extrabold flex items-center gap-1 shadow-2xs transition-all active:scale-95"
+                                      >
+                                        <PackagePlus size={14} />
+                                        <span>+ [{cat.name}] 품목 검색·추가</span>
+                                      </button>
+
+                                      <select
+                                        className="min-w-[130px] sm:min-w-[170px] max-w-[210px] rounded-lg border-gray-300 border px-2 sm:px-2.5 py-1.5 text-xs sm:text-sm font-semibold outline-none text-gray-800 bg-white focus:border-blue-500 cursor-pointer shadow-2xs"
+                                        value={selectedItemNames[cat.id] || ''}
+                                        onChange={(e) => {
+                                          setSelectedItemNames(prev => ({ ...prev, [cat.id]: e.target.value }))
+                                        }}
+                                      >
+                                        <option value="">+ [{cat.name}] 드롭다운 선택</option>
+                                        {(() => {
+                                          // 1. 현재 위치(카테고리)와 일치하는 품목명 목록 (BOX 최상단 우선, 그 외 해당 공간 디스플레이 순서 -> 가나다순)
+                                          const matchedNames = Array.from(new Set(
+                                            standardItems
+                                              .filter(i => cat.id ? i.locations?.some((l: any) => l.id === cat.id) : (!i.locations || i.locations.length === 0))
+                                              .map(i => i.name)
+                                          )).sort((a, b) => {
+                                            const aBox = isBoxItem(a)
+                                            const bBox = isBoxItem(b)
+                                            if (aBox && !bBox) return -1
+                                            if (!aBox && bBox) return 1
+                                            const oa = getItemOrderInSpace(cat, a, 9999)
+                                            const ob = getItemOrderInSpace(cat, b, 9999)
+                                            if (oa !== ob) return oa - ob
+                                            return a.localeCompare(b, 'ko')
+                                          })
+
+                                          // 2. 미지정 품목(위치 미지정 또는 타 위치 포함) 중 matchedNames에 없는 품목명 목록 (BOX 최상단 우선, 그 외 가나다순)
+                                          const otherNames = Array.from(new Set(
+                                            standardItems
+                                              .filter(i => !matchedNames.includes(i.name))
+                                              .map(i => i.name)
+                                          )).sort((a, b) => {
+                                            const aBox = isBoxItem(a)
+                                            const bBox = isBoxItem(b)
+                                            if (aBox && !bBox) return -1
+                                            if (!aBox && bBox) return 1
+                                            return a.localeCompare(b, 'ko')
+                                          })
+
+                                          return (
+                                            <>
+                                              {matchedNames.length > 0 && (
+                                                <optgroup label={`── ${cat.name || '현재 위치'} 지정 품목 ──`}>
+                                                  {matchedNames.map(name => (
+                                                    <option key={name} value={name}>{name}</option>
+                                                  ))}
+                                                </optgroup>
+                                              )}
+                                              {otherNames.length > 0 && (
+                                                <optgroup label="── 미지정 / 기타 품목 ──">
+                                                  {otherNames.map(name => (
+                                                    <option key={name} value={name}>{name}</option>
+                                                  ))}
+                                                </optgroup>
+                                              )}
+                                            </>
+                                          )
+                                        })()}
+                                      </select>
+
+                                      {selectedItemNames[cat.id] && (
+                                        <select
+                                          className="min-w-[150px] sm:min-w-[200px] max-w-[340px] rounded-lg border-blue-400 border px-2 sm:px-2.5 py-1.5 text-xs sm:text-sm font-semibold outline-none text-blue-900 bg-blue-50/80 focus:border-blue-600 cursor-pointer shadow-2xs"
+                                          value=""
+                                          onChange={(e) => {
+                                            if (!e.target.value) return;
+                                            const stdItem = standardItems.find(i => i.id === e.target.value)
+                                            if (stdItem) {
+                                              handleAddStandardItemToCategory(cat.id, cat.name, stdItem)
+                                              setSelectedItemNames(prev => ({ ...prev, [cat.id]: '' }))
+                                            }
+                                          }}
+                                        >
+                                          <option value="">+ 규격 선택</option>
+                                          {standardItems
+                                            .filter(i => i.name === selectedItemNames[cat.id])
+                                            .sort((a, b) => (a.spec || '').localeCompare(b.spec || '', 'ko'))
+                                            .map(i => (
+                                              <option key={i.id} value={i.id}>
+                                                {i.spec
+                                                  ? `${i.spec} (${i.defaultCbm} CBM${(i.defaultInnerCbm || 0) > 0 ? ` + 내품 ${i.defaultInnerCbm}` : ''})`
+                                                  : `기본 규격 (${i.defaultCbm} CBM${(i.defaultInnerCbm || 0) > 0 ? ` + 내품 ${i.defaultInnerCbm}` : ''})`}
+                                              </option>
+                                            ))}
+                                        </select>
+                                      )}
+                                      <span className="text-gray-400 text-xs mx-0.5">또는</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => setItems([...items, ensureItemUid({ locationId: cat.id, locationName: cat.name, name: '', spec: '', quantity: 1, treatment: '이동', cbm: 0, innerBoxCbm: 0 })])}
+                                        className="text-blue-600 hover:text-blue-800 text-xs sm:text-sm font-semibold px-2.5 sm:px-3 py-1.5 bg-white border border-blue-200 rounded-lg shadow-2xs hover:bg-blue-50 transition-colors"
+                                      >
+                                        + [{cat.name}] 직접입력 추가
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+
+                {/* 새 공간(위치) 추가 */}
+                {availableCategoriesToAdd.length > 0 && (
+                  <div className="flex items-center justify-center p-3 bg-gray-50/80 rounded-xl border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-gray-700">+ 새 공간(위치) 추가:</span>
+                      <select
+                        value=""
+                        onChange={(e) => {
+                          if (e.target.value) handleAddCategory(e.target.value)
+                        }}
+                        className="px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-xs font-bold text-blue-600 outline-none focus:border-blue-500 cursor-pointer shadow-2xs hover:border-blue-400"
+                      >
+                        <option value="" disabled>공간 선택...</option>
+                        {availableCategoriesToAdd.map((c: any) => (
+                          <option key={c.id} value={c.id}>
+                            + {c.name} 추가
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {/* 테이블 모드용 품목 빠른 검색·추가 모달 */}
+                {quickAddModalCat && (
+                  <ItemQuickAddModal
+                    isOpen={Boolean(quickAddModalCat)}
+                    onClose={() => setQuickAddModalCat(null)}
+                    categoryId={quickAddModalCat.id}
+                    categoryName={quickAddModalCat.name}
+                    categories={displayedCategories}
+                    onSelectCategory={(catId) => {
+                      const found = displayedCategories.find((c: any) => c.id === catId)
+                      if (found) setQuickAddModalCat({ id: found.id, name: found.name })
+                    }}
+                    standardItems={standardItems}
+                    currentCategoryItems={items.filter(i => (i.locationId || '') === quickAddModalCat.id)}
+                    onAddItem={(stdItem) => handleAddStandardItemToCategory(quickAddModalCat.id, quickAddModalCat.name, stdItem)}
+                    onAddCustomItem={(name, spec, cbm) => {
+                      setItems(prev => [
+                        ...prev,
+                        ensureItemUid({
+                          locationId: quickAddModalCat.id,
+                          locationName: quickAddModalCat.name,
+                          name,
+                          spec,
+                          quantity: 1,
+                          cbm,
+                          innerBoxCbm: 0,
+                          treatment: '이동',
+                        }),
+                      ])
+                    }}
+                  />
+                )}
+              </div>
             )}
-            <input type="hidden" name="cbmItems" value={JSON.stringify(filterValidCbmItems(items))} />
+            <input type="hidden" name="cbmItems" value={JSON.stringify(serializeCbmItemsForSave(items))} />
           </div>
 
           <div className="pt-3 border-t border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
@@ -4552,7 +4688,7 @@ export function EstimateForm({
                   <span className="text-xs sm:text-sm text-blue-900 font-bold">
                     적재량: {requiredCbm.toFixed(2)} CBM
                   </span>
-                  <button 
+                  <button
                     type="button"
                     onClick={handleRecommendLabors}
                     className="px-2.5 py-0.5 bg-blue-600 text-white text-xs font-semibold rounded hover:bg-blue-700 transition-colors shadow-2xs whitespace-nowrap"
@@ -4596,12 +4732,12 @@ export function EstimateForm({
                   </table>
                 </div>
               )}
-              <select 
+              <select
                 className="w-full rounded-lg border-gray-300 border px-2.5 py-1.5 text-xs sm:text-sm outline-none text-gray-700 bg-gray-50 focus:border-blue-500 cursor-pointer"
                 onChange={(e) => {
-                  if(!e.target.value) return;
+                  if (!e.target.value) return;
                   const item = standardLabors.find(i => i.id === e.target.value)
-                  if(item && !labors.find(l => l.id === item.id)) {
+                  if (item && !labors.find(l => l.id === item.id)) {
                     setLabors([...labors, { id: item.id, name: item.name, cost: item.defaultCost, count: 1 }])
                   }
                   e.target.value = ''
@@ -4620,24 +4756,24 @@ export function EstimateForm({
               <div className="flex justify-between items-center mb-1.5">
                 <h3 className="font-bold text-gray-900 text-xs sm:text-sm">투입 차량</h3>
               </div>
-              
+
               <div className="bg-blue-50 p-2.5 sm:p-3 rounded-lg border border-blue-100 mb-2 space-y-1.5">
                 <div className="flex items-center justify-between text-xs sm:text-sm">
                   <span className="text-gray-700">산출 CBM: <strong>{totalCbm.toFixed(2)}</strong></span>
                   <div className="flex items-center gap-1.5">
                     <span className="text-gray-600 text-xs">데드스페이스</span>
-                    <input 
-                      type="number" 
-                      value={deadSpaceRatio} 
-                      onChange={e => setDeadSpaceRatio(Number(e.target.value))} 
-                      className="w-12 rounded border border-gray-300 px-1 py-0.5 text-xs text-right outline-none focus:border-blue-500" 
+                    <input
+                      type="number"
+                      value={deadSpaceRatio}
+                      onChange={e => setDeadSpaceRatio(Number(e.target.value))}
+                      className="w-12 rounded border border-gray-300 px-1 py-0.5 text-xs text-right outline-none focus:border-blue-500"
                     />
                     <span className="text-gray-600 text-xs">%</span>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs sm:text-sm text-blue-900 font-bold">필요 적재 CBM: {requiredCbm.toFixed(2)}</span>
-                  <button 
+                  <button
                     type="button"
                     onClick={handleRecommendVehicles}
                     className="px-2.5 py-0.5 bg-blue-600 text-white text-xs font-semibold rounded hover:bg-blue-700 transition-colors shadow-2xs whitespace-nowrap"
@@ -4699,12 +4835,12 @@ export function EstimateForm({
                   </table>
                 </div>
               )}
-              <select 
+              <select
                 className="w-full rounded-lg border-gray-300 border px-2.5 py-1.5 text-xs sm:text-sm outline-none text-gray-700 bg-gray-50 focus:border-blue-500 cursor-pointer"
                 onChange={(e) => {
-                  if(!e.target.value) return;
+                  if (!e.target.value) return;
                   const item = standardVehicles.find(i => i.id === e.target.value)
-                  if(item && !vehicles.find(v => v.id === item.id)) {
+                  if (item && !vehicles.find(v => v.id === item.id)) {
                     setIsVehiclesManuallyEdited(true)
                     setIsAutoVehicleSync(false)
                     setVehicles([
@@ -4736,11 +4872,10 @@ export function EstimateForm({
                   <span className="text-xs font-extrabold text-emerald-950 flex items-center gap-1">
                     🚚 이삿날 배차 호차 · 담당 팀장 배정
                   </span>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                    (dispatchInfo.assignedVehicles?.length > 0 || dispatchInfo.teamLeader?.trim())
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-gray-200 text-gray-600'
-                  }`}>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${(dispatchInfo.assignedVehicles?.length > 0 || dispatchInfo.teamLeader?.trim())
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-gray-200 text-gray-600'
+                    }`}>
                     {(dispatchInfo.assignedVehicles?.length > 0 || dispatchInfo.teamLeader?.trim()) ? '배차 지정됨' : '미지정 (추후 배차 가능)'}
                   </span>
                 </div>
@@ -4761,15 +4896,15 @@ export function EstimateForm({
                               const nextList = isSelected
                                 ? curList.filter((av: any) => av.vehicleId !== sv.id)
                                 : [
-                                    ...curList,
-                                    {
-                                      vehicleId: sv.id,
-                                      name: sv.name,
-                                      vehicleNo: sv.vehicleNo || '',
-                                      tonnage: sv.tonnage || 5,
-                                      ownership: 'OWN'
-                                    }
-                                  ]
+                                  ...curList,
+                                  {
+                                    vehicleId: sv.id,
+                                    name: sv.name,
+                                    vehicleNo: sv.vehicleNo || '',
+                                    tonnage: sv.tonnage || 5,
+                                    ownership: 'OWN'
+                                  }
+                                ]
                               const nextLeader =
                                 !isSelected && !dispatchInfo.teamLeader?.trim() && sv.teamLeader
                                   ? sv.teamLeader
@@ -4785,17 +4920,15 @@ export function EstimateForm({
                                 leaderPhone: nextPhone
                               })
                             }}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 ${
-                              isSelected
-                                ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
-                                : 'bg-white text-gray-700 border-gray-300 hover:border-emerald-400'
-                            }`}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 ${isSelected
+                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                              : 'bg-white text-gray-700 border-gray-300 hover:border-emerald-400'
+                              }`}
                           >
                             <span>{sv.name}</span>
                             {sv.vehicleNo && (
-                              <span className={`px-1 py-0.2 rounded text-[10px] font-black ${
-                                isSelected ? 'bg-amber-300 text-gray-950' : 'bg-amber-100 text-amber-900'
-                              }`}>
+                              <span className={`px-1 py-0.2 rounded text-[10px] font-black ${isSelected ? 'bg-amber-300 text-gray-950' : 'bg-amber-100 text-amber-900'
+                                }`}>
                                 {sv.vehicleNo}
                               </span>
                             )}
@@ -4874,13 +5007,12 @@ export function EstimateForm({
               <button
                 type="button"
                 onClick={handleOpenCostModal}
-                className={`px-2 sm:px-2.5 py-1 rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1 ${
-                  isPastMovingDate 
-                    ? 'bg-gray-400 hover:bg-gray-500 text-white opacity-70 cursor-not-allowed' 
-                    : 'bg-blue-600 hover:bg-blue-700 text-white active:scale-95'
-                }`}
+                className={`px-2 sm:px-2.5 py-1 rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1 ${isPastMovingDate
+                  ? 'bg-gray-400 hover:bg-gray-500 text-white opacity-70 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white active:scale-95'
+                  }`}
                 title={
-                  isPastMovingDate 
+                  isPastMovingDate
                     ? `이사날짜(${movingDate ? format(movingDate, 'yyyy-MM-dd') : ''})가 지난 건은 이사비용 산출이 비활성화됩니다.`
                     : "CBM별 가이드, 캘린더 할증, 특수물품 분해조립 비용을 종합하여 이사비용 산출"
                 }
@@ -4893,34 +5025,34 @@ export function EstimateForm({
             <div className="flex items-center gap-2.5 text-xs text-gray-700 bg-gray-50 px-2.5 py-1 rounded-lg border border-gray-200">
               <span className="font-bold text-gray-600">결제 기준:</span>
               <label className="flex items-center gap-1 cursor-pointer font-bold text-blue-900 hover:text-blue-600 whitespace-nowrap">
-                <input 
-                  type="radio" 
-                  name="paymentTarget" 
-                  checked={paymentTarget === 'total'} 
+                <input
+                  type="radio"
+                  name="paymentTarget"
+                  checked={paymentTarget === 'total'}
                   onChange={() => {
                     setPaymentTarget('total')
                     setIsCostEdited(true)
                     const nextDown = Math.floor(totalAmount * 0.1)
                     setDownPayment(nextDown)
                     setBalance(Math.max(0, totalAmount - nextDown - intermediatePayment))
-                  }} 
-                  className="w-3.5 h-3.5 text-blue-600" 
+                  }}
+                  className="w-3.5 h-3.5 text-blue-600"
                 />
                 공급대가 (기본)
               </label>
               <label className="flex items-center gap-1 cursor-pointer font-medium text-gray-800 hover:text-blue-600 whitespace-nowrap">
-                <input 
-                  type="radio" 
-                  name="paymentTarget" 
-                  checked={paymentTarget === 'supply'} 
+                <input
+                  type="radio"
+                  name="paymentTarget"
+                  checked={paymentTarget === 'supply'}
                   onChange={() => {
                     setPaymentTarget('supply')
                     setIsCostEdited(true)
                     const nextDown = Math.floor(supplyAmount * 0.1)
                     setDownPayment(nextDown)
                     setBalance(Math.max(0, supplyAmount - nextDown - intermediatePayment))
-                  }} 
-                  className="w-3.5 h-3.5 text-blue-600" 
+                  }}
+                  className="w-3.5 h-3.5 text-blue-600"
                 />
                 공급가액
               </label>
@@ -4942,11 +5074,10 @@ export function EstimateForm({
                       }
                       setIsCostCalculatorModalOpen(true)
                     }}
-                    className={`text-[11px] font-bold flex items-center gap-0.5 px-1.5 py-0.5 rounded shadow-2xs border transition-colors ${
-                      isPastMovingDate 
-                        ? 'text-gray-400 bg-gray-50 border-gray-200 cursor-not-allowed' 
-                        : 'text-amber-800 bg-amber-50 hover:bg-amber-100 border-amber-300 active:scale-95'
-                    }`}
+                    className={`text-[11px] font-bold flex items-center gap-0.5 px-1.5 py-0.5 rounded shadow-2xs border transition-colors ${isPastMovingDate
+                      ? 'text-gray-400 bg-gray-50 border-gray-200 cursor-not-allowed'
+                      : 'text-amber-800 bg-amber-50 hover:bg-amber-100 border-amber-300 active:scale-95'
+                      }`}
                     title={isPastMovingDate ? "이사날짜가 경과하여 산출이 불가합니다." : "원가 기반 비용 산출 시뮬레이터"}
                   >
                     <Coins size={11} className={isPastMovingDate ? 'text-gray-400' : 'text-amber-600'} />
@@ -4955,11 +5086,10 @@ export function EstimateForm({
                   <button
                     type="button"
                     onClick={handleOpenCostModal}
-                    className={`text-[11px] font-bold flex items-center gap-0.5 ${
-                      isPastMovingDate 
-                        ? 'text-gray-400 cursor-not-allowed' 
-                        : 'text-blue-600 hover:text-blue-800 hover:underline'
-                    }`}
+                    className={`text-[11px] font-bold flex items-center gap-0.5 ${isPastMovingDate
+                      ? 'text-gray-400 cursor-not-allowed'
+                      : 'text-blue-600 hover:text-blue-800 hover:underline'
+                      }`}
                     title={isPastMovingDate ? "이사날짜가 경과하여 산출이 불가합니다." : "CBM 기준 운임 가이드 산출"}
                   >
                     <Calculator size={11} />
@@ -4971,18 +5101,18 @@ export function EstimateForm({
             </div>
             <div>
               <label className="block text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap mb-1">가산비용 내역</label>
-              <NumberInput 
-                name="additionalCost" 
-                value={additionalCost} 
-                onChange={v => { 
-                  setAdditionalCost(v); 
-                  setIsCostEdited(true); 
+              <NumberInput
+                name="additionalCost"
+                value={additionalCost}
+                onChange={v => {
+                  setAdditionalCost(v);
+                  setIsCostEdited(true);
                   if (v === 0) {
                     setAppliedLadderCost(0);
                     setAppliedDistanceCost(0);
                   }
-                }} 
-                className="block w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs sm:text-sm text-right outline-none focus:border-blue-500" 
+                }}
+                className="block w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs sm:text-sm text-right outline-none focus:border-blue-500"
               />
               {/* 산출 가산운임 반영 버튼 및 내역 (한 가지로 통합) */}
               {(totalLadderCost > 0 || calculatedExtraCost > 0) && (
@@ -4990,17 +5120,16 @@ export function EstimateForm({
                   <button
                     type="button"
                     onClick={handleApplyAllAdditionalCosts}
-                    className={`text-[10px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1 transition-colors w-full justify-center border shadow-2xs whitespace-nowrap ${
-                      isAllApplied
-                        ? 'bg-amber-100/80 text-amber-900 border-amber-300 hover:bg-amber-200/80'
-                        : 'bg-amber-500 hover:bg-amber-600 text-white active:scale-95'
-                    }`}
+                    className={`text-[10px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1 transition-colors w-full justify-center border shadow-2xs whitespace-nowrap ${isAllApplied
+                      ? 'bg-amber-100/80 text-amber-900 border-amber-300 hover:bg-amber-200/80'
+                      : 'bg-amber-500 hover:bg-amber-600 text-white active:scale-95'
+                      }`}
                     title="산출된 사다리차 및 거리가산 운임 일괄 반영"
                   >
                     {isAllApplied ? <CheckCircle2 size={11} className="text-amber-800" /> : <Plus size={11} />}
                     <span>
-                      {isAllApplied 
-                        ? `가산반영완료 (+${totalExtraCost.toLocaleString()}원)` 
+                      {isAllApplied
+                        ? `가산반영완료 (+${totalExtraCost.toLocaleString()}원)`
                         : `산출가산 (+${totalExtraCost.toLocaleString()}원)`}
                     </span>
                   </button>
@@ -5133,11 +5262,10 @@ export function EstimateForm({
                         <button
                           type="button"
                           onClick={() => setIsSontaxModalOpen(true)}
-                          className={`inline-flex items-center gap-1 px-2 h-7 sm:h-8 rounded-md text-xs font-extrabold border transition-all whitespace-nowrap ${
-                            taxFiling?.status === 'CASH_RECEIPT' || taxFiling?.status === 'TAX_INVOICE'
-                              ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
-                              : 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700 shadow-2xs'
-                          }`}
+                          className={`inline-flex items-center gap-1 px-2 h-7 sm:h-8 rounded-md text-xs font-extrabold border transition-all whitespace-nowrap ${taxFiling?.status === 'CASH_RECEIPT' || taxFiling?.status === 'TAX_INVOICE'
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                            : 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700 shadow-2xs'
+                            }`}
                           title="잔금 입금 완료 건 손택스/홈택스 바로발행 도우미"
                         >
                           <Smartphone className="w-3.5 h-3.5" />
@@ -5145,8 +5273,8 @@ export function EstimateForm({
                             {taxFiling?.status === 'CASH_RECEIPT'
                               ? '현금영수증완료'
                               : taxFiling?.status === 'TAX_INVOICE'
-                              ? '세금계산서완료'
-                              : '손택스발행'}
+                                ? '세금계산서완료'
+                                : '손택스발행'}
                           </span>
                         </button>
                       )}
@@ -5199,10 +5327,10 @@ export function EstimateForm({
                   <button type="button" onClick={() => { sigCanvas.current?.clear(); setSignature(''); }} className="text-xs text-gray-600 hover:text-gray-800 font-medium px-2.5 py-1 bg-gray-100 rounded-lg">초기화</button>
                 )}
               </div>
-              
+
               <div className="border border-gray-300 rounded-lg overflow-hidden bg-white h-24 sm:h-28 relative touch-none">
                 {isSigning ? (
-                  <SignatureCanvas 
+                  <SignatureCanvas
                     ref={sigCanvas}
                     canvasProps={{ className: 'w-full h-full touch-none cursor-crosshair' }}
                     onEnd={() => setSignature(sigCanvas.current?.getTrimmedCanvas().toDataURL('image/png'))}
@@ -5216,9 +5344,20 @@ export function EstimateForm({
           </div>
         </div>
 
-        <div className="fixed bottom-0 left-0 right-0 lg:left-64 h-14 sm:h-16 bg-white border-t px-2.5 sm:px-4 shadow-lg flex items-center justify-end gap-2.5 sm:gap-3 z-30">
-          <button 
-            type="button" 
+        <div className="fixed bottom-0 left-0 right-0 lg:left-64 h-14 sm:h-16 bg-white border-t px-2.5 sm:px-4 shadow-lg flex items-center justify-end gap-2 sm:gap-3 z-30">
+          {emptyItemsCount > 0 && (
+            <button
+              type="button"
+              onClick={handleRemoveEmptyItems}
+              title={`수량이 0이거나 규격·CBM이 미입력된 빈 물품 ${emptyItemsCount}개를 일괄 삭제합니다`}
+              className="px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold transition-colors text-xs sm:text-sm inline-flex items-center gap-1 whitespace-nowrap cursor-pointer"
+            >
+              <Trash2 size={14} className="shrink-0" />
+              <span>빈 물품 삭제 ({emptyItemsCount})</span>
+            </button>
+          )}
+          <button
+            type="button"
             onClick={() => {
               if (confirm('견적 작성을 중단하고 목록으로 이동하시겠습니까?\n(작성 중이던 내용은 안전하게 임시 보관됩니다)')) {
                 window.location.href = '/estimates'
@@ -5228,7 +5367,7 @@ export function EstimateForm({
           >
             취소
           </button>
-          <button type="submit" className="px-4 sm:px-6 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-md text-xs sm:text-sm">견적 저장하기</button>
+          <button type="submit" className="px-4 sm:px-6 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-md text-xs sm:text-sm whitespace-nowrap">견적 저장하기</button>
         </div>
       </form>
 
@@ -5269,7 +5408,7 @@ export function EstimateForm({
               <div className="pt-4 border-t border-gray-100 flex justify-between items-center">
                 <span className="font-medium text-gray-700">계산 결과</span>
                 <span className="text-xl font-bold text-blue-600">
-                  {Number(cbmLength) > 0 && Number(cbmWidth) > 0 && Number(cbmHeight) > 0 
+                  {Number(cbmLength) > 0 && Number(cbmWidth) > 0 && Number(cbmHeight) > 0
                     ? ((Number(cbmLength) * Number(cbmWidth) * Number(cbmHeight)) / 1000000).toFixed(3)
                     : '0.000'} <span className="text-sm">CBM</span>
                 </span>

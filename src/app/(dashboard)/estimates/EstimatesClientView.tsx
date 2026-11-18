@@ -22,6 +22,12 @@ import type { PartnerCompanyItem } from '@/app/actions/partner'
 import { DeleteEstimateButton } from '@/components/DeleteEstimateButton'
 import { canUserModifyEstimate, type UserIdentityInfo } from '@/lib/menuPermissionUtils'
 import {
+  getEstimateCancelInfo,
+  isEstimatePreWork,
+  type EstimateCancelInfo,
+} from '@/lib/estimateStatus'
+import { cancelEstimateReservation, restoreEstimateReservation } from '@/app/actions/estimate'
+import {
   CalendarClock,
   BarChart3,
   Building2,
@@ -48,6 +54,59 @@ export function EstimatesClientView({
   const [searchQuery, setSearchQuery] = useState('')
   const [movingTypeFilter, setMovingTypeFilter] = useState('')
   const [partnerFilter, setPartnerFilter] = useState<string>('ALL') // 'ALL' | '__DIRECT__' | partnerName
+  const [cancelView, setCancelView] = useState<'EXCLUDE_CANCELLED' | 'ALL'>('EXCLUDE_CANCELLED')
+  const [cancelTarget, setCancelTarget] = useState<any | null>(null)
+  const [cancelReason, setCancelReason] = useState('')
+  const [cancelBusy, setCancelBusy] = useState(false)
+  const [cancelError, setCancelError] = useState('')
+  const canCancel = userRole === 'ADMIN'
+
+  const patchCancelInfo = (id: string, info: EstimateCancelInfo | null) => {
+    setEstimatesList(prev =>
+      prev.map(item => {
+        if (item.id !== id) return item
+        let env: any = {}
+        try {
+          if (item.environment) env = JSON.parse(item.environment) || {}
+        } catch {}
+        if (info) env.cancelInfo = info
+        else delete env.cancelInfo
+        return { ...item, environment: JSON.stringify(env) }
+      })
+    )
+  }
+
+  const handleSubmitCancel = async () => {
+    if (!cancelTarget) return
+    if (!cancelReason.trim()) {
+      setCancelError('취소사유를 입력해주세요.')
+      return
+    }
+    setCancelBusy(true)
+    setCancelError('')
+    try {
+      const res = await cancelEstimateReservation(cancelTarget.id, cancelReason)
+      if (!res.success) {
+        setCancelError(res.error || '예약취소에 실패했습니다.')
+        return
+      }
+      if (res.cancelInfo) patchCancelInfo(cancelTarget.id, res.cancelInfo)
+      setCancelTarget(null)
+      setCancelReason('')
+    } finally {
+      setCancelBusy(false)
+    }
+  }
+
+  const handleRestore = async (est: any) => {
+    if (!confirm(`'${est.customerName}' 고객님의 예약취소를 되돌리시겠습니까?`)) return
+    const res = await restoreEstimateReservation(est.id)
+    if (!res.success) {
+      alert(res.error || '취소 복원에 실패했습니다.')
+      return
+    }
+    patchCancelInfo(est.id, null)
+  }
 
   const [isQuickVisitOpen, setIsQuickVisitOpen] = useState(false)
   const [isPartnerModalOpen, setIsPartnerModalOpen] = useState(false)
@@ -121,6 +180,8 @@ export function EstimatesClientView({
         ...est,
         payPlanObj,
         envObj,
+        cancelInfo: getEstimateCancelInfo(est),
+        isPreWork: isEstimatePreWork(est),
         estimatorName: (envObj.estimatorName || historyCreator || '').trim(),
         estDistance: envObj.distance,
         partnerName,
@@ -177,6 +238,7 @@ export function EstimatesClientView({
   const filteredEstimates = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
     return parsedEstimates.filter(est => {
+      if (cancelView === 'EXCLUDE_CANCELLED' && est.cancelInfo) return false
       if (movingTypeFilter && est.movingType !== movingTypeFilter) return false
 
       if (partnerFilter === '__DIRECT__') {
@@ -204,7 +266,12 @@ export function EstimatesClientView({
 
       return true
     })
-  }, [parsedEstimates, searchQuery, movingTypeFilter, partnerFilter])
+  }, [parsedEstimates, searchQuery, movingTypeFilter, partnerFilter, cancelView])
+
+  const cancelledCount = useMemo(
+    () => parsedEstimates.filter(e => e.cancelInfo).length,
+    [parsedEstimates]
+  )
 
   // 현재 필터된 목록의 요약 통계
   const filteredSummary = useMemo(() => {
@@ -409,6 +476,14 @@ export function EstimatesClientView({
             <option value="G">일반이사</option>
             <option value="K">보관이사</option>
           </select>
+          <select
+            value={cancelView}
+            onChange={e => setCancelView(e.target.value as 'EXCLUDE_CANCELLED' | 'ALL')}
+            className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-xs sm:text-sm font-semibold focus:border-blue-500 outline-none"
+          >
+            <option value="EXCLUDE_CANCELLED">취소건 제외</option>
+            <option value="ALL">모두보기{cancelledCount > 0 ? ` (취소 ${cancelledCount}건 포함)` : ''}</option>
+          </select>
         </div>
 
         <div className="overflow-x-auto">
@@ -425,6 +500,9 @@ export function EstimatesClientView({
                 <th className="p-3.5 font-bold whitespace-nowrap">이사예정일</th>
                 <th className="p-3.5 font-bold whitespace-nowrap">결제상태</th>
                 <th className="p-3.5 font-bold text-right whitespace-nowrap">공급가액 (VAT별도)</th>
+                {canCancel && (
+                  <th className="p-3.5 font-bold text-center whitespace-nowrap">예약취소</th>
+                )}
                 {isAdmin && (
                   <th className="p-3.5 font-bold text-center whitespace-nowrap">관리</th>
                 )}
@@ -433,7 +511,7 @@ export function EstimatesClientView({
             <tbody>
               {filteredEstimates.length === 0 ? (
                 <tr>
-                  <td colSpan={isAdmin ? 11 : 10} className="p-8 text-center text-gray-600 font-medium text-sm">
+                  <td colSpan={10 + (isAdmin ? 1 : 0) + (canCancel ? 1 : 0)} className="p-8 text-center text-gray-600 font-medium text-sm">
                     조건에 해당하는 견적이 없습니다.
                   </td>
                 </tr>
@@ -474,7 +552,19 @@ export function EstimatesClientView({
                         )}
                       </td>
                       <td className="p-3.5 font-bold text-gray-900 whitespace-nowrap">
-                        {est.customerName}
+                        <div className="flex flex-col items-start gap-1">
+                          <span className={est.cancelInfo ? 'line-through text-gray-400' : ''}>
+                            {est.customerName}
+                          </span>
+                          {est.cancelInfo && (
+                            <span
+                              title={`취소일시: ${formatKstDateTime(est.cancelInfo.at)} / 처리자: ${est.cancelInfo.by}`}
+                              className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-red-100 text-red-700 border border-red-300 no-underline"
+                            >
+                              예약취소 · {est.cancelInfo.reason || '사유 없음'}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="p-3.5 font-medium text-gray-900 whitespace-nowrap">
                         {formatPhoneNumber(est.contact)}
@@ -570,6 +660,36 @@ export function EstimatesClientView({
                       <td className="p-3.5 text-right font-bold text-gray-900 whitespace-nowrap">
                         {est.supplyAmount.toLocaleString()}원
                       </td>
+                      {canCancel && (
+                        <td
+                          className="p-3.5 text-center whitespace-nowrap"
+                          onClick={ev => ev.stopPropagation()}
+                        >
+                          {est.cancelInfo ? (
+                            <button
+                              type="button"
+                              onClick={() => handleRestore(est)}
+                              className="px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300"
+                            >
+                              취소 되돌리기
+                            </button>
+                          ) : est.isPreWork ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCancelTarget(est)
+                                setCancelReason('')
+                                setCancelError('')
+                              }}
+                              className="px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-red-50 hover:bg-red-100 text-red-700 border border-red-200"
+                            >
+                              예약취소
+                            </button>
+                          ) : (
+                            <span className="text-[11px] text-gray-300">-</span>
+                          )}
+                        </td>
+                      )}
                       {isAdmin && (
                         <td
                           className="p-3.5 text-center whitespace-nowrap"
@@ -593,6 +713,64 @@ export function EstimatesClientView({
           </table>
         </div>
       </div>
+
+      {/* 예약취소 사유 입력 모달 */}
+      {cancelTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/50"
+          onClick={() => !cancelBusy && setCancelTarget(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-md p-5 space-y-3"
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 className="text-base font-black text-gray-900">예약취소 처리</h3>
+            <p className="text-xs text-gray-600">
+              <strong>{cancelTarget.customerName}</strong> 고객님 ({cancelTarget.id}) 건을 예약취소 처리합니다.
+              취소건은 [취소건 제외] 목록과 일정 캘린더에서 제외되며, 언제든 되돌릴 수 있습니다.
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {['고객 요청 취소', '타업체 계약', '연락 두절', '일정 변경/미정', '중복 접수'].map(r => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setCancelReason(r)}
+                  className="px-2 py-1 rounded-lg text-[11px] font-bold border border-gray-300 bg-gray-50 hover:bg-gray-100 text-gray-700"
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+            <textarea
+              value={cancelReason}
+              onChange={e => setCancelReason(e.target.value)}
+              rows={3}
+              maxLength={200}
+              placeholder="취소사유를 입력하세요 (필수)"
+              className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-red-500 resize-none"
+            />
+            {cancelError && <p className="text-xs font-bold text-red-600">⚠️ {cancelError}</p>}
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                disabled={cancelBusy}
+                onClick={() => setCancelTarget(null)}
+                className="px-4 py-2 rounded-xl text-sm font-bold border border-gray-300 bg-white hover:bg-gray-50 text-gray-700"
+              >
+                닫기
+              </button>
+              <button
+                type="button"
+                disabled={cancelBusy}
+                onClick={handleSubmitCancel}
+                className="px-4 py-2 rounded-xl text-sm font-extrabold bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+              >
+                {cancelBusy ? '처리 중...' : '예약취소 확정'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 방문견적 빠른 예약 모달 */}
       <QuickVisitBookingModal

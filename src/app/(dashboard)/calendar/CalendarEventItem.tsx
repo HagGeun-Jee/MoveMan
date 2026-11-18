@@ -473,7 +473,7 @@ export function CalendarTooltipProvider({ children }: { children: React.ReactNod
                 물량: <strong className="text-gray-900">{d.totalCbm ? `${d.totalCbm.toFixed(1)} CBM` : '-'}</strong>
               </span>
               <span className="text-gray-600">
-                견적가:{' '}
+                공급가액:{' '}
                 <strong className="text-blue-700">
                   {d.totalAmount && d.totalAmount > 0 ? `${d.totalAmount.toLocaleString()}원` : '미산출'}
                 </strong>

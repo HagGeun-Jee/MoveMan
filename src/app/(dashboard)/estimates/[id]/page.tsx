@@ -5,6 +5,7 @@ import { getLocationCategories } from '@/app/actions/item'
 import { getCostStandards } from '@/app/actions/costStandards'
 import { getCurrentUserAuthContext } from '@/lib/adminSchema'
 import { canUserModifyEstimate } from '@/lib/menuPermissionUtils'
+import { getEstimateCancelInfo } from '@/lib/estimateStatus'
 import { calculatePackingMaterials, isExcludedMaterial, type PackingMaterialItem } from '@/lib/packingMaterialCalculator'
 import { formatKstDate, formatKstDateOrDateTime, formatKstShortDateTime } from '@/lib/kstDate'
 import { MapPin, Phone, Lock } from 'lucide-react'
@@ -71,6 +72,7 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
   }
 
   const canEdit = canUserModifyEstimate(estimate, currentUser)
+  const cancelInfo = getEstimateCancelInfo(estimate)
 
   const safeJsonParse = (str: string | null | undefined, fallback: any = {}): any => {
     if (!str || str === 'null' || str === 'undefined') return fallback
@@ -327,6 +329,16 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
           )}
         </div>
       </div>
+
+      {cancelInfo && (
+        <div className="bg-red-50 border border-red-300 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-red-900 print:hidden">
+          <span className="font-black">🚫 예약취소된 견적입니다.</span>{' '}
+          <span className="font-semibold">사유: {cancelInfo.reason || '-'}</span>
+          <span className="block text-[11px] text-red-700 mt-0.5">
+            처리자 {cancelInfo.by} · {formatKstShortDateTime(cancelInfo.at)}
+          </span>
+        </div>
+      )}
 
       {/* 본문: 견적서 겸 계약서 통합 문서 프레임 */}
       <div className="bg-white p-3.5 sm:p-5 md:p-6 rounded-xl shadow-sm border border-gray-200 space-y-4 print:p-0 print:border-none print:shadow-none print:space-y-2.5">
@@ -700,17 +712,16 @@ export default async function EstimateViewPage({ params }: { params: Promise<{ i
                       </td>
                     </tr>
                   )}
-                  <tr>
-                    <th className="bg-gray-100 px-3 py-1.5 print:px-2 print:py-1 text-left font-bold text-gray-800">부가세 (VAT)</th>
-                    <td className="px-3 py-1.5 print:px-2 print:py-1 text-right font-bold text-gray-900">
-                      {estimate.vat.toLocaleString()} 원
-                    </td>
-                  </tr>
                 </tbody>
               </table>
               <div className="bg-blue-50/80 print:bg-gray-100 border-t-2 border-gray-300 px-3 py-2 print:px-2 print:py-1.5 flex justify-between items-center font-black text-sm sm:text-base print:text-xs text-blue-950 print:text-black">
-                <span>총 합계 (공급대가)</span>
-                <span className="text-base sm:text-lg print:text-sm">{estimate.totalAmount.toLocaleString()} 원</span>
+                <span>총 합계 (공급가액, VAT 별도)</span>
+                <span className="text-base sm:text-lg print:text-sm">
+                  {(
+                    (estimate.movingCost || 0) + (estimate.additionalCost || 0) + (estimate.storageCost || 0) ||
+                    Math.max(0, (estimate.totalAmount || 0) - (estimate.vat || 0))
+                  ).toLocaleString()} 원
+                </span>
               </div>
             </div>
             

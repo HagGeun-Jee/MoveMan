@@ -9,6 +9,7 @@ import { CalendarTooltipProvider, CalendarEventItem, type CalendarEventBalloonDa
 import { getVehicleCalendarEvents } from '@/app/actions/vehicleLog'
 import { formatKstDate, formatKstDateOrDateTime, formatKstDateTime, formatKstTime, getKstMonthRange } from '@/lib/kstDate'
 import { formatPhoneNumber } from '@/lib/format'
+import { isEstimateCancelled } from '@/lib/estimateStatus'
 
 // 한국 표준시(KST, Asia/Seoul) 기준 오늘 날짜 정보 구하기 (Vercel/Render UTC 서버 환경 대응)
 function getKoreaToday(): { year: number, month: number, day: number, dateString: string } {
@@ -71,7 +72,8 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   
   // KST(Asia/Seoul) 기준 해당 월의 시작~말일 범위로 조회하여 UTC/KST 경계 누락 방지 (대용량 서명 이미지 제외)
   const { start: kstMonthStart, end: kstMonthEnd } = getKstMonthRange(targetYear, targetMonth)
-  const estimates = await prisma.estimate.findMany({
+  const estimates = (
+    await prisma.estimate.findMany({
     where: {
       OR: [
         { movingDate: { gte: kstMonthStart, lte: kstMonthEnd } },
@@ -91,8 +93,13 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
       environment: true,
       paymentPlan: true,
       totalAmount: true,
+      movingCost: true,
+      additionalCost: true,
+      storageCost: true,
+      vat: true,
     }
-  })
+    })
+  ).filter(e => !isEstimateCancelled(e))
 
   const MOVING_TYPE_MAP: Record<string, string> = {
     P: '포장이사',
@@ -190,7 +197,9 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
       dispatchLabel,
       dispatchDetail,
       totalCbm: Math.round(totalCbm * 10) / 10,
-      totalAmount: est.totalAmount || 0,
+      totalAmount:
+        (est.movingCost || 0) + (est.additionalCost || 0) + (est.storageCost || 0) ||
+        Math.max(0, (est.totalAmount || 0) - (est.vat || 0)),
       isContracted: Boolean(pay?.downPaymentPaid),
       specialNotes,
     }

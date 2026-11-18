@@ -6,6 +6,7 @@ import { formatPhoneNumber } from '@/lib/format'
 import { Calendar, CalendarDays, FilePlus } from 'lucide-react'
 import { getPartnerCompanies } from '@/app/actions/partner'
 import { QuickVisitBookingTrigger } from '@/components/PartnerQuickBookingAndStatsModals'
+import { isEstimateCancelled } from '@/lib/estimateStatus'
 
 // 한국 표준시(KST, Asia/Seoul) 기준 오늘 날짜 정보 구하기 (Vercel UTC 환경 대응)
 function getKoreaToday() {
@@ -37,7 +38,7 @@ function getKoreaToday() {
 }
 
 export default async function DashboardPage() {
-  const [allEstimates, partners] = await Promise.all([
+  const [rawEstimates, partners] = await Promise.all([
     prisma.estimate.findMany({
       orderBy: { createdAt: 'desc' },
       select: {
@@ -50,10 +51,13 @@ export default async function DashboardPage() {
         movingDate: true,
         paymentPlan: true,
         createdAt: true,
+        environment: true,
       },
     }),
     getPartnerCompanies().catch(() => []),
   ])
+
+  const allEstimates = rawEstimates.filter(e => !isEstimateCancelled(e))
 
   const recentEstimates = allEstimates.slice(0, 5)
 
