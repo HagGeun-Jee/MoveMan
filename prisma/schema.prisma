@@ -347,3 +347,40 @@ model SystemKeyValue {
 }
 
 
+
+// ==================== 소형이사(고객 직접 접수) 모델 ====================
+model SmallMoveRequest {
+  id               String    @id // 접수번호 (예: SM2611200001)
+  status           String    @default("RECEIVED") // RECEIVED | REVIEWING | QUOTED | BOOKED | CANCELED
+  channel          String    @default("") // 유입 채널 (utm_source 등)
+  customerName     String
+  contact          String // 숫자만 저장
+  homeType         String // ONE_ROOM | TWO_ROOM | THREE_ROOM
+  movingDate       DateTime? // 이사 희망일 (미정이면 null)
+  fromAddress      String
+  toAddress        String
+  fromInfo         String // JSON: floor, elevator, ladder, parkingFar
+  toInfo           String // JSON
+  items            String // JSON: [{id, qty}]
+  photos           String    @default("[]") // JSON: [{path, label}] (Supabase Storage 경로)
+  options          String    @default("{}") // JSON: packingService, airconCount
+  memo             String    @default("")
+  distanceKm       Float     @default(0)
+  totalCbm         Float     @default(0)
+  vehicleLabel     String    @default("")
+  estMin           Int       @default(0)
+  estMax           Int       @default(0)
+  estBreakdown     String    @default("[]") // JSON
+  consultRequired  Boolean   @default(false)
+  finalAmount      Int? // 관리자 확정 금액
+  adminComment     String    @default("")
+  quotedAt         DateTime?
+  privacyConsentAt DateTime
+  purgeAt          DateTime? // 사진 삭제/개인정보 마스킹 예정일 (이사일+14일)
+  purgedAt         DateTime? // 실제 정리 완료 시각
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([status, createdAt])
+  @@index([purgeAt])
+}

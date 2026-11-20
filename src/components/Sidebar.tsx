@@ -295,6 +295,12 @@ export function Sidebar({
                     <span>견적 목록</span>
                   </Link>
                 )}
+                {canAccess('/small-moves') && (
+                  <Link href="/small-moves" onClick={() => setMobileOpen(false)} className={mobileLinkClass(isActive('/small-moves'))}>
+                    <FileText size={20} className="shrink-0" />
+                    <span>소형이사 접수</span>
+                  </Link>
+                )}
                 {canAccess('/calendar') && (
                   <Link href="/calendar" onClick={() => setMobileOpen(false)} className={mobileLinkClass(isActive('/calendar'))}>
                     <Calendar size={20} className="shrink-0" />
@@ -458,6 +464,14 @@ export function Sidebar({
                 <Link href="/estimates" className={linkClass(isActive('/estimates'))} title="견적 목록">
                   <FileText size={20} className="shrink-0" />
                   {!collapsed && <span>견적 목록</span>}
+                </Link>
+              </li>
+            )}
+            {canAccess('/small-moves') && (
+              <li>
+                <Link href="/small-moves" className={linkClass(isActive('/small-moves'))} title="소형이사 접수">
+                  <FileText size={20} className="shrink-0" />
+                  {!collapsed && <span>소형이사 접수</span>}
                 </Link>
               </li>
             )}

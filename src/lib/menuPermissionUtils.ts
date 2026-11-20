@@ -43,6 +43,14 @@ export const APP_MENUS: MenuDefinitionItem[] = [
     description: '견적 목록 조회, 신규 작성, 상세 열람 및 수정',
   },
   {
+    path: '/small-moves',
+    name: '소형이사 접수',
+    group: '주요 메뉴',
+    defaultMinLevel: 1,
+    defaultAllowedRole: 'ALL',
+    description: '고객 직접 접수(소형이사) 검토, 견적 확정 및 문자 회신',
+  },
+  {
     path: '/calendar',
     name: '일정 캘린더',
     group: '주요 메뉴',

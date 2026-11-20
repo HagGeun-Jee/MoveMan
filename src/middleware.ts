@@ -13,6 +13,11 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.next()
   }
 
+  // 소형이사 고객용 공개 페이지 (로그인 불필요)
+  if (path === '/s' || path.startsWith('/s/')) {
+    return NextResponse.next()
+  }
+
   const cookieStore = await cookies()
   const cookie = cookieStore.get('session')?.value
   const session = await decrypt(cookie)

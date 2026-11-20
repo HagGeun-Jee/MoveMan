@@ -1,0 +1,16 @@
+name: purge-small-move
+
+# 이사일 + 14일이 지난 소형이사 접수의 사진 삭제 및 개인정보 마스킹 (매일 새벽 3시 KST)
+on:
+  schedule:
+    - cron: '0 18 * * *'
+  workflow_dispatch:
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call purge endpoint
+        run: |
+          curl -fsS -X POST "${{ secrets.SITE_URL }}/api/cron/purge-small-move" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
