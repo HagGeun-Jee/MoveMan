@@ -17,6 +17,14 @@ interface Found {
 }
 const won = (n: number) => n.toLocaleString('ko-KR') + '원'
 
+// 휴대폰 번호 자동 하이픈 (010-0000-0000)
+function formatPhone(v: string) {
+  const d = v.replace(/[^0-9]/g, '').slice(0, 11)
+  if (d.length < 4) return d
+  if (d.length < 8) return d.slice(0, 3) + '-' + d.slice(3)
+  return d.slice(0, 3) + '-' + d.slice(3, d.length - 4) + '-' + d.slice(-4)
+}
+
 export default function SmallMoveCheckPage() {
   const [id, setId] = useState('')
   const [contact, setContact] = useState('')
@@ -51,8 +59,8 @@ export default function SmallMoveCheckPage() {
       </Link>
       <h1 className="text-xl font-black">접수 내역 조회</h1>
       <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
-        <input value={id} onChange={(e) => setId(e.target.value)} placeholder="접수번호 (예: SM2611200001)" className="w-full border border-slate-300 rounded-xl px-3 py-3 font-mono" />
-        <input value={contact} onChange={(e) => setContact(e.target.value)} inputMode="tel" placeholder="접수 시 입력한 휴대폰 번호" className="w-full border border-slate-300 rounded-xl px-3 py-3" />
+        <input value={id} onChange={(e) => setId(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))} placeholder="접수번호 (예: SM2611200001)" className="w-full border border-slate-300 rounded-xl px-3 py-3 font-mono" />
+        <input value={contact} onChange={(e) => setContact(formatPhone(e.target.value))} inputMode="tel" placeholder="휴대폰 번호 010-0000-0000" maxLength={13} className="w-full border border-slate-300 rounded-xl px-3 py-3" />
         <button type="button" onClick={lookup} disabled={loading} className="w-full py-3.5 rounded-2xl bg-blue-600 text-white font-black disabled:opacity-60">
           {loading ? '조회 중...' : '조회하기'}
         </button>

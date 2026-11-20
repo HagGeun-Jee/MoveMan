@@ -10,7 +10,7 @@ const EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', '
 
 export async function POST(req: Request) {
   if (!isStorageConfigured()) {
-    return NextResponse.json({ ok: false, message: '사진 업로드가 일시적으로 불가합니다. 사진 없이 제출하실 수 있습니다.' }, { status: 503 })
+    return NextResponse.json({ ok: false, message: '사진 저장소가 아직 설정되지 않아 사진을 올릴 수 없습니다. 사진 없이 제출하시면 담당자가 연락드립니다.' }, { status: 503 })
   }
   if (!rateLimit('photo:' + clientIp(req), 40, 60 * 60 * 1000)) {
     return NextResponse.json({ ok: false, message: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.' }, { status: 429 })

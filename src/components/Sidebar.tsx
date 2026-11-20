@@ -180,7 +180,7 @@ export function Sidebar({
           
           <div className="flex items-center gap-1.5 sm:gap-2">
             <Link href="/" className="flex items-center gap-1 sm:gap-1.5" title="메인 대시보드로 이동">
-              <img src="/image.png" alt="MOVEMAN" className="h-6 sm:h-7 object-contain" />
+              <img src="/image.png" alt="톡톡용달이사" className="h-6 sm:h-7 object-contain" />
             </Link>
             {installedAppVersion ? (
               isUpToDate ? (
@@ -243,7 +243,7 @@ export function Sidebar({
                 <img src="/image.png" alt="Logo" className="h-8 object-contain" />
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <p className="text-xs font-bold text-gray-800">MOVEMAN</p>
+                    <p className="text-xs font-bold text-gray-800">톡톡용달이사</p>
                     <span className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded ${
                       installedAppVersion 
                         ? (isUpToDate 

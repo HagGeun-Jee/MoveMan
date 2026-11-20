@@ -5,6 +5,7 @@ export default function SmallMoveLanding() {
     <div className="space-y-6 pt-6">
       <div className="text-center space-y-3">
         <div className="text-5xl">🚚</div>
+        <p className="text-sm font-black text-blue-700">톡톡용달이사</p>
         <h1 className="text-2xl font-black leading-tight">
           원룸·투룸 이사
           <br />

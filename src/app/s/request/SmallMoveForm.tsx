@@ -42,6 +42,14 @@ interface Result {
 const STEPS = ['이사 정보', '주소·환경', '물품 체크', '사진', '옵션', '연락처']
 const won = (n: number) => n.toLocaleString('ko-KR') + '원'
 const PHOTO_LABELS = ['큰 가구·가전', '현관·복도·계단', '엘리베이터', '기타']
+// 휴대폰 번호 자동 하이픈 (010-0000-0000)
+function formatPhone(v: string) {
+  const d = v.replace(/[^0-9]/g, '').slice(0, 11)
+  if (d.length < 4) return d
+  if (d.length < 8) return d.slice(0, 3) + '-' + d.slice(3)
+  return d.slice(0, 3) + '-' + d.slice(3, d.length - 4) + '-' + d.slice(-4)
+}
+
 
 export function SmallMoveForm() {
   const [step, setStep] = useState(0)
@@ -96,7 +104,7 @@ export function SmallMoveForm() {
     if (s === 2 && selectedCount === 0) return '옮길 물품을 1개 이상 선택해 주세요.'
     if (s === 5) {
       if (!name.trim()) return '이름을 입력해 주세요.'
-      if (!/^01[016789][0-9\-\s]{7,12}$/.test(contact.trim())) return '휴대폰 번호를 정확히 입력해 주세요.'
+      if (!/^01[016789]-\d{3,4}-\d{4}$/.test(contact.trim())) return '휴대폰 번호를 010-0000-0000 형식으로 입력해 주세요.'
       if (!consent) return '개인정보 수집·이용에 동의해 주세요.'
     }
     return ''
@@ -283,7 +291,7 @@ export function SmallMoveForm() {
   return (
     <div className="space-y-4">
       {/* 진행 표시 */}
-      <div>
+      <div className="sticky top-0 z-30 bg-slate-50 pt-2 pb-2 -mx-4 px-4 border-b border-slate-200/70">
         <div className="flex justify-between text-xs font-bold text-slate-500 mb-1.5">
           <span>
             {step + 1}/{STEPS.length} · {STEPS[step]}
@@ -357,7 +365,7 @@ export function SmallMoveForm() {
       {step === 2 && (
         <div className="space-y-3">
           <p className="text-sm text-slate-600">옮길 짐을 체크해 주세요. 헷갈리면 <b>ⓘ</b>를 눌러 크기 예시를 확인하세요.</p>
-          <div className="flex gap-2 overflow-x-auto pb-1">
+          <div className="sticky top-[52px] z-20 bg-slate-50 -mx-4 px-4 py-2 flex gap-2 overflow-x-auto border-b border-slate-200/70">
             {(Object.keys(SMALL_CATEGORY_LABEL) as SmallCategory[]).map((c) => (
               <button
                 key={c}
@@ -508,12 +516,12 @@ export function SmallMoveForm() {
       {step === 5 && (
         <div className="space-y-3">
           <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="이름" maxLength={30} className="w-full border border-slate-300 rounded-xl px-3 py-3" />
+            <input value={name} onChange={(e) => setName(e.target.value.replace(/[^가-힣a-zA-Z\s]/g, ''))} placeholder="이름" maxLength={30} className="w-full border border-slate-300 rounded-xl px-3 py-3" />
             <input
               value={contact}
-              onChange={(e) => setContact(e.target.value)}
+              onChange={(e) => setContact(formatPhone(e.target.value))}
               inputMode="tel"
-              placeholder="휴대폰 번호 (확정 견적을 문자로 보내드려요)"
+              placeholder="휴대폰 번호 010-0000-0000" maxLength={13} autoComplete="tel"
               className="w-full border border-slate-300 rounded-xl px-3 py-3"
             />
           </div>

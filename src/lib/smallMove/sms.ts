@@ -13,7 +13,7 @@ export function isValidKoreanMobile(raw: string) {
   return /^01[016789][0-9]{7,8}$/.test(normalizePhone(raw))
 }
 
-export async function sendSms(receiver: string, message: string, title = '이사견적') {
+export async function sendSms(receiver: string, message: string, title = '톡톡용달이사') {
   const key = process.env.ALIGO_KEY
   const userId = process.env.ALIGO_USER_ID
   const sender = process.env.ALIGO_SENDER

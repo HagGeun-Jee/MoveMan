@@ -47,7 +47,7 @@ export async function updateSmallMoveAction(formData: FormData) {
   if (sendSmsFlag && cur.contact) {
     const site = process.env.NEXT_PUBLIC_SITE_URL || ''
     const amountText = finalAmount != null ? `확정 견적 ${finalAmount.toLocaleString('ko-KR')}원` : '견적 안내'
-    const msg = `[이사견적 ${status === 'QUOTED' ? '확정' : '안내'}]\n접수번호 ${id}\n${amountText}${comment ? `\n${comment.slice(0, 200)}` : ''}\n조회: ${site}/s/check`
+    const msg = `[톡톡용달이사] ${status === 'QUOTED' ? '견적확정' : '견적안내'}\n접수번호 ${id}\n${amountText}${comment ? `\n${comment.slice(0, 200)}` : ''}\n조회: ${site}/s/check`
     await sendSms(cur.contact, msg)
   }
 

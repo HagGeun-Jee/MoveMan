@@ -92,7 +92,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2">
-            <h1 className="text-3xl font-bold text-gray-900">MOVEMAN</h1>
+            <h1 className="text-3xl font-bold text-gray-900">톡톡용달이사</h1>
             {installedAppVersion ? (
               isUpToDate ? (
                 <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">

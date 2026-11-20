@@ -19,8 +19,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "MOVEMAN - 이사견적 관리 시스템",
-  description: "MOVEMAN 이사견적 관리 시스템",
+  title: "톡톡용달이사 - 이사견적 관리 시스템",
+  description: "톡톡용달이사 이사견적 관리 시스템",
 };
 
 import { AndroidImeFix } from "@/components/AndroidImeFix";

@@ -155,11 +155,11 @@ export async function POST(req: Request) {
   const site = process.env.NEXT_PUBLIC_SITE_URL || ''
   void sendSms(
     contact,
-    `[이사견적 접수완료]\n접수번호 ${id}\n예상견적 ${man(quote.min)}~${man(quote.max)} (확정 아님)\n담당자가 사진 확인 후 확정 견적을 문자로 안내드립니다.\n조회: ${site}/s/check`
+    `[톡톡용달이사] 접수완료\n접수번호 ${id}\n예상견적 ${man(quote.min)}~${man(quote.max)} (확정 아님)\n담당자가 사진 확인 후 확정 견적을 문자로 안내드립니다.\n조회: ${site}/s/check`
   )
   const adminPhone = process.env.ADMIN_NOTIFY_PHONE
   if (adminPhone) {
-    void sendSms(adminPhone, `[소형이사 신규접수] ${id} ${customerName} / ${man(quote.min)}~${man(quote.max)}`, '신규접수')
+    void sendSms(adminPhone, `[톡톡용달이사] 신규접수 ${id} ${customerName} / ${man(quote.min)}~${man(quote.max)}`, '신규접수')
   }
 
   return NextResponse.json({
