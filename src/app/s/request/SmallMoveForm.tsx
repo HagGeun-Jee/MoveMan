@@ -516,7 +516,7 @@ export function SmallMoveForm() {
       {step === 5 && (
         <div className="space-y-3">
           <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
-            <input value={name} onChange={(e) => setName(e.target.value.replace(/[^가-힣a-zA-Z\s]/g, ''))} placeholder="이름" maxLength={30} className="w-full border border-slate-300 rounded-xl px-3 py-3" />
+            <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" placeholder="이름" maxLength={30} className="w-full border border-slate-300 rounded-xl px-3 py-3" />
             <input
               value={contact}
               onChange={(e) => setContact(formatPhone(e.target.value))}

@@ -5,6 +5,10 @@ import 'server-only'
 const BUCKET = 'small-move'
 let bucketReady = false
 
+function authHeaders(key: string, extra: Record<string, string> = {}) {
+  return { Authorization: `Bearer ${key}`, apikey: key, ...extra }
+}
+
 function conf() {
   const url = (process.env.SUPABASE_URL || '').replace(/\/$/, '')
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
@@ -20,11 +24,12 @@ async function ensureBucket() {
   if (!c || bucketReady) return
   const res = await fetch(`${c.url}/storage/v1/bucket`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${c.key}`, 'Content-Type': 'application/json' },
+    headers: authHeaders(c.key, { 'Content-Type': 'application/json' }),
     body: JSON.stringify({ id: BUCKET, name: BUCKET, public: false }),
   })
   // 이미 존재하면 400/409 - 무시
   if (res.ok || res.status === 400 || res.status === 409) bucketReady = true
+  else console.error('[storage] 버킷 생성 실패', res.status, await res.text().catch(() => ''))
 }
 
 export async function uploadPhoto(path: string, data: ArrayBuffer, contentType: string) {
@@ -33,10 +38,13 @@ export async function uploadPhoto(path: string, data: ArrayBuffer, contentType: 
   await ensureBucket()
   const res = await fetch(`${c.url}/storage/v1/object/${BUCKET}/${path}`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${c.key}`, 'Content-Type': contentType, 'x-upsert': 'false' },
+    headers: authHeaders(c.key, { 'Content-Type': contentType, 'x-upsert': 'false' }),
     body: data,
   })
-  if (!res.ok) throw new Error(`STORAGE_UPLOAD_FAILED_${res.status}`)
+  if (!res.ok) {
+    console.error('[storage] 업로드 실패', res.status, await res.text().catch(() => ''))
+    throw new Error(`STORAGE_UPLOAD_FAILED_${res.status}`)
+  }
 }
 
 export async function signedUrls(paths: string[], expiresIn = 3600) {
@@ -47,7 +55,7 @@ export async function signedUrls(paths: string[], expiresIn = 3600) {
     paths.map(async (p) => {
       const res = await fetch(`${c.url}/storage/v1/object/sign/${BUCKET}/${p}`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${c.key}`, 'Content-Type': 'application/json' },
+        headers: authHeaders(c.key, { 'Content-Type': 'application/json' }),
         body: JSON.stringify({ expiresIn }),
       })
       if (!res.ok) return
@@ -63,7 +71,7 @@ export async function deletePhotos(paths: string[]) {
   if (!c || paths.length === 0) return 0
   const res = await fetch(`${c.url}/storage/v1/object/${BUCKET}`, {
     method: 'DELETE',
-    headers: { Authorization: `Bearer ${c.key}`, 'Content-Type': 'application/json' },
+    headers: authHeaders(c.key, { 'Content-Type': 'application/json' }),
     body: JSON.stringify({ prefixes: paths }),
   })
   return res.ok ? paths.length : 0
@@ -75,7 +83,7 @@ export async function listPending(): Promise<{ name: string; created_at: string 
   if (!c) return []
   const res = await fetch(`${c.url}/storage/v1/object/list/${BUCKET}`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${c.key}`, 'Content-Type': 'application/json' },
+    headers: authHeaders(c.key, { 'Content-Type': 'application/json' }),
     body: JSON.stringify({ prefix: 'pending', limit: 1000 }),
   })
   if (!res.ok) return []

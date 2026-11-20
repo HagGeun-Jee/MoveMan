@@ -28,6 +28,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, path })
   } catch (e) {
     console.error('small-move photo upload error', e)
-    return NextResponse.json({ ok: false, message: '사진 업로드에 실패했습니다.' }, { status: 500 })
+    const code = e instanceof Error && /^STORAGE_/.test(e.message) ? ` (${e.message})` : ''
+    return NextResponse.json({ ok: false, message: `사진 업로드에 실패했습니다.${code}` }, { status: 500 })
   }
 }
