@@ -23,7 +23,7 @@ export function iconKeyFor(rawName: string, rawSpec = ''): string {
   if (n === '컴퓨터') return 'pc_tower'
   if (n === '에어컨') return has(spec, '벽걸이') ? 'ac_wall' : 'ac_stand'
   if (n === '계절가전') {
-    if (has(spec, '창문형')) return 'ac_wall'
+    if (has(spec, '창문형')) return 'ac_window'
     if (has(spec, '선풍기', '난로')) return 'fan'
     return 'purifier'
   }
@@ -48,9 +48,30 @@ export function iconKeyFor(rawName: string, rawSpec = ''): string {
     return 'micro'
   }
   if (n === '자전거') return has(spec, '킥보드') ? 'scooter' : 'bike'
-  if (n === '운동기구') return has(spec, '자전거', '바이크') ? 'bike' : 'treadmill'
+  if (n === '운동기구') {
+    if (has(spec, '로잉')) return 'rowing'
+    if (has(spec, '워킹패드')) return 'walkingpad'
+    if (has(spec, '캐디백')) return 'golfbag'
+    if (has(spec, '자전거', '바이크')) return 'exbike'
+    if (has(spec, '접힘')) return 'treadmill_fold'
+    return 'treadmill'
+  }
   if (n === '식탁') return 'table'
   if (n === '의자') return has(spec, '스툴') ? 'stool' : 'chair'
+
+  if (n === '수납장/교구장') {
+    if (has(spec, '아기장', '베이비')) return 'baby_cab'
+    if (has(spec, '교구장', '장난감')) return 'toy_cab'
+    if (has(spec, '렌지대', '밥솥')) return 'kitchen_stand'
+    return 'multi_cab'
+  }
+
+  if (n === '반려동물용품') {
+    if (has(spec, '캣휠')) return 'catwheel'
+    if (has(spec, '울타리')) return 'dogfence'
+    if (has(spec, '애견집', '캔넬', '계단')) return 'doghouse'
+    return 'cattower'
+  }
 
   // ── 품목명 기준 ──
   const byName: Record<string, string> = {
