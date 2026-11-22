@@ -37,6 +37,9 @@ export const SMALL_ITEMS: SmallItem[] = [
   { id: 'ac_stand', category: 'APPLIANCE', name: '에어컨', spec: '스탠드형', cbm: 0.7, icon: '❄️', size: '높이 170cm', guide: '바닥에 세워 두는 스탠드 에어컨입니다. 설치·철거는 전문업체가 따로 필요합니다.' },
   { id: 'ac_wall', category: 'APPLIANCE', name: '에어컨', spec: '벽걸이형 (실내기+실외기)', cbm: 0.4, icon: '❄️', size: '실내기 가로 90cm', guide: '벽에 거는 에어컨입니다. 이전 설치 여부를 옵션에서 선택해 주세요.' },
   { id: 'micro', category: 'APPLIANCE', name: '전자레인지/에어프라이어', spec: '소형 가전', cbm: 0.1, icon: '🍲', size: '가로 45cm 이내', guide: '주방 선반 위의 작은 가전입니다.' },
+  { id: 'pc_tower', category: 'APPLIANCE', name: '컴퓨터 본체', spec: '데스크톱 PC', cbm: 0.1, icon: '🖥️', size: '가로 20 × 높이 45cm', guide: '책상 아래나 옆에 두는 데스크톱 본체입니다. 노트북은 박스에 함께 담아 주세요. 이동 전 케이블은 분리하고 사진을 찍어 두면 재설치가 편합니다.', max: 10 },
+  { id: 'monitor_s', category: 'APPLIANCE', name: '모니터', spec: '27인치 이하', cbm: 0.1, icon: '🖥️', size: '가로 50~62cm', guide: '일반 컴퓨터 모니터입니다. 포장 박스가 있으면 파손 위험이 줄어듭니다.', max: 10 },
+  { id: 'monitor_l', category: 'APPLIANCE', name: '모니터', spec: '32인치 이상/와이드', cbm: 0.2, icon: '🖥️', size: '가로 70cm 이상', guide: '32인치 이상 대형 또는 울트라와이드 모니터입니다. 깨지기 쉬워 별도 포장이 필요합니다.', max: 10 },
   { id: 'purifier', category: 'APPLIANCE', name: '공기청정기/제습기', spec: '일반', cbm: 0.2, icon: '🌬️', size: '높이 60~70cm', guide: '바닥에 두는 중소형 가전입니다.' },
 
   // ── 가구 ──
@@ -90,3 +93,6 @@ export const STATUS_LABEL: Record<string, string> = {
   BOOKED: '예약 완료',
   CANCELED: '취소',
 }
+
+// 차량 명칭 표기 통일 (탑차 -> 화물)
+export const fixVehicleLabel = (s: string) => (s || '').split('탑차').join('화물')

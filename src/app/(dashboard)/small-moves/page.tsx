@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import prisma from '@/lib/prisma'
 import { STATUS_LABEL } from '@/lib/smallMove/catalog'
+import { fmtMoveDate } from '@/lib/smallMove/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -71,7 +72,7 @@ export default async function SmallMovesPage({ searchParams }: { searchParams: P
                       {r.finalAmount != null ? won(r.finalAmount) : `${won(r.estMin)}~`}
                     </div>
                     <div className="text-gray-500">
-                      {STATUS_LABEL[r.status]} · {r.movingDate ? r.movingDate.toISOString().slice(5, 10) : '일정미정'}
+                      {STATUS_LABEL[r.status]} · {r.movingDate ? fmtMoveDate(r.movingDate).slice(5) : '일정미정'}
                     </div>
                   </div>
                 </Link>

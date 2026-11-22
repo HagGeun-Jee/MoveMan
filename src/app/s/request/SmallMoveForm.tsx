@@ -10,6 +10,8 @@ import {
   type SmallItem,
 } from '@/lib/smallMove/catalog'
 import { compressImageFile } from '@/lib/imageCompressor'
+import { ItemIcon } from '@/lib/smallMove/ItemIcon'
+import { START_TIME_OPTIONS } from '@/lib/smallMove/format'
 
 interface Side {
   address: string
@@ -56,6 +58,7 @@ export function SmallMoveForm() {
   const [homeType, setHomeType] = useState('ONE_ROOM')
   const [movingDate, setMovingDate] = useState('')
   const [dateUndecided, setDateUndecided] = useState(false)
+  const [startTime, setStartTime] = useState('')
   const [from, setFrom] = useState<Side>(emptySide())
   const [to, setTo] = useState<Side>(emptySide())
   const [qty, setQty] = useState<Record<string, number>>({})
@@ -167,7 +170,7 @@ export function SmallMoveForm() {
           toInfo: to,
           items: Object.entries(qty).map(([id, q]) => ({ id, qty: q })),
           photos: photos.map((p) => ({ path: p.path, label: p.label })),
-          options: { packingService, airconCount },
+          options: { packingService, airconCount, startTime },
           memo,
           privacyConsent: consent,
         }),
@@ -350,6 +353,15 @@ export function SmallMoveForm() {
               />
               아직 미정이에요
             </label>
+            <label className="block text-sm font-bold">
+              작업 시작 희망 시간 (선택, 24시간 표기)
+              <select value={startTime} onChange={(e) => setStartTime(e.target.value)} className="mt-1 w-full border border-slate-300 rounded-xl px-3 py-3 font-normal">
+                <option value="">상관없음 / 협의</option>
+                {START_TIME_OPTIONS.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </label>
             <p className="text-xs text-slate-500">주말·금요일·월말은 할증이 붙을 수 있습니다.</p>
           </div>
         </div>
@@ -387,7 +399,7 @@ export function SmallMoveForm() {
                   key={it.id}
                   className={`flex items-center gap-3 bg-white rounded-2xl border p-3 ${q > 0 ? 'border-blue-500' : 'border-slate-200'}`}
                 >
-                  <div className="text-3xl w-12 text-center">{it.icon}</div>
+                  <ItemIcon id={it.id} className="w-12 h-12 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="font-black text-sm flex items-center gap-1">
                       {it.name}
@@ -565,7 +577,7 @@ export function SmallMoveForm() {
       {guideItem && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-4" onClick={() => setGuideItem(null)}>
           <div className="bg-white rounded-3xl w-full max-w-sm p-6 space-y-3" onClick={(e) => e.stopPropagation()}>
-            <div className="text-center text-7xl">{guideItem.icon}</div>
+            <div className="flex justify-center"><ItemIcon id={guideItem.id} className="w-28 h-28" /></div>
             <h3 className="text-center text-lg font-black">
               {guideItem.name} <span className="text-sm text-slate-500">({guideItem.spec})</span>
             </h3>

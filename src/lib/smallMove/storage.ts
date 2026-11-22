@@ -89,3 +89,28 @@ export async function listPending(): Promise<{ name: string; created_at: string 
   if (!res.ok) return []
   return (await res.json()) as { name: string; created_at: string }[]
 }
+
+// 관리자 화면용 원본 다운로드 (서명 URL 형식에 의존하지 않음)
+export async function downloadPhoto(path: string) {
+  const c = conf()
+  if (!c) return null
+  const res = await fetch(`${c.url}/storage/v1/object/${BUCKET}/${path}`, { headers: authHeaders(c.key) })
+  if (!res.ok) {
+    console.error('[storage] 다운로드 실패', res.status, path, await res.text().catch(() => ''))
+    return null
+  }
+  return { data: await res.arrayBuffer(), contentType: res.headers.get('content-type') || 'image/jpeg' }
+}
+
+// 제출 확정 시 pending/ -> requests/{접수번호}/ 로 이동 (임시 폴더 정리 대상에서 제외)
+export async function movePhoto(from: string, to: string) {
+  const c = conf()
+  if (!c) return false
+  const res = await fetch(`${c.url}/storage/v1/object/move`, {
+    method: 'POST',
+    headers: authHeaders(c.key, { 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ bucketId: BUCKET, sourceKey: from, destinationKey: to }),
+  })
+  if (!res.ok) console.error('[storage] 이동 실패', res.status, from, await res.text().catch(() => ''))
+  return res.ok
+}

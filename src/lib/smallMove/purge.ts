@@ -73,7 +73,22 @@ export async function purgeExpiredSmallMoves() {
   const stale = pending
     .filter((o) => Date.now() - new Date(o.created_at).getTime() > 2 * DAY)
     .map((o) => `pending/${o.name}`)
-  if (stale.length > 0) pendingDeleted = await deletePhotos(stale)
+  if (stale.length > 0) {
+    const refs = await prisma.smallMoveRequest.findMany({
+      where: { photos: { contains: 'pending/' }, purgedAt: null },
+      select: { photos: true },
+    })
+    const referenced = new Set<string>()
+    for (const r of refs) {
+      try {
+        for (const p of JSON.parse(r.photos) as { path: string }[]) referenced.add(p.path)
+      } catch {
+        /* 무시 */
+      }
+    }
+    const safe = stale.filter((p) => !referenced.has(p))
+    if (safe.length > 0) pendingDeleted = await deletePhotos(safe)
+  }
 
   return { purged, deletedFiles, pendingDeleted }
 }

@@ -5,7 +5,7 @@ import {
   calculateTonnageDistanceFare,
   type TonnageTierKey,
 } from '@/lib/distanceFare'
-import { SMALL_ITEM_MAP } from './catalog'
+import { SMALL_ITEM_MAP, fixVehicleLabel } from './catalog'
 
 export interface SideInfo {
   floor: number // 층수 (지하는 0 이하 -> 1로 처리)
@@ -82,7 +82,7 @@ export function calculateSmallMoveQuote(input: QuoteInput): QuoteResult {
 
   const tier =
     TIER_LIMITS.find((t) => totalCbm <= t.maxCbm) || TIER_LIMITS[TIER_LIMITS.length - 1]
-  const rule = TONNAGE_DISTANCE_FARE_TABLE[tier.key]
+  const rule = { ...TONNAGE_DISTANCE_FARE_TABLE[tier.key], label: fixVehicleLabel(TONNAGE_DISTANCE_FARE_TABLE[tier.key].label) }
 
   if (totalCbm > TIER_LIMITS[TIER_LIMITS.length - 1].maxCbm) {
     consultReasons.push('물량이 많아 5톤 차량 1대로 부족할 수 있어 상담이 필요합니다.')

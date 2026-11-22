@@ -5,6 +5,8 @@ import { calculateSmallMoveQuote, type SideInfo } from '@/lib/smallMove/pricing'
 import { sendSms, normalizePhone, isValidKoreanMobile } from '@/lib/smallMove/sms'
 import { calcPurgeAt, rateLimit, clientIp } from '@/lib/smallMove/purge'
 import { getDistance } from '@/app/actions/distance'
+import { movePhoto } from '@/lib/smallMove/storage'
+import { isValidStartTime } from '@/lib/smallMove/format'
 
 export const runtime = 'nodejs'
 
@@ -78,16 +80,22 @@ export async function POST(req: Request) {
 
   const fromInfo = side(body.fromInfo)
   const toInfo = side(body.toInfo)
-  const options = {
+  const options: Record<string, any> = {
     packingService: Boolean(body.options?.packingService),
     airconCount: Math.max(0, Math.min(5, Math.floor(Number(body.options?.airconCount) || 0))),
+    startTime: isValidStartTime(body.options?.startTime) ? body.options.startTime : '',
   }
 
   // 거리 (실패하면 20km 가정 후 관리자 확인)
   let distanceKm = 20
   try {
     const d = await getDistance(fromAddress, toAddress)
-    if (d?.success && d.distanceKm > 0) distanceKm = d.distanceKm
+    if (d?.success && d.distanceKm > 0) {
+      distanceKm = d.distanceKm
+      options.tollFare = d.tollFare ?? 0
+      options.tollByClass = d.tollFareByClass ?? null
+      options.durationText = d.durationText || ''
+    }
   } catch {
     /* 기본값 사용 */
   }
@@ -148,6 +156,21 @@ export async function POST(req: Request) {
       if (e?.code === 'P2002' && attempt < 5) continue // 접수번호 충돌 시 재시도
       console.error('small-move create error', e)
       return NextResponse.json({ ok: false, message: '접수 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' }, { status: 500 })
+    }
+  }
+
+  // 사진을 접수번호 폴더로 이동 (실패해도 접수는 유지, 미이동 사진은 purge에서 보호)
+  if (photos.length > 0) {
+    try {
+      const moved = await Promise.all(
+        photos.map(async (p: { path: string; label: string }) => {
+          const to = `requests/${id}/${p.path.split('/').pop()}`
+          return (await movePhoto(p.path, to)) ? { ...p, path: to } : p
+        })
+      )
+      await prisma.smallMoveRequest.update({ where: { id }, data: { photos: JSON.stringify(moved) } })
+    } catch (e) {
+      console.error('small-move photo move error', e)
     }
   }
 
