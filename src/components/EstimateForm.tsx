@@ -1,5 +1,6 @@
 'use client'
 
+import { ItemIconByName } from '@/lib/smallMove/ItemIcon'
 import { useState, useEffect, useRef, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 const SignatureCanvas = dynamic(() => import('react-signature-canvas'), { ssr: false }) as any
@@ -4268,6 +4269,7 @@ export function EstimateForm({
                                     >
                                       <td className="px-1.5 sm:px-2 py-1">
                                         <div className="flex items-center gap-1">
+                                          <ItemIconByName name={item.name} spec={item.spec} className="w-8 h-8 shrink-0" />
                                           <input
                                             type="text"
                                             value={item.name}

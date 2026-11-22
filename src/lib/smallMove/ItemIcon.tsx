@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react'
+import { EXTRA_ICONS } from './extraIcons'
+import { iconKeyFor } from './itemIconMap'
 
 // 소형이사 물품 아이콘 (실제 규격/형태에 가깝게 그린 SVG, 64x64)
 const S = '#475569' // 선
@@ -396,8 +398,13 @@ const ICONS: Record<string, ReactNode> = {
   ),
 }
 
+// 기존 물품정보(품목명 + 규격)로 아이콘 표시 - 방문견적 등에서 사용
+export function ItemIconByName({ name, spec = '', className = 'w-8 h-8' }: { name: string; spec?: string; className?: string }) {
+  return <ItemIcon id={iconKeyFor(name, spec)} className={className} />
+}
+
 export function ItemIcon({ id, className = 'w-12 h-12' }: { id: string; className?: string }) {
-  const icon = ICONS[id]
+  const icon = ICONS[id] ?? EXTRA_ICONS[id]
   return (
     <svg viewBox="0 0 64 64" className={className} role="img" aria-hidden="true">
       {icon ?? <rect x="14" y="14" width="36" height="36" rx="4" fill={F} stroke={S} strokeWidth={2} />}

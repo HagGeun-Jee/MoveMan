@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { isBoxItem, getItemEffectiveCbm, ensureItemUid, getAllStandardBoxSpecs, getMatchingStandardSpecs } from './EstimateForm'
 import { UnassignedBoxTooltip } from './UnassignedBoxTooltip'
+import { ItemIconByName } from '@/lib/smallMove/ItemIcon'
 import {
   CHOSUNG_BUTTONS,
   ChosungFilter,
@@ -843,8 +844,9 @@ export function QuickTouchCbmPanel({
                 {/* 좌측: 품목명 + 규격 선택(드롭다운/입력) + CBM */}
                 <div className="flex items-center gap-1.5 min-w-0 flex-1">
                   {/* 품목명 */}
-                  <div className="flex items-center gap-1 shrink-0 max-w-[100px] sm:max-w-[140px]">
-                    <span className="font-extrabold text-xs sm:text-sm text-gray-900 truncate" title={item.name}>
+                  <div className="flex items-center gap-1 shrink-0 max-w-[132px] sm:max-w-[172px]">
+                    <ItemIconByName name={item.name} spec={item.spec} className="w-7 h-7 sm:w-8 sm:h-8 shrink-0" />
+                     <span className="font-extrabold text-xs sm:text-sm text-gray-900 truncate" title={item.name}>
                       {item.name}
                     </span>
                     {sameNameSeq > 0 && (
@@ -1062,6 +1064,7 @@ export function QuickTouchCbmPanel({
                 className="px-2.5 py-1 rounded-lg bg-white hover:bg-indigo-600 text-indigo-900 hover:text-white border border-indigo-300 text-xs font-bold transition-all shadow-2xs flex items-center gap-1 active:scale-95"
               >
                 <Plus size={12} />
+                <ItemIconByName name={std.name} spec={std.spec || ""} className="w-5 h-5 shrink-0" />
                 <span>{std.name}</span>
                 {std.spec && <span className="text-[10px] opacity-75">({std.spec})</span>}
               </button>

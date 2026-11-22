@@ -13,6 +13,7 @@ import {
   convertEngInputToKor,
 } from '@/lib/itemFilterUtils'
 import { isBoxItem } from './EstimateForm'
+import { ItemIconByName } from '@/lib/smallMove/ItemIcon'
 import { getItemOrderInSpace } from '@/lib/spaceOrderUtils'
 
 interface ItemQuickAddModalProps {
@@ -352,6 +353,7 @@ export function ItemQuickAddModal({
                   >
                     <div className="flex items-center justify-between gap-1.5">
                       <div className="flex items-center gap-1.5 min-w-0">
+                        <ItemIconByName name={group.name} spec={group.specs[0]?.spec || ''} className="w-8 h-8 shrink-0" />
                         <span className="font-extrabold text-gray-900 text-xs sm:text-sm truncate">
                           {group.name}
                         </span>
@@ -388,6 +390,7 @@ export function ItemQuickAddModal({
                             }`}
                           >
                             <Plus size={12} className="stroke-[2.5] shrink-0" />
+                            <ItemIconByName name={group.name} spec={specItem.spec || ''} className="w-6 h-6 shrink-0 rounded bg-white/90" />
                             <span>{specLabel}</span>
                             <span
                               className={`text-[10px] font-normal ${
