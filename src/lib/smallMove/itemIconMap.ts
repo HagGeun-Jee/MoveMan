@@ -47,7 +47,20 @@ export function iconKeyFor(rawName: string, rawSpec = ''): string {
     if (has(spec, '정수기')) return 'water'
     return 'micro'
   }
-  if (n === '자전거') return has(spec, '킥보드') ? 'scooter' : 'bike'
+  if (n === '자전거') {
+    if (has(spec, '안장')) return 'scooter_seat'
+    if (has(spec, '유아', '수동')) return 'scooter_kids'
+    if (has(spec, '킥보드')) return 'scooter'
+    if (has(spec, '전기')) return 'ebike'
+    if (has(spec, '세발', '아동')) return 'tricycle'
+    return 'bike'
+  }
+  if (n === '유모차') {
+    if (has(spec, '휴대용')) return 'stroller_compact'
+    if (has(spec, '웨건')) return 'wagon'
+    if (has(spec, '전동차')) return 'kids_car'
+    return 'stroller'
+  }
   if (n === '운동기구') {
     if (has(spec, '로잉')) return 'rowing'
     if (has(spec, '워킹패드')) return 'walkingpad'
@@ -56,7 +69,58 @@ export function iconKeyFor(rawName: string, rawSpec = ''): string {
     if (has(spec, '접힘')) return 'treadmill_fold'
     return 'treadmill'
   }
-  if (n === '식탁') return 'table'
+  if (n === '식탁') {
+    if (has(spec, '아일랜드')) return 'island_table'
+    if (has(spec, '2인')) return 'table_2'
+    if (has(spec, '6인', '8인')) return 'table_large'
+    return 'table'
+  }
+  if (n === '소파테이블') {
+    if (has(spec, '사이드', '미니')) return 'side_table'
+    if (has(spec, '리프트')) return 'lift_table'
+    if (has(spec, '대리석', '통유리')) return 'glass_table'
+    if (has(spec, '교자상', '접이식')) return 'fold_table'
+    return 'coffee_table'
+  }
+  if (n === '스탠드등') {
+    if (has(spec, '선반', '다구')) return 'lamp_shelf'
+    if (has(spec, '아치')) return 'lamp_arch'
+    if (has(spec, '책상', '자바라', 'LED')) return 'lamp_desk'
+    if (has(spec, '단스탠드', '협탁')) return 'lamp_mini'
+    return 'lamp'
+  }
+  if (n === '행거') {
+    if (has(spec, '스탠드')) return 'hanger_stand'
+    if (has(spec, '이동식', '바퀴')) return 'hanger_wheel'
+    if (has(spec, '1칸')) return 'hanger_1'
+    if (has(spec, '2칸')) return 'hanger_2'
+    if (has(spec, '3칸')) return 'hanger_3'
+    if (has(spec, '시스템')) return 'hanger_system'
+    return 'hanger'
+  }
+  if (n === '책상') {
+    if (has(spec, '소형')) return 'desk_small'
+    if (has(spec, '코너', '대형')) return 'desk_corner'
+    if (has(spec, '모션')) return 'desk_motion'
+    if (has(spec, '독서실')) return 'desk_study'
+    return 'desk'
+  }
+  if (n === '캐리어') {
+    if (has(spec, '기내')) return 'carrier_s'
+    if (has(spec, '대형')) return 'carrier_l'
+    return 'bag'
+  }
+  if (n === '캠핑/생활기타') {
+    if (has(spec, '캠핑')) return 'camping_tent'
+    if (has(spec, '건조대', '다리미')) return 'drying_rack'
+    if (has(spec, '안마기')) return 'foot_massager'
+    return 'box'
+  }
+  if (n === '피아노') {
+    if (has(spec, '디지털')) return 'piano_digital'
+    if (has(spec, '그랜드')) return 'piano_grand'
+    return 'piano'
+  }
   if (n === '의자') return has(spec, '스툴') ? 'stool' : 'chair'
 
   if (n === '수납장/교구장') {
@@ -71,6 +135,16 @@ export function iconKeyFor(rawName: string, rawSpec = ''): string {
     if (has(spec, '울타리')) return 'dogfence'
     if (has(spec, '애견집', '캔넬', '계단')) return 'doghouse'
     return 'cattower'
+  }
+  if (n === '안마의자') {
+    if (has(spec, '세라젬')) return 'ceragem'
+    if (has(spec, '프리미엄', '대형')) return 'massage_premium'
+    return 'massage'
+  }
+  if (n === '욕실용품') {
+    if (has(spec, '빨래바구니', '햄퍼')) return 'laundry_basket'
+    if (has(spec, '비데')) return 'bidet'
+    return 'bath_goods'
   }
 
   // ── 품목명 기준 ──
