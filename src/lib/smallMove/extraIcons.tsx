@@ -915,4 +915,302 @@ export const EXTRA_ICONS: Record<string, ReactNode> = {
       <line x1="51" y1="41" x2="51" y2="57" strokeWidth={2.5} />
     </g>
   ),
+  // ── 소파 ──
+  sofa_1: (
+    <g {...sw}>
+      <rect x="17" y="16" width="30" height="18" rx="6" fill={F2} />
+      <rect x="11" y="25" width="9" height="22" rx="4" fill={F} />
+      <rect x="44" y="25" width="9" height="22" rx="4" fill={F} />
+      <rect x="19" y="32" width="26" height="14" rx="3" fill={F} />
+      <line x1="17" y1="47" x2="17" y2="53" />
+      <line x1="47" y1="47" x2="47" y2="53" />
+    </g>
+  ),
+  sofa_4: (
+    <g {...sw}>
+      <rect x="5" y="18" width="54" height="15" rx="5" fill={F2} />
+      <rect x="2" y="26" width="7" height="20" rx="3" fill={F} />
+      <rect x="55" y="26" width="7" height="20" rx="3" fill={F} />
+      <rect x="8" y="32" width="48" height="13" rx="2" fill={F} />
+      <line x1="20" y1="32" x2="20" y2="45" />
+      <line x1="32" y1="32" x2="32" y2="45" />
+      <line x1="44" y1="32" x2="44" y2="45" />
+      <line x1="8" y1="46" x2="8" y2="52" />
+      <line x1="56" y1="46" x2="56" y2="52" />
+    </g>
+  ),
+  sofa_corner: (
+    <g {...sw}>
+      <rect x="6" y="14" width="52" height="13" rx="4" fill={F2} />
+      <rect x="6" y="27" width="34" height="13" rx="2" fill={F} />
+      <rect x="40" y="27" width="18" height="25" rx="3" fill={F} />
+      <line x1="23" y1="27" x2="23" y2="40" />
+      <line x1="10" y1="40" x2="10" y2="46" />
+      <line x1="43" y1="52" x2="43" y2="56" />
+      <line x1="55" y1="52" x2="55" y2="56" />
+    </g>
+  ),
+  // ── 서랍장 ──
+  nightstand: (
+    <g {...sw}>
+      <rect x="17" y="22" width="30" height="24" rx="2" fill={WOOD} />
+      <line x1="17" y1="34" x2="47" y2="34" />
+      <line x1="28" y1="28" x2="36" y2="28" stroke={A} />
+      <line x1="28" y1="40" x2="36" y2="40" stroke={A} />
+      <line x1="20" y1="46" x2="18" y2="55" />
+      <line x1="44" y1="46" x2="46" y2="55" />
+    </g>
+  ),
+  drawer_mobile: (
+    <g {...sw}>
+      <rect x="18" y="16" width="28" height="33" rx="2" fill={F} />
+      <line x1="18" y1="27" x2="46" y2="27" />
+      <line x1="18" y1="38" x2="46" y2="38" />
+      <line x1="28" y1="21.5" x2="36" y2="21.5" stroke={A} />
+      <line x1="28" y1="32.5" x2="36" y2="32.5" stroke={A} />
+      <line x1="28" y1="43.5" x2="36" y2="43.5" stroke={A} />
+      <circle cx="22" cy="53" r="3" fill="#1e293b" />
+      <circle cx="42" cy="53" r="3" fill="#1e293b" />
+    </g>
+  ),
+  drawer_3: (
+    <g {...sw}>
+      <rect x="13" y="18" width="38" height="34" rx="2" fill={WOOD} />
+      <line x1="13" y1="29" x2="51" y2="29" />
+      <line x1="13" y1="40" x2="51" y2="40" />
+      <line x1="28" y1="23.5" x2="36" y2="23.5" stroke={A} />
+      <line x1="28" y1="34.5" x2="36" y2="34.5" stroke={A} />
+      <line x1="28" y1="46" x2="36" y2="46" stroke={A} />
+    </g>
+  ),
+  drawer_5: (
+    <g {...sw}>
+      <rect x="14" y="6" width="36" height="51" rx="2" fill={WOOD} />
+      <line x1="14" y1="16" x2="50" y2="16" />
+      <line x1="14" y1="26" x2="50" y2="26" />
+      <line x1="14" y1="36" x2="50" y2="36" />
+      <line x1="14" y1="46" x2="50" y2="46" />
+      <line x1="28" y1="11" x2="36" y2="11" stroke={A} />
+      <line x1="28" y1="21" x2="36" y2="21" stroke={A} />
+      <line x1="28" y1="31" x2="36" y2="31" stroke={A} />
+      <line x1="28" y1="41" x2="36" y2="41" stroke={A} />
+      <line x1="28" y1="51.5" x2="36" y2="51.5" stroke={A} />
+    </g>
+  ),
+  drawer_plastic: (
+    <g {...sw}>
+      <rect x="15" y="7" width="34" height="49" rx="3" fill={F} />
+      <line x1="15" y1="17" x2="49" y2="17" />
+      <line x1="15" y1="27" x2="49" y2="27" />
+      <line x1="15" y1="37" x2="49" y2="37" />
+      <line x1="15" y1="47" x2="49" y2="47" />
+      <rect x="27" y="10" width="10" height="3" rx="1" fill={W} />
+      <rect x="27" y="20" width="10" height="3" rx="1" fill={W} />
+      <rect x="27" y="30" width="10" height="3" rx="1" fill={W} />
+      <rect x="27" y="40" width="10" height="3" rx="1" fill={W} />
+      <rect x="27" y="50" width="10" height="3" rx="1" fill={W} />
+    </g>
+  ),
+  drawer_wide: (
+    <g {...sw}>
+      <rect x="5" y="13" width="54" height="40" rx="2" fill={WOOD} />
+      <line x1="5" y1="23" x2="59" y2="23" />
+      <line x1="5" y1="33" x2="59" y2="33" />
+      <line x1="5" y1="43" x2="59" y2="43" />
+      <line x1="32" y1="13" x2="32" y2="53" />
+      <line x1="15" y1="18" x2="22" y2="18" stroke={A} />
+      <line x1="42" y1="18" x2="49" y2="18" stroke={A} />
+      <line x1="15" y1="28" x2="22" y2="28" stroke={A} />
+      <line x1="42" y1="28" x2="49" y2="28" stroke={A} />
+      <line x1="15" y1="38" x2="22" y2="38" stroke={A} />
+      <line x1="42" y1="38" x2="49" y2="38" stroke={A} />
+    </g>
+  ),
+  // ── 앵글/수납선반 ──
+  rack_2: (
+    <g {...sw}>
+      <line x1="15" y1="24" x2="15" y2="54" />
+      <line x1="49" y1="24" x2="49" y2="54" />
+      <rect x="15" y="27" width="34" height="4" fill={F2} />
+      <rect x="15" y="45" width="34" height="4" fill={F2} />
+      <rect x="21" y="17" width="10" height="10" fill={F} />
+      <rect x="24" y="36" width="14" height="9" fill={F} />
+    </g>
+  ),
+  rack_2w: (
+    <g {...sw}>
+      <line x1="6" y1="24" x2="6" y2="54" />
+      <line x1="58" y1="24" x2="58" y2="54" />
+      <rect x="6" y="27" width="52" height="4" fill={F2} />
+      <rect x="6" y="45" width="52" height="4" fill={F2} />
+      <rect x="12" y="17" width="12" height="10" fill={F} />
+      <rect x="34" y="19" width="14" height="8" fill={F} />
+      <rect x="22" y="36" width="16" height="9" fill={F} />
+    </g>
+  ),
+  rack_fold: (
+    <g {...sw}>
+      <line x1="13" y1="6" x2="13" y2="52" />
+      <line x1="51" y1="6" x2="51" y2="52" />
+      <line x1="13" y1="10" x2="51" y2="10" />
+      <line x1="13" y1="20" x2="51" y2="20" />
+      <line x1="13" y1="30" x2="51" y2="30" />
+      <line x1="13" y1="40" x2="51" y2="40" />
+      <line x1="13" y1="50" x2="51" y2="50" />
+      <circle cx="16" cy="56" r="3" fill="#1e293b" />
+      <circle cx="48" cy="56" r="3" fill="#1e293b" />
+    </g>
+  ),
+  rack_wide: (
+    <g {...sw}>
+      <line x1="5" y1="6" x2="5" y2="58" />
+      <line x1="59" y1="6" x2="59" y2="58" />
+      <rect x="5" y="10" width="54" height="3" fill={F2} />
+      <rect x="5" y="25" width="54" height="3" fill={F2} />
+      <rect x="5" y="40" width="54" height="3" fill={F2} />
+      <rect x="5" y="54" width="54" height="3" fill={F2} />
+      <rect x="12" y="16" width="14" height="9" fill={F} />
+      <rect x="35" y="31" width="16" height="9" fill={F} />
+    </g>
+  ),
+  // ── 의자/스툴 ──
+  chair_dining: (
+    <g {...sw}>
+      <rect x="19" y="10" width="26" height="16" rx="2" fill={WOOD} />
+      <line x1="21" y1="26" x2="21" y2="34" />
+      <line x1="43" y1="26" x2="43" y2="34" />
+      <rect x="17" y="34" width="30" height="5" rx="1.5" fill={WOOD} />
+      <line x1="19" y1="39" x2="18" y2="56" />
+      <line x1="45" y1="39" x2="46" y2="56" />
+    </g>
+  ),
+  stool_wide: (
+    <g {...sw}>
+      <rect x="8" y="24" width="48" height="11" rx="4" fill={F2} />
+      <line x1="15" y1="35" x2="13" y2="52" />
+      <line x1="49" y1="35" x2="51" y2="52" />
+      <line x1="14" y1="45" x2="50" y2="45" stroke="#94a3b8" />
+    </g>
+  ),
+  // ── 책장 ──
+  shelf_small: (
+    <g {...sw}>
+      <rect x="15" y="24" width="34" height="32" rx="2" fill={WOOD} />
+      <line x1="15" y1="40" x2="49" y2="40" />
+      <rect x="20" y="29" width="4" height="11" fill={A} stroke="none" />
+      <rect x="26" y="31" width="4" height="9" fill="#f59e0b" stroke="none" />
+      <rect x="35" y="45" width="9" height="11" fill={F2} stroke="none" />
+    </g>
+  ),
+  shelf_2x5: (
+    <g {...sw}>
+      <rect x="14" y="5" width="36" height="53" rx="2" fill={WOOD} />
+      <line x1="32" y1="5" x2="32" y2="58" />
+      <line x1="14" y1="15.5" x2="50" y2="15.5" />
+      <line x1="14" y1="26" x2="50" y2="26" />
+      <line x1="14" y1="36.5" x2="50" y2="36.5" />
+      <line x1="14" y1="47" x2="50" y2="47" />
+    </g>
+  ),
+  shelf_3x5: (
+    <g {...sw}>
+      <rect x="6" y="5" width="52" height="53" rx="2" fill={WOOD} />
+      <line x1="23" y1="5" x2="23" y2="58" />
+      <line x1="41" y1="5" x2="41" y2="58" />
+      <line x1="6" y1="15.5" x2="58" y2="15.5" />
+      <line x1="6" y1="26" x2="58" y2="26" />
+      <line x1="6" y1="36.5" x2="58" y2="36.5" />
+      <line x1="6" y1="47" x2="58" y2="47" />
+    </g>
+  ),
+  // ── 팬트리선반 (5단: 1자/ㄴ자/ㄷ자) ──
+  pantry_1: (
+    <g {...sw}>
+      <line x1="12" y1="5" x2="12" y2="58" />
+      <line x1="52" y1="5" x2="52" y2="58" />
+      <line x1="12" y1="10" x2="52" y2="10" stroke={A} />
+      <line x1="12" y1="21" x2="52" y2="21" stroke={A} />
+      <line x1="12" y1="32" x2="52" y2="32" stroke={A} />
+      <line x1="12" y1="43" x2="52" y2="43" stroke={A} />
+      <line x1="12" y1="54" x2="52" y2="54" stroke={A} />
+      <rect x="18" y="14" width="10" height="7" fill={F2} />
+      <rect x="33" y="25" width="12" height="7" fill={F} />
+    </g>
+  ),
+  pantry_l: (
+    <g {...sw}>
+      <path d="M10 10h38v11H22v31H10z" fill={F} />
+      <path d="M10 10h38v11H22v31H10z" fill="none" stroke={A} />
+      <line x1="25" y1="10" x2="25" y2="21" />
+      <line x1="36" y1="10" x2="36" y2="21" />
+      <line x1="10" y1="31" x2="22" y2="31" />
+      <line x1="10" y1="42" x2="22" y2="42" />
+      <text x="36" y="44" fontSize="11" fontWeight="bold" fill={A} stroke="none">5단</text>
+    </g>
+  ),
+  pantry_u: (
+    <g {...sw}>
+      <path d="M8 10h48v42H44V21H20v31H8z" fill={F} />
+      <path d="M8 10h48v42H44V21H20v31H8z" fill="none" stroke={A} />
+      <line x1="8" y1="31" x2="20" y2="31" />
+      <line x1="8" y1="42" x2="20" y2="42" />
+      <line x1="44" y1="31" x2="56" y2="31" />
+      <line x1="44" y1="42" x2="56" y2="42" />
+      <text x="25" y="42" fontSize="10" fontWeight="bold" fill={A} stroke="none">5단</text>
+    </g>
+  ),
+  // ── 항아리(대) ──
+  jar_l: (
+    <g {...sw}>
+      <path d="M18 11h28l3 7c13 8 13 30-3 40H18C2 48 2 26 15 18z" fill="#ea580c" />
+      <rect x="16" y="6" width="32" height="6" rx="2" fill="#c2410c" />
+      <path d="M12 31c12 5 28 5 40 0" fill="none" stroke="#fed7aa" />
+    </g>
+  ),
+  // ── 화분(소/대/특대) ──
+  plant_s: (
+    <g {...sw}>
+      <path d="M24 41h16l-2 13H26z" fill="#fdba74" />
+      <path d="M32 41c0-7-6-10-8-12 6-1 8 4 8 12zM32 41c0-8 6-11 8-13-6-1-8 5-8 13z" fill="#86efac" />
+    </g>
+  ),
+  plant_l: (
+    <g {...sw}>
+      <path d="M21 38h22l-3 19H24z" fill="#fdba74" />
+      <path d="M32 38V10" />
+      <path d="M32 30c-11-3-16-10-16-16 9 0 14 7 16 16zM32 28c11-3 16-10 16-16-9 0-14 7-16 16zM32 18c-8-4-10-11-8-15 6 3 8 9 8 15zM32 18c8-4 10-11 8-15-6 3-8 9-8 15z" fill="#4ade80" />
+    </g>
+  ),
+  plant_xl: (
+    <g {...sw}>
+      <rect x="16" y="34" width="32" height="23" rx="3" fill="#94a3b8" />
+      <path d="M32 34V8" />
+      <path d="M32 28c-13-2-19-10-19-17 10 0 16 7 19 17zM32 26c13-2 19-10 19-17-10 0-16 7-19 17zM32 17c-7-5-8-12-5-15 5 3 6 9 5 15zM32 17c7-5 8-12 5-15-5 3-6 9-5 15z" fill="#22c55e" />
+    </g>
+  ),
+  // ── 화장대(콘솔/수납) ──
+  vanity_console: (
+    <g {...sw}>
+      <rect x="8" y="23" width="48" height="10" rx="2" fill={WOOD} />
+      <line x1="20" y1="28" x2="26" y2="28" stroke={A} />
+      <line x1="38" y1="28" x2="44" y2="28" stroke={A} />
+      <line x1="12" y1="33" x2="12" y2="55" />
+      <line x1="52" y1="33" x2="52" y2="55" />
+    </g>
+  ),
+  vanity_storage: (
+    <g {...sw}>
+      <rect x="7" y="6" width="50" height="26" rx="2" fill={WOOD} />
+      <rect x="12" y="10" width="22" height="18" rx="1.5" fill={F2} />
+      <rect x="37" y="10" width="16" height="18" fill={F} />
+      <line x1="37" y1="19" x2="53" y2="19" />
+      <rect x="6" y="32" width="52" height="25" rx="2" fill={WOOD} />
+      <line x1="32" y1="32" x2="32" y2="57" />
+      <line x1="6" y1="44" x2="58" y2="44" />
+      <line x1="16" y1="38" x2="22" y2="38" stroke={A} />
+      <line x1="42" y1="38" x2="48" y2="38" stroke={A} />
+      <line x1="16" y1="50" x2="22" y2="50" stroke={A} />
+      <line x1="42" y1="50" x2="48" y2="50" stroke={A} />
+    </g>
+  ),
 }

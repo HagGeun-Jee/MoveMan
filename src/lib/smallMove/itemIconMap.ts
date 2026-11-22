@@ -37,8 +37,50 @@ export function iconKeyFor(rawName: string, rawSpec = ''): string {
   }
   if (n === '소파') {
     if (has(spec, '스툴')) return 'stool'
-    if (has(spec, '1인', '2인')) return 'sofa_2'
+    if (has(spec, '코너')) return 'sofa_corner'
+    if (has(spec, '4인')) return 'sofa_4'
+    if (has(spec, '1인')) return 'sofa_1'
+    if (has(spec, '2인')) return 'sofa_2'
     return 'sofa_3'
+  }
+  if (n === '서랍장') {
+    if (has(spec, '협탁')) return 'nightstand'
+    if (has(spec, '이동식')) return 'drawer_mobile'
+    if (has(spec, '아일랜드')) return 'drawer_wide'
+    if (has(spec, '플라스틱')) return 'drawer_plastic'
+    if (has(spec, '3단')) return 'drawer_3'
+    if (has(spec, '5단')) return 'drawer_5'
+    return 'drawer'
+  }
+  if (n === '앵글') {
+    if (has(spec, '2단') && has(spec, '100')) return 'rack_2w'
+    if (has(spec, '2단')) return 'rack_2'
+    if (has(spec, '접이식')) return 'rack_fold'
+    if (has(spec, '120')) return 'rack_wide'
+    return 'rack'
+  }
+  if (n === '책장') {
+    if (has(spec, '소형')) return 'shelf_small'
+    if (has(spec, '3x5')) return 'shelf_3x5'
+    if (has(spec, '2x5')) return 'shelf_2x5'
+    return 'shelf'
+  }
+  if (n === '팬트리선반') {
+    if (has(spec, 'ㄴ자')) return 'pantry_l'
+    if (has(spec, 'ㄷ자')) return 'pantry_u'
+    return 'pantry_1'
+  }
+  if (n === '항아리') return has(spec, '대') ? 'jar_l' : 'jar'
+  if (n === '화분') {
+    if (has(spec, '소형')) return 'plant_s'
+    if (has(spec, '특대', '돌화분')) return 'plant_xl'
+    if (has(spec, '대형')) return 'plant_l'
+    return 'plant'
+  }
+  if (n === '화장대') {
+    if (has(spec, '콘솔')) return 'vanity_console'
+    if (has(spec, '수납')) return 'vanity_storage'
+    return 'vanity'
   }
   if (n === '청소기') return has(spec, '로봇') ? 'robot_vac' : 'vacuum'
   if (n === '주방가전') {
@@ -121,7 +163,12 @@ export function iconKeyFor(rawName: string, rawSpec = ''): string {
     if (has(spec, '그랜드')) return 'piano_grand'
     return 'piano'
   }
-  if (n === '의자') return has(spec, '스툴') ? 'stool' : 'chair'
+  if (n === '의자') {
+    if (has(spec, '식탁')) return 'chair_dining'
+    if (has(spec, '와이드')) return 'stool_wide'
+    if (has(spec, '스툴')) return 'stool'
+    return 'chair'
+  }
 
   if (n === '수납장/교구장') {
     if (has(spec, '아기장', '베이비')) return 'baby_cab'
