@@ -36,6 +36,8 @@ import {
   getOrderedItemNamesForSpace,
   sortCategoriesByDisplayOrder,
 } from '@/lib/spaceOrderUtils'
+import { ItemIconByName } from '@/lib/smallMove/ItemIcon'
+import { iconKeyFor } from '@/lib/smallMove/itemIconMap'
 
 function isBoxItemName(name?: string | null): boolean {
   const upper = (name || '').trim().toUpperCase()
@@ -1119,7 +1121,12 @@ export default function ItemsPage() {
                         </td>
                       )}
 
-                      <td className="py-3 px-4 font-bold text-gray-900 text-sm">{item.name}</td>
+                      <td className="py-3 px-4 font-bold text-gray-900 text-sm">
+                        <div className="flex items-center gap-2" title={`아이콘 키: ${iconKeyFor(item.name, item.spec)}`}>
+                          <ItemIconByName name={item.name} spec={item.spec} className="w-8 h-8 shrink-0" />
+                          <span>{item.name}</span>
+                        </div>
+                      </td>
                       <td className="py-3 px-4 text-gray-700 font-medium text-sm">
                         {item.spec || <span className="text-gray-400">기본</span>}
                       </td>
@@ -1287,6 +1294,28 @@ export default function ItemsPage() {
                   />
                 </div>
               </div>
+
+              {/* 연결 아이콘 실시간 미리보기 */}
+              {(() => {
+                const matchedKey = iconKeyFor(itemNameVal, itemSpecVal)
+                const isGeneric = matchedKey === 'generic'
+                return (
+                  <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/80 px-3.5 py-2">
+                    <ItemIconByName name={itemNameVal} spec={itemSpecVal} className="w-10 h-10 shrink-0 rounded-lg bg-white border border-gray-200 p-0.5" />
+                    <div className="min-w-0 flex-1 text-xs">
+                      <div className="font-bold text-gray-800 flex items-center gap-1.5">
+                        <span>연결 아이콘 미리보기</span>
+                        <span className={`px-1.5 py-0.5 rounded font-mono text-[10px] ${isGeneric ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'}`}>
+                          {isGeneric ? '미매칭 (기본 네모)' : matchedKey}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-gray-500 mt-0.5">
+                        품목명과 규격 키워드에 따라 방문견적 화면에 표시되는 아이콘입니다.
+                      </p>
+                    </div>
+                  </div>
+                )
+              })()}
 
               {/* 기본 CBM & 내품 CBM */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">

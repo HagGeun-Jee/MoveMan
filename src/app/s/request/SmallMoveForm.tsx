@@ -42,6 +42,7 @@ interface Result {
 }
 
 const STEPS = ['이사 정보', '주소·환경', '물품 체크', '사진', '옵션', '연락처']
+const CATEGORIES = Object.keys(SMALL_CATEGORY_LABEL) as SmallCategory[]
 const won = (n: number) => n.toLocaleString('ko-KR') + '원'
 const PHOTO_LABELS = ['큰 가구·가전', '현관·복도·계단', '엘리베이터', '기타']
 // 휴대폰 번호 자동 하이픈 (010-0000-0000)
@@ -113,13 +114,35 @@ export function SmallMoveForm() {
     return ''
   }
 
+  const catIdx = CATEGORIES.indexOf(category)
+  const isLastCat = catIdx === CATEGORIES.length - 1
+
   const next = () => {
+    if (step === 2 && !isLastCat) {
+      setError('')
+      setCategory(CATEGORIES[catIdx + 1])
+      window.scrollTo({ top: 0 })
+      return
+    }
     const e = validate(step)
     setError(e)
     if (!e) {
+      if (step === 1) setCategory(CATEGORIES[0])
       setStep((s) => s + 1)
       window.scrollTo({ top: 0 })
     }
+  }
+
+  const prev = () => {
+    setError('')
+    if (step === 2 && catIdx > 0) {
+      setCategory(CATEGORIES[catIdx - 1])
+      window.scrollTo({ top: 0 })
+      return
+    }
+    if (step === 3) setCategory(CATEGORIES[CATEGORIES.length - 1])
+    setStep((s) => s - 1)
+    window.scrollTo({ top: 0 })
   }
 
   const onPickPhotos = async (files: FileList | null) => {
@@ -557,13 +580,13 @@ export function SmallMoveForm() {
       <div className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur border-t border-slate-200">
         <div className="max-w-xl mx-auto px-4 py-3 flex gap-2">
           {step > 0 && (
-            <button type="button" onClick={() => { setError(''); setStep((s) => s - 1) }} className="px-5 py-3.5 rounded-2xl border border-slate-300 font-bold">
+            <button type="button" onClick={prev} className="px-5 py-3.5 rounded-2xl border border-slate-300 font-bold">
               이전
             </button>
           )}
           {step < STEPS.length - 1 ? (
             <button type="button" onClick={next} className="flex-1 py-3.5 rounded-2xl bg-blue-600 text-white font-black">
-              다음
+              {step === 2 && !isLastCat ? `다음 (${SMALL_CATEGORY_LABEL[CATEGORIES[catIdx + 1]]})` : step === 2 ? '다음 (사진 등록)' : '다음'}
             </button>
           ) : (
             <button type="button" disabled={submitting} onClick={submit} className="flex-1 py-3.5 rounded-2xl bg-blue-600 text-white font-black disabled:opacity-60">
