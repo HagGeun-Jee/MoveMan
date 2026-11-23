@@ -10,6 +10,8 @@ import { getVehicleCalendarEvents } from '@/app/actions/vehicleLog'
 import { formatKstDate, formatKstDateOrDateTime, formatKstDateTime, formatKstTime, getKstMonthRange } from '@/lib/kstDate'
 import { formatPhoneNumber } from '@/lib/format'
 import { isEstimateCancelled } from '@/lib/estimateStatus'
+import { fixVehicleLabel } from '@/lib/smallMove/catalog'
+import { formatPhone } from '@/lib/smallMove/format'
 
 // 한국 표준시(KST, Asia/Seoul) 기준 오늘 날짜 정보 구하기 (Vercel/Render UTC 서버 환경 대응)
 function getKoreaToday(): { year: number, month: number, day: number, dateString: string } {
@@ -100,6 +102,71 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
     }
     })
   ).filter(e => !isEstimateCancelled(e))
+
+  const smallMoves = await prisma.smallMoveRequest.findMany({
+    where: {
+      movingDate: { gte: kstMonthStart, lte: kstMonthEnd },
+      status: 'BOOKED',
+      purgedAt: null,
+    },
+    select: {
+      id: true,
+      status: true,
+      channel: true,
+      customerName: true,
+      contact: true,
+      fromAddress: true,
+      toAddress: true,
+      fromInfo: true,
+      toInfo: true,
+      options: true,
+      memo: true,
+      movingDate: true,
+      totalCbm: true,
+      vehicleLabel: true,
+      estMin: true,
+      estMax: true,
+      finalAmount: true,
+    },
+  })
+
+  function buildSmallMoveSummary(sm: (typeof smallMoves)[number]): Omit<CalendarEventBalloonData, 'eventKey'> {
+    const safeObj = (s: string) => {
+      try {
+        return JSON.parse(s || '{}')
+      } catch {
+        return {} as any
+      }
+    }
+    const fi = safeObj(sm.fromInfo)
+    const ti = safeObj(sm.toInfo)
+    const opt = safeObj(sm.options)
+    const sideStr = (s: any) =>
+      `${s.floor ?? '-'}층 · ${s.ladder ? '사다리차' : s.elevator ? '엘리베이터' : '계단'}`
+    const isPhone = sm.channel.startsWith('전화')
+    return {
+      kind: 'MOVING',
+      href: `/small-moves/${sm.id}`,
+      estimateId: sm.id,
+      customerName: sm.customerName,
+      contact: sm.contact ? formatPhone(sm.contact) : '',
+      rawContact: sm.contact || '',
+      movingTypeLabel: isPhone ? '소형전화견적' : '소형이사',
+      movingDateStr: sm.movingDate ? formatKstDateOrDateTime(sm.movingDate) : '',
+      movingTimeStr: opt.startTime || '',
+      fromAddress: sm.fromAddress || '',
+      toAddress: sm.toAddress || '',
+      fromEnvSummary: sideStr(fi),
+      toEnvSummary: sideStr(ti),
+      partnerBadge: isPhone ? '전화' : '소형',
+      partnerFullName: sm.channel || '웹접수',
+      dispatchLabel: fixVehicleLabel(sm.vehicleLabel),
+      totalCbm: sm.totalCbm,
+      totalAmount: sm.finalAmount ?? Math.round((sm.estMin + sm.estMax) / 2),
+      isContracted: sm.status === 'BOOKED',
+      specialNotes: sm.memo || '',
+    }
+  }
 
   const MOVING_TYPE_MAP: Record<string, string> = {
     P: '포장이사',
@@ -336,6 +403,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                     const sb = !tb || tb === '00:00' ? '99:99' : tb
                     return sa.localeCompare(sb)
                   })
+                const daySmallMoves = smallMoves.filter(sm => sm.movingDate && formatKstDate(sm.movingDate) === dateStr)
                 const dayVehicleEvents = vehicleEvents.filter(ev => ev.date === dateStr)
                 
                 const solar = Solar.fromYmd(date.getFullYear(), date.getMonth() + 1, date.getDate())
@@ -410,6 +478,18 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                             data={{
                               ...itemData,
                               eventKey: `mov-${dateStr}-${est.id}`,
+                            }}
+                          />
+                        )
+                      })}
+                      {daySmallMoves.map(sm => {
+                        const itemData = buildSmallMoveSummary(sm)
+                        return (
+                          <CalendarEventItem
+                            key={`sm-${sm.id}`}
+                            data={{
+                              ...itemData,
+                              eventKey: `sm-${dateStr}-${sm.id}`,
                             }}
                           />
                         )

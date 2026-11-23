@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import prisma from '@/lib/prisma'
 import { kstDateStr } from '@/lib/smallMove/format'
+import { resolveSmallMoveItem, type SmallMoveItemEntry } from '@/lib/smallMove/catalog'
+import { getSyncedSmallItemMap } from '@/lib/smallMove/syncCatalog'
 import { EditForm, type EditSide } from './EditForm'
 
 export const dynamic = 'force-dynamic'
@@ -24,11 +26,31 @@ const side = (info: any, address: string): EditSide => ({
 
 export default async function SmallMoveEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const r = await prisma.smallMoveRequest.findUnique({ where: { id } })
+  const [r, syncedMap, standardItems] = await Promise.all([
+    prisma.smallMoveRequest.findUnique({ where: { id } }),
+    getSyncedSmallItemMap(),
+    prisma.standardItem.findMany({
+      select: { id: true, name: true, spec: true, defaultCbm: true, defaultInnerCbm: true },
+      orderBy: [{ name: 'asc' }, { spec: 'asc' }],
+    }),
+  ])
   if (!r) notFound()
   if (r.purgedAt) redirect(`/small-moves/${id}`)
 
-  const items = safeJson<{ id: string; qty: number }[]>(r.items, [])
+  const rawItems = safeJson<SmallMoveItemEntry[]>(r.items, [])
+  const resolvedItems = rawItems.map((entry) => {
+    const res = resolveSmallMoveItem(entry, syncedMap)
+    return {
+      id: entry.id,
+      qty: entry.qty,
+      name: res.name,
+      spec: res.spec,
+      cbm: res.cbm,
+      innerCbm: res.innerCbm,
+      action: res.action,
+      category: res.category,
+    }
+  })
   const options = safeJson<any>(r.options, {})
 
   return (
@@ -42,7 +64,7 @@ export default async function SmallMoveEditPage({ params }: { params: Promise<{ 
           상세로
         </Link>
       </div>
-      <p className="text-xs text-gray-500 px-1">고객과 통화·문자 소통 중 변경된 내용을 반영합니다. 저장하면 상세 화면으로 돌아가며, 수정 이력이 남습니다.</p>
+      <p className="text-xs text-gray-500 px-1">고객과 통화·문자 소통 중 변경된 내용(규격 변경, 물품 추가·삭제 포함)을 반영합니다. 저장하면 상세 화면으로 돌아가며, 수정 이력이 남습니다.</p>
       <EditForm
         init={{
           id: r.id,
@@ -53,12 +75,13 @@ export default async function SmallMoveEditPage({ params }: { params: Promise<{ 
           startTime: options.startTime || '',
           from: side(safeJson<any>(r.fromInfo, {}), r.fromAddress),
           to: side(safeJson<any>(r.toInfo, {}), r.toAddress),
-          qty: Object.fromEntries(items.map((i) => [i.id, i.qty])),
+          items: resolvedItems,
           packingService: Boolean(options.packingService),
           airconCount: Number(options.airconCount) || 0,
           memo: r.memo,
           hasFinalAmount: r.finalAmount != null,
         }}
+        standardItems={standardItems}
       />
     </div>
   )

@@ -20,7 +20,8 @@ import {
   Smartphone,
   Coins,
   Truck,
-  ShieldCheck
+  ShieldCheck,
+  PhoneCall
 } from 'lucide-react'
 import { ChangePasswordModal } from './ChangePasswordModal'
 import { APP_RELEASE_INFO } from '@/lib/appRelease'
@@ -296,9 +297,15 @@ export function Sidebar({
                   </Link>
                 )}
                 {canAccess('/small-moves') && (
-                  <Link href="/small-moves" onClick={() => setMobileOpen(false)} className={mobileLinkClass(isActive('/small-moves'))}>
+                  <Link href="/small-moves" onClick={() => setMobileOpen(false)} className={mobileLinkClass(isActive('/small-moves') && !pathname?.startsWith('/small-moves/new'))}>
                     <FileText size={20} className="shrink-0" />
                     <span>소형이사 접수</span>
+                  </Link>
+                )}
+                {canAccess('/small-moves/new') && (
+                  <Link href="/small-moves/new" onClick={() => setMobileOpen(false)} className={mobileLinkClass(isActive('/small-moves/new'))}>
+                    <PhoneCall size={20} className="shrink-0" />
+                    <span>소형전화견적</span>
                   </Link>
                 )}
                 {canAccess('/calendar') && (
@@ -469,9 +476,17 @@ export function Sidebar({
             )}
             {canAccess('/small-moves') && (
               <li>
-                <Link href="/small-moves" className={linkClass(isActive('/small-moves'))} title="소형이사 접수">
+                <Link href="/small-moves" className={linkClass(isActive('/small-moves') && !pathname?.startsWith('/small-moves/new'))} title="소형이사 접수">
                   <FileText size={20} className="shrink-0" />
                   {!collapsed && <span>소형이사 접수</span>}
+                </Link>
+              </li>
+            )}
+            {canAccess('/small-moves/new') && (
+              <li>
+                <Link href="/small-moves/new" className={linkClass(isActive('/small-moves/new'))} title="소형전화견적">
+                  <PhoneCall size={20} className="shrink-0" />
+                  {!collapsed && <span>소형전화견적</span>}
                 </Link>
               </li>
             )}

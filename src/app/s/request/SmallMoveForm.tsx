@@ -54,7 +54,7 @@ function formatPhone(v: string) {
 }
 
 
-export function SmallMoveForm() {
+export function SmallMoveForm({ catalogItems = SMALL_ITEMS }: { catalogItems?: SmallItem[] }) {
   const [step, setStep] = useState(0)
   const [homeType, setHomeType] = useState('ONE_ROOM')
   const [movingDate, setMovingDate] = useState('')
@@ -268,7 +268,7 @@ export function SmallMoveForm() {
     )
   }
 
-  const catItems = SMALL_ITEMS.filter((i) => i.category === category)
+  const catItems = catalogItems.filter((i) => i.category === category)
 
   const SideForm = ({ title, side, setSide, which }: { title: string; side: Side; setSide: (s: Side) => void; which: 'from' | 'to' }) => (
     <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
@@ -525,13 +525,8 @@ export function SmallMoveForm() {
               <input type="checkbox" checked={packingService} onChange={(e) => setPackingService(e.target.checked)} className="w-5 h-5" />
               포장 서비스 (반포장) 필요
             </label>
-            <div className="flex items-center justify-between">
-              <span className="font-bold">에어컨 탈거·설치 (대수)</span>
-              <div className="flex items-center gap-2">
-                <button type="button" onClick={() => setAirconCount((n) => Math.max(0, n - 1))} className="w-9 h-9 rounded-full border border-slate-300 font-black">−</button>
-                <span className="w-6 text-center font-black">{airconCount}</span>
-                <button type="button" onClick={() => setAirconCount((n) => Math.min(5, n + 1))} className="w-9 h-9 rounded-full bg-blue-600 text-white font-black">+</button>
-              </div>
+            <div className="rounded-xl bg-slate-50 border border-slate-200 px-3 py-2.5 text-xs text-slate-600">
+              ❄️ <b>에어컨 안내</b>: <b>탈거 후 운송만 가능</b>하며 별도 비용은 없습니다. (도착지 재설치 불가)
             </div>
           </div>
           <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-2">

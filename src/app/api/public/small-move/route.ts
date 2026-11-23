@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { SMALL_ITEM_MAP } from '@/lib/smallMove/catalog'
+import { getSyncedSmallItemMap } from '@/lib/smallMove/syncCatalog'
 import { calculateSmallMoveQuote, type SideInfo } from '@/lib/smallMove/pricing'
 import { sendSms, normalizePhone, isValidKoreanMobile } from '@/lib/smallMove/sms'
 import { calcPurgeAt, rateLimit, clientIp } from '@/lib/smallMove/purge'
@@ -108,6 +109,7 @@ export async function POST(req: Request) {
     /* 기본값 사용 */
   }
 
+  const syncedMap = await getSyncedSmallItemMap()
   const quote = calculateSmallMoveQuote({
     items,
     from: fromInfo,
@@ -117,6 +119,7 @@ export async function POST(req: Request) {
     packingService: options.packingService,
     airconCount: options.airconCount,
     laborCostPerPerson: labor,
+    syncedMap,
   })
 
   const now = new Date()

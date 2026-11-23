@@ -43,6 +43,14 @@ export const APP_MENUS: MenuDefinitionItem[] = [
     description: '견적 목록 조회, 신규 작성, 상세 열람 및 수정',
   },
   {
+    path: '/small-moves/new',
+    name: '소형전화견적',
+    group: '주요 메뉴',
+    defaultMinLevel: 1,
+    defaultAllowedRole: 'ALL',
+    description: '플랫폼 오더장 입력 및 소형이사 전화견적 등록',
+  },
+  {
     path: '/small-moves',
     name: '소형이사 접수',
     group: '주요 메뉴',

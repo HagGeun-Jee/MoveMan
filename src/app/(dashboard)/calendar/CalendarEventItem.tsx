@@ -150,8 +150,8 @@ export function CalendarTooltipProvider({ children }: { children: React.ReactNod
 
     const triggerCenterX = rect.left + rect.width / 2
     let left = triggerCenterX - width / 2
+    if (left + width > vw - 12) left = vw - width - 12
     if (left < 12) left = 12
-    if (left + width > vw - 12) left = vw - 12
 
     const arrowLeft = Math.max(18, Math.min(width - 18, triggerCenterX - left))
     setPos({ top, left, width, arrowLeft, placement })

@@ -3,10 +3,12 @@ import Link from 'next/link'
 import { formatKstDate } from '@/lib/kstDate'
 import { EstimateRow } from './estimates/EstimateRow'
 import { formatPhoneNumber } from '@/lib/format'
-import { Calendar, CalendarDays, FilePlus } from 'lucide-react'
+import { Calendar, CalendarDays, FilePlus, PhoneCall } from 'lucide-react'
 import { getPartnerCompanies } from '@/app/actions/partner'
 import { QuickVisitBookingTrigger } from '@/components/PartnerQuickBookingAndStatsModals'
 import { isEstimateCancelled } from '@/lib/estimateStatus'
+import { STATUS_LABEL, fixVehicleLabel } from '@/lib/smallMove/catalog'
+import { formatPhone, fmtMoveDate } from '@/lib/smallMove/format'
 
 // 한국 표준시(KST, Asia/Seoul) 기준 오늘 날짜 정보 구하기 (Vercel UTC 환경 대응)
 function getKoreaToday() {
@@ -38,7 +40,7 @@ function getKoreaToday() {
 }
 
 export default async function DashboardPage() {
-  const [rawEstimates, partners] = await Promise.all([
+  const [rawEstimates, partners, smallMoves] = await Promise.all([
     prisma.estimate.findMany({
       orderBy: { createdAt: 'desc' },
       select: {
@@ -55,6 +57,11 @@ export default async function DashboardPage() {
       },
     }),
     getPartnerCompanies().catch(() => []),
+    prisma.smallMoveRequest.findMany({
+      where: { status: { not: 'CANCELED' }, purgedAt: null },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    }),
   ])
 
   const allEstimates = rawEstimates.filter(e => !isEstimateCancelled(e))
@@ -90,6 +97,19 @@ export default async function DashboardPage() {
     } catch {}
     return !pay?.downPaymentPaid
   }).length
+
+  const smallPendingCount = smallMoves.filter((s) => s.status === 'RECEIVED' || s.status === 'REVIEWING').length
+  const smallTodayCount = smallMoves.filter((s) => {
+    if (!s.movingDate) return false
+    const t = new Date(s.movingDate).getTime()
+    return t >= kstStartOfDay.getTime() && t <= kstEndOfDay.getTime()
+  }).length
+  const smallMonthCount = smallMoves.filter((s) => {
+    if (!s.movingDate) return false
+    const t = new Date(s.movingDate).getTime()
+    return t >= kstStartOfMonth.getTime() && t <= kstEndOfMonth.getTime()
+  }).length
+  const recentSmallMoves = smallMoves.slice(0, 5)
 
   return (
     <div className="space-y-3 sm:space-y-6">
@@ -133,6 +153,13 @@ export default async function DashboardPage() {
             <span>일정 캘린더</span>
           </Link>
           <QuickVisitBookingTrigger initialPartners={partners} />
+          <Link 
+            href="/small-moves/new" 
+            className="flex-1 md:flex-none inline-flex items-center justify-center gap-1.5 bg-emerald-600 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm hover:bg-emerald-700 transition-colors shadow-sm whitespace-nowrap"
+          >
+            <PhoneCall size={15} className="shrink-0" />
+            <span>소형전화견적</span>
+          </Link>
           <Link 
             href="/estimates/new" 
             className="flex-1 md:flex-none inline-flex items-center justify-center gap-1.5 bg-blue-600 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap"
@@ -239,6 +266,68 @@ export default async function DashboardPage() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* 소형이사 · 소형전화견적 현황 */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-3 sm:p-5 border-b border-gray-100 flex flex-wrap justify-between items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-sm sm:text-lg font-bold text-gray-900">소형이사 · 전화견적</h2>
+            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+              미확정 {smallPendingCount}건
+            </span>
+            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+              오늘 이사 {smallTodayCount}건
+            </span>
+            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-gray-100 text-gray-700">
+              이달 {smallMonthCount}건
+            </span>
+          </div>
+          <div className="flex items-center gap-3 text-xs sm:text-sm">
+            <Link href="/small-moves/new" className="text-emerald-700 hover:underline font-bold">
+              + 전화견적 등록
+            </Link>
+            <Link href="/small-moves" className="text-blue-600 hover:underline font-medium">
+              전체 보기
+            </Link>
+          </div>
+        </div>
+        {recentSmallMoves.length === 0 ? (
+          <p className="p-6 text-center text-gray-500 text-sm">접수된 소형이사 내역이 없습니다.</p>
+        ) : (
+          <ul className="divide-y divide-gray-100">
+            {recentSmallMoves.map((sm) => {
+              const isPhone = sm.channel.startsWith('전화')
+              return (
+                <li key={sm.id}>
+                  <Link href={`/small-moves/${sm.id}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-1.5 text-sm">
+                        <span className="font-mono font-bold text-blue-700">{sm.id}</span>
+                        <span className="font-bold text-gray-900">{sm.customerName}</span>
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-black ${isPhone ? 'bg-emerald-100 text-emerald-800' : 'bg-sky-100 text-sky-800'}`}>
+                          {isPhone ? sm.channel : '웹접수'}
+                        </span>
+                        <span className="text-xs text-gray-500">{sm.contact ? formatPhone(sm.contact) : ''}</span>
+                      </div>
+                      <p className="text-xs text-gray-500 truncate mt-0.5">
+                        {sm.fromAddress} → {sm.toAddress} · {fixVehicleLabel(sm.vehicleLabel)} ({sm.totalCbm}㎥)
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="font-black text-sm text-gray-900">
+                        {sm.finalAmount != null ? `${sm.finalAmount.toLocaleString('ko-KR')}원` : `${Math.round(sm.estMin / 10000)}~${Math.round(sm.estMax / 10000)}만`}
+                      </div>
+                      <div className="text-[11px] text-gray-500">
+                        {STATUS_LABEL[sm.status] || sm.status} · {sm.movingDate ? fmtMoveDate(sm.movingDate).slice(5) : '미정'}
+                      </div>
+                    </div>
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
+        )}
       </div>
     </div>
   )

@@ -5,13 +5,13 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import prisma from '@/lib/prisma'
 import { decrypt } from '@/lib/session'
-import { sendSms } from '@/lib/smallMove/sms'
+import { sendSms, normalizePhone, isValidKoreanMobile } from '@/lib/smallMove/sms'
 import { calcPurgeAt } from '@/lib/smallMove/purge'
 import { buildReplySms } from '@/lib/smallMove/smsText'
 import { isValidStartTime, kstDateStr } from '@/lib/smallMove/format'
 import { calculateSmallMoveQuote } from '@/lib/smallMove/pricing'
-import { SMALL_ITEM_MAP } from '@/lib/smallMove/catalog'
-import { normalizePhone, isValidKoreanMobile } from '@/lib/smallMove/sms'
+import { SMALL_ITEM_MAP, SMALL_MOVE_ACTIONS, type SmallMoveAction, type SmallMoveItemEntry } from '@/lib/smallMove/catalog'
+import { getSyncedSmallItemMap } from '@/lib/smallMove/syncCatalog'
 import { getDistance } from '@/app/actions/distance'
 
 async function requireAdmin() {
@@ -102,10 +102,33 @@ export async function updateSmallMoveDetailsAction(formData: FormData) {
     throw new Error('필수 항목(이름, 연락처, 주소)을 확인해 주세요.')
   }
 
-  const items = (Array.isArray(p.items) ? p.items.slice(0, 80) : [])
-    .map((i: any) => ({ id: String(i?.id), qty: Math.floor(Number(i?.qty) || 0) }))
-    .filter((i: { id: string; qty: number }) => SMALL_ITEM_MAP[i.id] && i.qty > 0)
-    .map((i: { id: string; qty: number }) => ({ id: i.id, qty: Math.min(i.qty, SMALL_ITEM_MAP[i.id].max ?? 20) }))
+  const syncedMap = await getSyncedSmallItemMap()
+  const stdRows = await prisma.standardItem.findMany({ select: { id: true, name: true, spec: true, defaultCbm: true, defaultInnerCbm: true } })
+  const stdByKey = new Map(stdRows.map((s) => [`${s.name}__${s.spec}`, s]))
+
+  const items: SmallMoveItemEntry[] = (Array.isArray(p.items) ? p.items.slice(0, 120) : [])
+    .map((i: any): SmallMoveItemEntry | null => {
+      const id = clip(i?.id, 80)
+      const qty = Math.floor(Number(i?.qty) || 0)
+      if (!id || qty <= 0) return null
+      const name = clip(i?.name, 60)
+      const spec = clip(i?.spec, 80)
+      const action: SmallMoveAction = SMALL_MOVE_ACTIONS.includes(i?.action)
+        ? i.action
+        : i?.dispose
+        ? '폐기'
+        : '이동'
+      if (name) {
+        const matched = stdByKey.get(`${name}__${spec}`)
+        const cbm = matched ? matched.defaultCbm : Math.max(0, Math.min(20, Number(i?.cbm) || 0))
+        const innerCbm = matched ? (matched.defaultInnerCbm || 0) : Math.max(0, Math.min(20, Number(i?.innerCbm) || 0))
+        return { id, qty: Math.min(qty, 150), name, spec, cbm, innerCbm, action }
+      }
+      const def = syncedMap[id] ?? SMALL_ITEM_MAP[id]
+      if (!def) return null
+      return { id, qty: Math.min(qty, def.max ?? 50), action }
+    })
+    .filter((i: SmallMoveItemEntry | null): i is SmallMoveItemEntry => i !== null)
   if (items.length === 0) throw new Error('물품을 1개 이상 선택해 주세요.')
 
   const md = clip(p.movingDate, 10)
@@ -142,7 +165,12 @@ export async function updateSmallMoveDetailsAction(formData: FormData) {
   }
 
   // 변경된 항목 기록
-  const norm = (list: { id: string; qty: number }[]) => JSON.stringify([...list].sort((a, b) => a.id.localeCompare(b.id)))
+  const norm = (list: SmallMoveItemEntry[]) =>
+    JSON.stringify(
+      [...list]
+        .map((x) => `${x.id}|${x.name || ''}|${x.spec || ''}|${x.qty}|${x.action || (x.dispose ? '폐기' : '이동')}`)
+        .sort()
+    )
   const safe = (s: string, fb: any) => {
     try {
       return JSON.parse(s)
@@ -195,6 +223,7 @@ export async function updateSmallMoveDetailsAction(formData: FormData) {
       packingService: opt.packingService,
       airconCount: opt.airconCount,
       laborCostPerPerson: labor,
+      syncedMap,
     })
     data.totalCbm = q.totalCbm
     data.vehicleLabel = q.vehicleLabel
@@ -218,5 +247,147 @@ export async function updateSmallMoveDetailsAction(formData: FormData) {
   await prisma.smallMoveRequest.update({ where: { id }, data })
   revalidatePath('/small-moves')
   revalidatePath(`/small-moves/${id}`)
+  revalidatePath('/')
+  revalidatePath('/calendar')
+  redirect(`/small-moves/${id}`)
+}
+
+function kstYYMMDD() {
+  const k = new Date(Date.now() + 9 * 3600 * 1000)
+  return k.toISOString().slice(2, 10).replace(/-/g, '')
+}
+
+// 플랫폼 오더장 등 전화견적용 소형이사 신규 접수 생성 (저장 후 상세 화면으로 이동)
+export async function createPhoneSmallMoveAction(formData: FormData) {
+  await requireAdmin()
+  let p: any
+  try {
+    p = JSON.parse(String(formData.get('payload') || '{}'))
+  } catch {
+    throw new Error('잘못된 요청입니다.')
+  }
+
+  const customerName = clip(p.customerName, 30)
+  const contact = normalizePhone(clip(p.contact, 20))
+  const fromAddress = clip(p.fromAddress, 200)
+  const toAddress = clip(p.toAddress, 200)
+  const homeType = HOME_TYPE_IDS.includes(p.homeType) ? p.homeType : 'ONE_ROOM'
+  const channel = clip(p.channel, 40) || '전화견적'
+
+  if (!customerName || !isValidKoreanMobile(contact) || !fromAddress || !toAddress) {
+    throw new Error('필수 항목(이름, 연락처, 출발지/도착지 주소)을 확인해 주세요.')
+  }
+
+  const syncedMap = await getSyncedSmallItemMap()
+  const stdRows = await prisma.standardItem.findMany({ select: { id: true, name: true, spec: true, defaultCbm: true, defaultInnerCbm: true } })
+  const stdByKey = new Map(stdRows.map((s) => [`${s.name}__${s.spec}`, s]))
+
+  const items: SmallMoveItemEntry[] = (Array.isArray(p.items) ? p.items.slice(0, 120) : [])
+    .map((i: any): SmallMoveItemEntry | null => {
+      const id = clip(i?.id, 80)
+      const qty = Math.floor(Number(i?.qty) || 0)
+      if (!id || qty <= 0) return null
+      const name = clip(i?.name, 60)
+      const spec = clip(i?.spec, 80)
+      const action: SmallMoveAction = SMALL_MOVE_ACTIONS.includes(i?.action) ? i.action : '이동'
+      if (name) {
+        const matched = stdByKey.get(`${name}__${spec}`)
+        const cbm = matched ? matched.defaultCbm : Math.max(0, Math.min(20, Number(i?.cbm) || 0))
+        const innerCbm = matched ? (matched.defaultInnerCbm || 0) : Math.max(0, Math.min(20, Number(i?.innerCbm) || 0))
+        return { id, qty: Math.min(qty, 150), name, spec, cbm, innerCbm, action }
+      }
+      const def = syncedMap[id] ?? SMALL_ITEM_MAP[id]
+      if (!def) return null
+      return { id, qty: Math.min(qty, def.max ?? 50), action }
+    })
+    .filter((i: SmallMoveItemEntry | null): i is SmallMoveItemEntry => i !== null)
+  if (items.length === 0) throw new Error('물품을 1개 이상 선택해 주세요.')
+
+  const md = clip(p.movingDate, 10)
+  const movingDate = /^\d{4}-\d{2}-\d{2}$/.test(md) ? new Date(md + 'T00:00:00+09:00') : null
+  const fromInfo = sideOf(p.fromInfo)
+  const toInfo = sideOf(p.toInfo)
+  const options: Record<string, any> = {
+    packingService: Boolean(p.options?.packingService),
+    airconCount: 0,
+    startTime: isValidStartTime(p.startTime) ? p.startTime : '',
+  }
+
+  let distanceKm = 20
+  try {
+    const d = await getDistance(fromAddress, toAddress)
+    if (d?.success && d.distanceKm > 0) {
+      distanceKm = d.distanceKm
+      options.tollFare = d.tollFare ?? 0
+      options.tollByClass = d.tollFareByClass ?? null
+      options.durationText = d.durationText || ''
+    }
+  } catch {
+    /* 기본 거리 사용 */
+  }
+
+  let labor = 190000
+  try {
+    const cs = await prisma.costStandardMaster.findFirst()
+    if (cs?.maleLaborCost) labor = cs.maleLaborCost
+  } catch {
+    /* 기본값 */
+  }
+
+  const q = calculateSmallMoveQuote({
+    items,
+    from: fromInfo,
+    to: toInfo,
+    distanceKm,
+    movingDate: md || null,
+    packingService: options.packingService,
+    airconCount: 0,
+    laborCostPerPerson: labor,
+    syncedMap,
+  })
+
+  const now = new Date()
+  let id = ''
+  for (let attempt = 0; attempt < 6; attempt++) {
+    id = `SM${kstYYMMDD()}${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`
+    try {
+      await prisma.smallMoveRequest.create({
+        data: {
+          id,
+          status: 'REVIEWING',
+          channel,
+          customerName,
+          contact,
+          homeType,
+          movingDate,
+          fromAddress,
+          toAddress,
+          fromInfo: JSON.stringify(fromInfo),
+          toInfo: JSON.stringify(toInfo),
+          items: JSON.stringify(items),
+          photos: '[]',
+          options: JSON.stringify(options),
+          memo: clip(p.memo, 1000),
+          distanceKm,
+          totalCbm: q.totalCbm,
+          vehicleLabel: q.vehicleLabel,
+          estMin: q.min,
+          estMax: q.max,
+          estBreakdown: JSON.stringify(q.breakdown),
+          consultRequired: q.consultRequired,
+          privacyConsentAt: now,
+          purgeAt: calcPurgeAt(movingDate, now),
+        },
+      })
+      break
+    } catch (e: any) {
+      if (e?.code === 'P2002' && attempt < 5) continue
+      throw e
+    }
+  }
+
+  revalidatePath('/small-moves')
+  revalidatePath('/')
+  revalidatePath('/calendar')
   redirect(`/small-moves/${id}`)
 }

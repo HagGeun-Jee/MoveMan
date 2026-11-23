@@ -3,14 +3,19 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import DaumPostcodeEmbed from 'react-daum-postcode'
+import { Search, Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
 import {
-  SMALL_ITEMS,
-  SMALL_CATEGORY_LABEL,
   HOME_TYPES,
+  SMALL_CATEGORY_LABEL,
+  SMALL_MOVE_ACTIONS,
+  inferSmallCategory,
   type SmallCategory,
+  type SmallMoveAction,
+  type SmallMoveItemEntry,
 } from '@/lib/smallMove/catalog'
-import { ItemIcon } from '@/lib/smallMove/ItemIcon'
+import { ItemIconByName } from '@/lib/smallMove/ItemIcon'
 import { START_TIME_OPTIONS, formatPhone } from '@/lib/smallMove/format'
+import { matchesKoreanSearch } from '@/lib/itemFilterUtils'
 import { updateSmallMoveDetailsAction } from '@/app/actions/smallMove'
 
 export interface EditSide {
@@ -19,6 +24,25 @@ export interface EditSide {
   elevator: boolean
   ladder: boolean
   parkingFar: boolean
+}
+
+export interface StandardItemOption {
+  id: string
+  name: string
+  spec: string
+  defaultCbm: number
+  defaultInnerCbm: number
+}
+
+export interface EditItemRow {
+  id: string
+  qty: number
+  name: string
+  spec: string
+  cbm: number
+  innerCbm: number
+  action: SmallMoveAction
+  category: SmallCategory
 }
 
 export interface EditInitial {
@@ -30,7 +54,7 @@ export interface EditInitial {
   startTime: string
   from: EditSide
   to: EditSide
-  qty: Record<string, number>
+  items: EditItemRow[]
   packingService: boolean
   airconCount: number
   memo: string
@@ -38,8 +62,26 @@ export interface EditInitial {
 }
 
 const input = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm'
+const CATEGORIES = Object.keys(SMALL_CATEGORY_LABEL) as SmallCategory[]
 
-export function EditForm({ init }: { init: EditInitial }) {
+const effectiveUnit = (it: { cbm: number; innerCbm: number; action: SmallMoveAction }) =>
+  it.action !== '이동' ? it.innerCbm : it.cbm + it.innerCbm
+
+const ACTION_BTN_STYLE: Record<SmallMoveAction, string> = {
+  이동: 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100',
+  폐기: 'bg-red-600 text-white border-red-600',
+  내림: 'bg-orange-500 text-white border-orange-500',
+  존치: 'bg-purple-600 text-white border-purple-600',
+}
+
+const ACTION_ROW_STYLE: Record<SmallMoveAction, string> = {
+  이동: 'border-gray-200 bg-gray-50/70',
+  폐기: 'border-red-300 bg-red-50/50',
+  내림: 'border-orange-300 bg-orange-50/50',
+  존치: 'border-purple-300 bg-purple-50/50',
+}
+
+export function EditForm({ init, standardItems }: { init: EditInitial; standardItems: StandardItemOption[] }) {
   const [customerName, setCustomerName] = useState(init.customerName)
   const [contact, setContact] = useState(formatPhone(init.contact))
   const [homeType, setHomeType] = useState(init.homeType)
@@ -47,7 +89,9 @@ export function EditForm({ init }: { init: EditInitial }) {
   const [startTime, setStartTime] = useState(init.startTime)
   const [from, setFrom] = useState<EditSide>(init.from)
   const [to, setTo] = useState<EditSide>(init.to)
-  const [qty, setQty] = useState<Record<string, number>>(init.qty)
+  const [items, setItems] = useState<EditItemRow[]>(init.items)
+  const [collapsedCats, setCollapsedCats] = useState<Partial<Record<SmallCategory, boolean>>>({})
+  const [searchQuery, setSearchQuery] = useState('')
   const [packingService, setPackingService] = useState(init.packingService)
   const [airconCount, setAirconCount] = useState(init.airconCount)
   const [memo, setMemo] = useState(init.memo)
@@ -56,19 +100,104 @@ export function EditForm({ init }: { init: EditInitial }) {
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
+  // 품목명별 StandardItem 규격 목록
+  const specsByName = useMemo(() => {
+    const map = new Map<string, StandardItemOption[]>()
+    for (const std of standardItems) {
+      const list = map.get(std.name) || []
+      list.push(std)
+      map.set(std.name, list)
+    }
+    return map
+  }, [standardItems])
+
+  // 물품 추가 검색 결과
+  const searchResults = useMemo(() => {
+    const q = searchQuery.trim()
+    if (!q) return []
+    return standardItems
+      .filter((s) => matchesKoreanSearch(s.name, s.spec, q))
+      .slice(0, 24)
+  }, [standardItems, searchQuery])
+
   const totalCbm = useMemo(
-    () => SMALL_ITEMS.reduce((s, it) => s + it.cbm * (qty[it.id] || 0), 0),
-    [qty]
+    () => items.reduce((s, it) => s + effectiveUnit(it) * (Number(it.qty) || 0), 0),
+    [items]
   )
 
-  const setQ = (id: string, delta: number, max = 20) =>
-    setQty((q) => {
-      const n = Math.max(0, Math.min(max, (q[id] || 0) + delta))
-      const c = { ...q }
-      if (n === 0) delete c[id]
-      else c[id] = n
-      return c
+  const changeQty = (idx: number, delta: number) => {
+    setItems((prev) =>
+      prev.map((it, i) => (i === idx ? { ...it, qty: Math.max(1, Math.min(150, it.qty + delta)) } : it))
+    )
+  }
+
+  const cycleAction = (idx: number) => {
+    setItems((prev) =>
+      prev.map((it, i) => {
+        if (i !== idx) return it
+        const nextIdx = (SMALL_MOVE_ACTIONS.indexOf(it.action) + 1) % SMALL_MOVE_ACTIONS.length
+        return { ...it, action: SMALL_MOVE_ACTIONS[nextIdx] }
+      })
+    )
+  }
+
+  const removeItem = (idx: number) => {
+    setItems((prev) => prev.filter((_, i) => i !== idx))
+  }
+
+  const changeSpec = (idx: number, newSpec: string) => {
+    setItems((prev) =>
+      prev.map((it, i) => {
+        if (i !== idx) return it
+        const std = (specsByName.get(it.name) || []).find((s) => s.spec === newSpec)
+        if (!std) return { ...it, spec: newSpec }
+        return { ...it, spec: std.spec, cbm: std.defaultCbm, innerCbm: std.defaultInnerCbm || 0 }
+      })
+    )
+  }
+
+  const addStandardItem = (std: StandardItemOption) => {
+    const cat = inferSmallCategory(std.name)
+    setCollapsedCats((prev) => ({ ...prev, [cat]: false }))
+    setItems((prev) => {
+      const existingIdx = prev.findIndex((x) => x.name === std.name && x.spec === std.spec && x.action === '이동')
+      if (existingIdx >= 0) {
+        return prev.map((x, i) => (i === existingIdx ? { ...x, qty: Math.min(150, x.qty + 1) } : x))
+      }
+      return [
+        ...prev,
+        {
+          id: `std:${std.id}`,
+          qty: 1,
+          name: std.name,
+          spec: std.spec,
+          cbm: std.defaultCbm,
+          innerCbm: std.defaultInnerCbm || 0,
+          action: '이동',
+          category: cat,
+        },
+      ]
     })
+  }
+
+  const toggleCat = (cat: SmallCategory) =>
+    setCollapsedCats((prev) => ({ ...prev, [cat]: !prev[cat] }))
+
+  const expandAllCats = () => setCollapsedCats({})
+  const collapseAllCats = () =>
+    setCollapsedCats(Object.fromEntries(CATEGORIES.map((c) => [c, true])) as Record<SmallCategory, boolean>)
+
+  const payloadItems: SmallMoveItemEntry[] = items
+    .filter((i) => i.qty > 0)
+    .map((i) => ({
+      id: i.id,
+      qty: i.qty,
+      name: i.name,
+      spec: i.spec,
+      cbm: i.cbm,
+      innerCbm: i.innerCbm,
+      action: i.action,
+    }))
 
   const payload = {
     customerName,
@@ -80,7 +209,7 @@ export function EditForm({ init }: { init: EditInitial }) {
     toAddress: to.address,
     fromInfo: from,
     toInfo: to,
-    items: Object.entries(qty).map(([id, q]) => ({ id, qty: q })),
+    items: payloadItems,
     options: { packingService, airconCount },
     memo,
     recalc,
@@ -176,34 +305,182 @@ export function EditForm({ init }: { init: EditInitial }) {
       </div>
 
       <section className="bg-white rounded-2xl border border-gray-200 p-4 space-y-3 text-sm">
-        <div className="flex items-center justify-between">
-          <h2 className="font-black">물품 수정</h2>
-          <span className="text-xs font-bold text-blue-700">선택 합계 {totalCbm.toFixed(2)}㎥</span>
-        </div>
-        {(Object.keys(SMALL_CATEGORY_LABEL) as SmallCategory[]).map((cat) => (
-          <div key={cat}>
-            <div className="text-xs font-black text-gray-700 border-b border-gray-200 pb-1 mb-1.5">{SMALL_CATEGORY_LABEL[cat]}</div>
-            <ul className="grid sm:grid-cols-2 gap-1.5">
-              {SMALL_ITEMS.filter((i) => i.category === cat).map((it) => {
-                const q = qty[it.id] || 0
-                return (
-                  <li key={it.id} className={`flex items-center gap-2 rounded-xl px-2 py-1.5 border ${q > 0 ? 'border-blue-400 bg-blue-50' : 'border-gray-200'}`}>
-                    <ItemIcon id={it.id} className="w-9 h-9 shrink-0" />
-                    <div className="min-w-0 flex-1 text-xs font-bold truncate">
-                      {it.name} <span className="font-normal text-gray-500">{it.spec}</span>
-                      <div className="font-normal text-gray-400">{it.cbm}㎥</div>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button type="button" onClick={() => setQ(it.id, -1, it.max)} className="w-7 h-7 rounded-full border border-gray-300 font-black">−</button>
-                      <span className="w-5 text-center font-black text-sm">{q}</span>
-                      <button type="button" onClick={() => setQ(it.id, 1, it.max)} className="w-7 h-7 rounded-full bg-blue-600 text-white font-black">+</button>
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
+        <div className="sticky top-11 z-10 bg-white/95 backdrop-blur-xs -mx-4 -mt-4 px-4 pt-3.5 pb-3 border-b border-gray-200 rounded-t-2xl space-y-2.5 shadow-2xs">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-black">물품 수정 (규격 변경 · 폐기 · 추가 · 삭제)</h2>
+            <span className="text-xs font-bold text-blue-700">
+              유효 합계 {totalCbm.toFixed(2)}㎥ <span className="text-gray-400 font-normal">(내품 포함 · 폐기 기본 제외)</span>
+            </span>
           </div>
-        ))}
+
+          {/* 물품정보(StandardItem) 검색하여 추가 */}
+          <div className="bg-blue-50/60 border border-blue-200 rounded-xl p-2.5 space-y-2">
+            <div className="relative">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="물품정보에서 추가 검색 (예: 김치냉장고, 스타일러, ㄱㅊㄴㅈㄱ)"
+                className="w-full rounded-lg border border-blue-200 bg-white pl-9 pr-3 py-2 text-xs sm:text-sm outline-none focus:border-blue-500"
+              />
+            </div>
+            {searchQuery.trim() && (
+              searchResults.length === 0 ? (
+                <p className="text-xs text-gray-500 px-1">일치하는 물품정보가 없습니다.</p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto pt-1">
+                  {searchResults.map((std) => (
+                    <button
+                      key={std.id}
+                      type="button"
+                      onClick={() => addStandardItem(std)}
+                      className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-blue-600 text-gray-800 hover:text-white border border-blue-200 text-xs font-bold flex items-center gap-1.5 transition-colors"
+                    >
+                      <Plus size={12} className="shrink-0" />
+                      <ItemIconByName name={std.name} spec={std.spec} className="w-5 h-5 shrink-0 bg-white rounded" />
+                      <span>{std.name}</span>
+                      {std.spec && <span className="text-[11px] opacity-75">({std.spec})</span>}
+                      <span className="text-[10px] text-blue-600 font-semibold">
+                        {std.defaultCbm}{std.defaultInnerCbm > 0 ? `+${std.defaultInnerCbm}` : ''}㎥
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )
+            )}
+          </div>
+        </div>
+
+        {/* 카테고리별 물품 목록 */}
+        {items.length === 0 ? (
+          <p className="text-center text-gray-500 py-4 text-xs">등록된 물품이 없습니다. 위 검색창에서 물품을 추가해 주세요.</p>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-center justify-end gap-1.5">
+              <button type="button" onClick={expandAllCats} className="px-2.5 py-1 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-[11px] font-bold text-gray-700">
+                모두펼침
+              </button>
+              <button type="button" onClick={collapseAllCats} className="px-2.5 py-1 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-[11px] font-bold text-gray-700">
+                모두접기
+              </button>
+            </div>
+            {CATEGORIES.map((cat) => {
+              const catRows = items
+                .map((it, idx) => ({ it, idx }))
+                .filter(({ it }) => it.category === cat)
+              if (catRows.length === 0) return null
+              const catSub = catRows.reduce((s, { it }) => s + effectiveUnit(it) * it.qty, 0)
+              const isCollapsed = Boolean(collapsedCats[cat])
+              return (
+                <div key={cat}>
+                  <button
+                    type="button"
+                    onClick={() => toggleCat(cat)}
+                    className="w-full flex justify-between items-center text-xs font-bold text-blue-900 bg-blue-100 hover:bg-blue-200/70 border-l-4 border-blue-500 rounded-md px-2.5 py-1.5 mb-1.5 transition-colors"
+                  >
+                    <span className="flex items-center gap-1">
+                      {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                      <span>{SMALL_CATEGORY_LABEL[cat]} · {catRows.length}종</span>
+                    </span>
+                    <span className="font-semibold text-blue-700">({catSub.toFixed(2)}㎥)</span>
+                  </button>
+                  {!isCollapsed && (
+                    <ul className="space-y-2">
+                      {catRows.map(({ it, idx }) => {
+                        const stdSpecs = specsByName.get(it.name) || []
+                        const hasCurrentSpec = stdSpecs.some((s) => s.spec === it.spec)
+                        const rowEff = effectiveUnit(it) * it.qty
+                        return (
+                          <li
+                            key={`${it.id}_${idx}`}
+                            className={`flex flex-wrap sm:flex-nowrap items-center gap-2 rounded-xl border px-3 py-2 ${ACTION_ROW_STYLE[it.action]}`}
+                          >
+                            <ItemIconByName name={it.name} spec={it.spec} className="w-9 h-9 shrink-0" />
+                            <div className="min-w-0 flex-1 space-y-1">
+                              <div className="font-black text-xs sm:text-sm text-gray-900 flex flex-wrap items-center gap-1.5">
+                                <span>{it.name}</span>
+                                {it.action !== '이동' && (
+                                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-black ${ACTION_BTN_STYLE[it.action]}`}>
+                                    {it.action} (내품만)
+                                  </span>
+                                )}
+                                <span className={`text-[11px] font-bold ${it.action !== '이동' ? 'text-red-700' : 'text-blue-700'}`}>
+                                  ({rowEff.toFixed(2)}㎥ ·{' '}
+                                  {it.action !== '이동' ? (
+                                    <>
+                                      <span className="line-through text-gray-400">{it.cbm}</span>
+                                      {it.innerCbm > 0 ? `+내품${it.innerCbm}` : '→0'}
+                                    </>
+                                  ) : (
+                                    <>
+                                      개당 {it.cbm}
+                                      {it.innerCbm > 0 ? `+내품${it.innerCbm}` : ''}
+                                    </>
+                                  )}
+                                  )
+                                </span>
+                              </div>
+                              {stdSpecs.length > 0 ? (
+                                <select
+                                  value={it.spec}
+                                  onChange={(e) => changeSpec(idx, e.target.value)}
+                                  className="w-full sm:w-auto max-w-full rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-800"
+                                >
+                                  {!hasCurrentSpec && <option value={it.spec}>{it.spec || '기본'}</option>}
+                                  {stdSpecs.map((s) => (
+                                    <option key={s.id} value={s.spec}>
+                                      {s.spec || '기본'} ({s.defaultCbm}{s.defaultInnerCbm > 0 ? `+${s.defaultInnerCbm}` : ''}㎥)
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <div className="text-xs text-gray-500">{it.spec || '기본'}</div>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+                              <button
+                                type="button"
+                                onClick={() => cycleAction(idx)}
+                                title="클릭하여 처리 변경: 이동 → 폐기 → 내림 → 존치"
+                                className={`px-2 py-1 rounded-lg text-[11px] font-bold border transition-colors ${ACTION_BTN_STYLE[it.action]}`}
+                              >
+                                {it.action}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => changeQty(idx, -1)}
+                                className="w-7 h-7 rounded-full border border-gray-300 bg-white font-black"
+                              >
+                                −
+                              </button>
+                              <span className="w-6 text-center font-black text-sm">{it.qty}</span>
+                              <button
+                                type="button"
+                                onClick={() => changeQty(idx, 1)}
+                                className="w-7 h-7 rounded-full bg-blue-600 text-white font-black"
+                              >
+                                +
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => removeItem(idx)}
+                                title="물품 삭제"
+                                className="ml-0.5 p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
       </section>
 
       <section className="bg-white rounded-2xl border border-gray-200 p-4 space-y-3 text-sm">
@@ -212,13 +489,7 @@ export function EditForm({ init }: { init: EditInitial }) {
           <input type="checkbox" checked={packingService} onChange={(e) => setPackingService(e.target.checked)} className="w-4 h-4" />
           포장 서비스(반포장)
         </label>
-        <div className="flex items-center gap-2">
-          <span className="font-bold">에어컨 탈거·설치</span>
-          <button type="button" onClick={() => setAirconCount((n) => Math.max(0, n - 1))} className="w-7 h-7 rounded-full border border-gray-300 font-black">−</button>
-          <span className="w-5 text-center font-black">{airconCount}</span>
-          <button type="button" onClick={() => setAirconCount((n) => Math.min(5, n + 1))} className="w-7 h-7 rounded-full bg-blue-600 text-white font-black">+</button>
-          <span className="text-gray-500">대</span>
-        </div>
+        <p className="text-xs text-gray-500">❄️ 에어컨은 탈거 후 운송만 가능하며 별도 추가 비용은 없습니다. (재설치 불가)</p>
         <textarea value={memo} onChange={(e) => setMemo(e.target.value)} rows={3} maxLength={1000} placeholder="요청사항 / 통화 내용" className={input} />
       </section>
 

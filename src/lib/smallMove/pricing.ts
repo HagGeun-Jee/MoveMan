@@ -5,7 +5,7 @@ import {
   calculateTonnageDistanceFare,
   type TonnageTierKey,
 } from '@/lib/distanceFare'
-import { SMALL_ITEM_MAP, fixVehicleLabel } from './catalog'
+import { SMALL_ITEM_MAP, fixVehicleLabel, resolveSmallMoveItem, type SmallItem, type SmallMoveItemEntry } from './catalog'
 
 export interface SideInfo {
   floor: number // 층수 (지하는 0 이하 -> 1로 처리)
@@ -15,7 +15,7 @@ export interface SideInfo {
 }
 
 export interface QuoteInput {
-  items: { id: string; qty: number }[]
+  items: SmallMoveItemEntry[]
   from: SideInfo
   to: SideInfo
   distanceKm: number
@@ -23,6 +23,7 @@ export interface QuoteInput {
   packingService: boolean
   airconCount: number
   laborCostPerPerson?: number // CostStandardMaster.maleLaborCost
+  syncedMap?: Record<string, SmallItem>
 }
 
 export interface QuoteResult {
@@ -49,7 +50,6 @@ const PARKING_FAR_FEE = 20000
 const WEEKEND_FEE = 30000
 const END_OF_MONTH_FRIDAY_FEE = 20000
 const PACKING_SERVICE_FEE = 80000
-const AIRCON_FEE = 50000
 const RANGE_LOW = 0.93
 const RANGE_HIGH = 1.12
 
@@ -71,12 +71,13 @@ export function calculateSmallMoveQuote(input: QuoteInput): QuoteResult {
 
   let cbm = 0
   let hasPiano = false
+  const map = input.syncedMap ?? SMALL_ITEM_MAP
   for (const it of input.items) {
-    const def = SMALL_ITEM_MAP[it.id]
-    const qty = Math.max(0, Math.min(def?.max ?? 20, Math.floor(it.qty || 0)))
-    if (!def || qty <= 0) continue
-    cbm += def.cbm * qty
-    if (def.id === 'piano') hasPiano = true
+    const resolved = resolveSmallMoveItem(it, map)
+    const qty = Math.max(0, Math.min(resolved.max, Math.floor(it.qty || 0)))
+    if (qty <= 0 || (!map[it.id] && it.cbm === undefined)) continue
+    cbm += resolved.effectiveUnitCbm * qty
+    if (it.id === 'piano' || resolved.name === '피아노') hasPiano = true
   }
   const totalCbm = Math.round(cbm * (1 + CBM_BUFFER_RATE) * 10) / 10
 
@@ -124,9 +125,7 @@ export function calculateSmallMoveQuote(input: QuoteInput): QuoteResult {
   }
 
   if (input.packingService) breakdown.push({ label: '포장 서비스(반포장)', amount: PACKING_SERVICE_FEE })
-  if (input.airconCount > 0) {
-    breakdown.push({ label: `에어컨 탈거/설치 ${input.airconCount}대`, amount: AIRCON_FEE * input.airconCount })
-  }
+  // 에어컨은 고객 탈거 후 운송만 가능하므로 별도 탈거·설치 비용을 산정하지 않는다.
 
   const center = roundWon(breakdown.reduce((s, b) => s + b.amount, 0))
   return {

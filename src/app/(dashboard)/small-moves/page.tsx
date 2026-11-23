@@ -25,9 +25,17 @@ export default async function SmallMovesPage({ searchParams }: { searchParams: P
 
   return (
     <div className="space-y-3 max-w-5xl">
-      <div className="bg-white px-4 py-3 rounded-2xl border border-gray-200/80 shadow-xs flex items-center justify-between">
-        <h1 className="text-lg font-black">소형이사 접수</h1>
-        <span className="text-xs text-gray-500">고객 직접 접수 링크: /s (유입 채널은 ?utm_source=값)</span>
+      <div className="bg-white px-4 py-3 rounded-2xl border border-gray-200/80 shadow-xs flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h1 className="text-lg font-black">소형이사 접수</h1>
+          <span className="text-xs text-gray-500">고객 직접 접수 링크: /s (유입 채널 ?utm_source=값)</span>
+        </div>
+        <Link
+          href="/small-moves/new"
+          className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold transition-colors shrink-0"
+        >
+          + 소형전화견적 등록
+        </Link>
       </div>
 
       <div className="flex gap-1.5 flex-wrap">
@@ -60,6 +68,11 @@ export default async function SmallMovesPage({ searchParams }: { searchParams: P
                     <div className="flex items-center gap-2 text-sm">
                       <span className="font-mono font-bold text-blue-700">{r.id}</span>
                       <span className="font-bold">{r.customerName}</span>
+                      {r.channel.startsWith('전화') && (
+                        <span className="text-[10px] font-black bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">
+                          {r.channel}
+                        </span>
+                      )}
                       {r.consultRequired && <span className="text-[10px] font-black bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">상담필요</span>}
                       {r.purgedAt && <span className="text-[10px] font-black bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded">정리됨</span>}
                     </div>
