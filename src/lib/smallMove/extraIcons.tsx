@@ -11,28 +11,52 @@ const WOOD = '#fde68a'
 const sw = { stroke: S, strokeWidth: 2, strokeLinejoin: 'round' as const, strokeLinecap: 'round' as const }
 
 export const EXTRA_ICONS: Record<string, ReactNode> = {
-  // 김치냉장고 - 뚜껑형(위로 여는 형)
+  // 김치냉장고 - 뚜껑형 1도어(좁고 뚜껑 1칸)
   kimchi_top: (
     <g {...sw}>
-      <rect x="8" y="26" width="48" height="28" rx="3" fill={F} />
-      <rect x="6" y="19" width="52" height="9" rx="3" fill={F2} />
-      <line x1="26" y1="23.5" x2="38" y2="23.5" stroke={A} />
-      <circle cx="49" cy="40" r="2.2" fill={A} stroke="none" />
-      <line x1="12" y1="54" x2="12" y2="58" />
-      <line x1="52" y1="54" x2="52" y2="58" />
+      <rect x="16" y="25" width="32" height="29" rx="3" fill={F} />
+      <rect x="14" y="18" width="36" height="9" rx="3" fill={F2} />
+      <line x1="27" y1="22.5" x2="37" y2="22.5" stroke={A} />
+      <circle cx="42" cy="39" r="2.2" fill={A} stroke="none" />
+      <line x1="20" y1="54" x2="20" y2="58" />
+      <line x1="44" y1="54" x2="44" y2="58" />
     </g>
   ),
-  // 김치냉장고 - 스탠드형(위 문 + 아래 서랍)
+  // 김치냉장고 - 뚜껑형 2도어(넓고 뚜껑 2칸)
+  kimchi_top_2: (
+    <g {...sw}>
+      <rect x="6" y="25" width="52" height="29" rx="3" fill={F} />
+      <rect x="4" y="18" width="56" height="9" rx="3" fill={F2} />
+      <line x1="32" y1="18" x2="32" y2="27" />
+      <line x1="14" y1="22.5" x2="23" y2="22.5" stroke={A} />
+      <line x1="41" y1="22.5" x2="50" y2="22.5" stroke={A} />
+      <circle cx="51" cy="39" r="2.2" fill={A} stroke="none" />
+      <line x1="11" y1="54" x2="11" y2="58" />
+      <line x1="53" y1="54" x2="53" y2="58" />
+    </g>
+  ),
+  // 김치냉장고 - 스탠드 중형 3도어(상단 1도어 + 중단·하단 서랍)
+  kimchi_stand_3: (
+    <g {...sw}>
+      <rect x="16" y="5" width="32" height="53" rx="3" fill={F} />
+      <line x1="16" y1="30" x2="48" y2="30" />
+      <line x1="16" y1="43" x2="48" y2="43" />
+      <line x1="42" y1="14" x2="42" y2="22" stroke={A} />
+      <line x1="26" y1="36.5" x2="38" y2="36.5" stroke={A} />
+      <line x1="26" y1="50" x2="38" y2="50" stroke={A} />
+    </g>
+  ),
+  // 김치냉장고 - 스탠드 대형 4도어(상단 양문 2도어 + 중단·하단 서랍)
   kimchi_stand: (
     <g {...sw}>
-      <rect x="14" y="5" width="36" height="53" rx="3" fill={F} />
-      <line x1="14" y1="30" x2="50" y2="30" />
-      <line x1="14" y1="42" x2="50" y2="42" />
+      <rect x="11" y="5" width="42" height="53" rx="3" fill={F} />
+      <line x1="11" y1="30" x2="53" y2="30" />
+      <line x1="11" y1="43" x2="53" y2="43" />
       <line x1="32" y1="5" x2="32" y2="30" />
-      <line x1="29" y1="14" x2="29" y2="22" stroke={A} />
-      <line x1="35" y1="14" x2="35" y2="22" stroke={A} />
-      <line x1="26" y1="36" x2="38" y2="36" stroke={A} />
-      <line x1="26" y1="48" x2="38" y2="48" stroke={A} />
+      <line x1="28" y1="14" x2="28" y2="22" stroke={A} />
+      <line x1="36" y1="14" x2="36" y2="22" stroke={A} />
+      <line x1="26" y1="36.5" x2="38" y2="36.5" stroke={A} />
+      <line x1="26" y1="50" x2="38" y2="50" stroke={A} />
     </g>
   ),
   // 워시타워(세탁기+건조기 일체형)
@@ -527,16 +551,62 @@ export const EXTRA_ICONS: Record<string, ReactNode> = {
       <circle cx="38" cy="48" r="1.8" fill={W} stroke="#94a3b8" />
     </g>
   ),
-  // 비데: 양변기(변좌+물통) + 우측 비데 조작부 패널
+  // 비데 (위에서 본 모습): 상단 본체 + 타원형 변좌 시트 + 노즐 + 우측 조작부 패널
   bidet: (
     <g {...sw}>
-      <rect x="18" y="8" width="24" height="18" rx="2" fill={F} />
-      <line x1="24" y1="12" x2="36" y2="12" stroke={A} />
-      <path d="M15 26h30c0 12-5 19-15 19s-15-7-15-19z" fill={W} />
-      <path d="M21 44l-2 12h22l-2-12" fill={F} />
-      <rect x="43" y="26" width="11" height="7" rx="2" fill={F2} />
-      <circle cx="47" cy="29.5" r="1.3" fill={A} stroke="none" />
-      <circle cx="51" cy="29.5" r="1.3" fill="#ef4444" stroke="none" />
+      <ellipse cx="29" cy="36" rx="16" ry="21" fill={W} />
+      <rect x="14" y="7" width="30" height="12" rx="4" fill={F} />
+      <ellipse cx="29" cy="38" rx="9.5" ry="14" fill={F2} />
+      <rect x="27.5" y="23" width="3" height="5" rx="1" fill={A} stroke="none" />
+      <circle cx="29" cy="31" r="1.5" fill={A} stroke="none" />
+      <rect x="43" y="13" width="12" height="19" rx="3" fill={F2} />
+      <circle cx="49" cy="18" r="1.6" fill={A} stroke="none" />
+      <circle cx="49" cy="23" r="1.6" fill="#ef4444" stroke="none" />
+      <circle cx="49" cy="28" r="1.6" fill="#22c55e" stroke="none" />
+    </g>
+  ),
+  // 냉장고 - 일반 중형 500 이하 (일반 300보다 넓고 큰 2도어)
+  fridge_m_500: (
+    <g {...sw}>
+      <rect x="13" y="4" width="38" height="55" rx="3" fill={F} />
+      <line x1="13" y1="22" x2="51" y2="22" />
+      <line x1="44" y1="10" x2="44" y2="17" stroke={A} />
+      <line x1="44" y1="28" x2="44" y2="44" stroke={A} />
+    </g>
+  ),
+  // 냉장고 - 양문형 2도어 (세로 좌우 2도어)
+  fridge_2door: (
+    <g {...sw}>
+      <rect x="9" y="5" width="46" height="53" rx="3" fill={F} />
+      <line x1="32" y1="5" x2="32" y2="58" />
+      <line x1="27" y1="18" x2="27" y2="40" stroke={A} />
+      <line x1="37" y1="18" x2="37" y2="40" stroke={A} />
+      <rect x="14" y="16" width="8" height="11" rx="1.5" fill={W} />
+    </g>
+  ),
+  // 냉장고 - 양문형 슬림 4도어 (슬림한 상·하 4도어)
+  fridge_4door_slim: (
+    <g {...sw}>
+      <rect x="13" y="5" width="38" height="53" rx="3" fill={F} />
+      <line x1="32" y1="5" x2="32" y2="58" />
+      <line x1="13" y1="34" x2="51" y2="34" />
+      <line x1="28" y1="15" x2="28" y2="26" stroke={A} />
+      <line x1="36" y1="15" x2="36" y2="26" stroke={A} />
+      <line x1="28" y1="40" x2="28" y2="50" stroke={A} />
+      <line x1="36" y1="40" x2="36" y2="50" stroke={A} />
+    </g>
+  ),
+  // 냉장고 - 양문형 대형 4도어 (넓은 상·하 4도어 + 홈바 포인트)
+  fridge_4door_wide: (
+    <g {...sw}>
+      <rect x="6" y="5" width="52" height="53" rx="3" fill={F} />
+      <line x1="32" y1="5" x2="32" y2="58" />
+      <line x1="6" y1="34" x2="58" y2="34" />
+      <line x1="27" y1="14" x2="27" y2="26" stroke={A} />
+      <line x1="37" y1="14" x2="37" y2="26" stroke={A} />
+      <line x1="27" y1="40" x2="27" y2="50" stroke={A} />
+      <line x1="37" y1="40" x2="37" y2="50" stroke={A} />
+      <rect x="42" y="14" width="10" height="12" rx="1.5" fill={W} />
     </g>
   ),
   // 휴대용 유모차: 가볍고 날렵한 기내반입형 유모차

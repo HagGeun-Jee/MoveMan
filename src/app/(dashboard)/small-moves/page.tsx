@@ -30,12 +30,20 @@ export default async function SmallMovesPage({ searchParams }: { searchParams: P
           <h1 className="text-lg font-black">소형이사 접수</h1>
           <span className="text-xs text-gray-500">고객 직접 접수 링크: /s (유입 채널 ?utm_source=값)</span>
         </div>
-        <Link
-          href="/small-moves/new"
-          className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold transition-colors shrink-0"
-        >
-          + 소형전화견적 등록
-        </Link>
+        <div className="flex items-center gap-2 shrink-0">
+          <Link
+            href="/small-moves/catalog"
+            className="px-3 py-2 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-xs sm:text-sm font-bold transition-colors"
+          >
+            물품 설정
+          </Link>
+          <Link
+            href="/small-moves/new"
+            className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold transition-colors"
+          >
+            + 소형전화견적 등록
+          </Link>
+        </div>
       </div>
 
       <div className="flex gap-1.5 flex-wrap">

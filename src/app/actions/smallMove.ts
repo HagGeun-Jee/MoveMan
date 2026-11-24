@@ -10,8 +10,8 @@ import { calcPurgeAt } from '@/lib/smallMove/purge'
 import { buildReplySms } from '@/lib/smallMove/smsText'
 import { isValidStartTime, kstDateStr } from '@/lib/smallMove/format'
 import { calculateSmallMoveQuote } from '@/lib/smallMove/pricing'
-import { SMALL_ITEM_MAP, SMALL_MOVE_ACTIONS, type SmallMoveAction, type SmallMoveItemEntry } from '@/lib/smallMove/catalog'
-import { getSyncedSmallItemMap } from '@/lib/smallMove/syncCatalog'
+import { SMALL_ITEM_MAP, SMALL_MOVE_ACTIONS, SMALL_CATEGORY_LABEL, type SmallCategory, type SmallItem, type SmallMoveAction, type SmallMoveItemEntry } from '@/lib/smallMove/catalog'
+import { getSyncedSmallItemMap, SMALL_CATALOG_KEY } from '@/lib/smallMove/syncCatalog'
 import { getDistance } from '@/app/actions/distance'
 
 async function requireAdmin() {
@@ -390,4 +390,60 @@ export async function createPhoneSmallMoveAction(formData: FormData) {
   revalidatePath('/')
   revalidatePath('/calendar')
   redirect(`/small-moves/${id}`)
+}
+
+const VALID_CATS = Object.keys(SMALL_CATEGORY_LABEL) as SmallCategory[]
+
+// 소형이사 고객용 카탈로그(가전/가구 등 표시 물품) 저장
+export async function saveSmallCatalogAction(formData: FormData) {
+  await requireAdmin()
+  let raw: any[]
+  try {
+    raw = JSON.parse(String(formData.get('catalog') || '[]'))
+  } catch {
+    throw new Error('잘못된 카탈로그 데이터입니다.')
+  }
+  if (!Array.isArray(raw) || raw.length === 0) {
+    throw new Error('최소 1개 이상의 물품이 필요합니다.')
+  }
+
+  const sanitized: SmallItem[] = raw.slice(0, 200).map((it, idx) => {
+    const id = clip(it?.id, 60).replace(/[^a-zA-Z0-9_-]/g, '') || `custom_${idx + 1}`
+    const category: SmallCategory = VALID_CATS.includes(it?.category) ? it.category : 'ETC'
+    return {
+      id,
+      category,
+      name: clip(it?.name, 40) || '물품',
+      spec: clip(it?.spec, 60),
+      cbm: Math.max(0, Math.min(30, Number(it?.cbm) || 0)),
+      innerCbm: Math.max(0, Math.min(30, Number(it?.innerCbm) || 0)),
+      icon: clip(it?.icon, 8) || '📦',
+      size: clip(it?.size, 60),
+      guide: clip(it?.guide, 300),
+      stdName: clip(it?.stdName, 60) || undefined,
+      stdSpec: clip(it?.stdSpec, 80),
+      needsDisassembly: Boolean(it?.needsDisassembly),
+      max: Math.max(1, Math.min(300, Math.floor(Number(it?.max) || 20))),
+      hidden: Boolean(it?.hidden),
+    }
+  })
+
+  await prisma.systemKeyValue.upsert({
+    where: { key: SMALL_CATALOG_KEY },
+    create: { key: SMALL_CATALOG_KEY, value: JSON.stringify(sanitized) },
+    update: { value: JSON.stringify(sanitized) },
+  })
+
+  revalidatePath('/s/request')
+  revalidatePath('/small-moves/new')
+  revalidatePath('/small-moves/catalog')
+}
+
+// 소형이사 카탈로그 기본값 초기화
+export async function resetSmallCatalogAction() {
+  await requireAdmin()
+  await prisma.systemKeyValue.deleteMany({ where: { key: SMALL_CATALOG_KEY } })
+  revalidatePath('/s/request')
+  revalidatePath('/small-moves/new')
+  revalidatePath('/small-moves/catalog')
 }

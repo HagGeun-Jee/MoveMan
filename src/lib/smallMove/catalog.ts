@@ -25,6 +25,7 @@ export interface SmallItem {
   stdSpec?: string // 매칭되는 StandardItem.spec
   needsDisassembly?: boolean
   max?: number
+  hidden?: boolean // true면 고객 화면에서 비노출 (과거 접수 호환용)
 }
 
 export type SmallMoveAction = '이동' | '폐기' | '내림' | '존치'

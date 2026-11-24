@@ -10,7 +10,7 @@ import {
   type SmallItem,
 } from '@/lib/smallMove/catalog'
 import { compressImageFile } from '@/lib/imageCompressor'
-import { ItemIcon } from '@/lib/smallMove/ItemIcon'
+import { ItemIconByName } from '@/lib/smallMove/ItemIcon'
 import { START_TIME_OPTIONS } from '@/lib/smallMove/format'
 
 interface Side {
@@ -422,7 +422,11 @@ export function SmallMoveForm({ catalogItems = SMALL_ITEMS }: { catalogItems?: S
                   key={it.id}
                   className={`flex items-center gap-3 bg-white rounded-2xl border p-3 ${q > 0 ? 'border-blue-500' : 'border-slate-200'}`}
                 >
-                  <ItemIcon id={it.id} className="w-12 h-12 shrink-0" />
+                  <ItemIconByName
+                    name={it.stdName || it.name}
+                    spec={it.stdSpec !== undefined ? it.stdSpec : it.spec}
+                    className="w-12 h-12 shrink-0"
+                  />
                   <div className="flex-1 min-w-0">
                     <div className="font-black text-sm flex items-center gap-1">
                       {it.name}
@@ -595,7 +599,13 @@ export function SmallMoveForm({ catalogItems = SMALL_ITEMS }: { catalogItems?: S
       {guideItem && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-4" onClick={() => setGuideItem(null)}>
           <div className="bg-white rounded-3xl w-full max-w-sm p-6 space-y-3" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-center"><ItemIcon id={guideItem.id} className="w-28 h-28" /></div>
+            <div className="flex justify-center">
+              <ItemIconByName
+                name={guideItem.stdName || guideItem.name}
+                spec={guideItem.stdSpec !== undefined ? guideItem.stdSpec : guideItem.spec}
+                className="w-28 h-28"
+              />
+            </div>
             <h3 className="text-center text-lg font-black">
               {guideItem.name} <span className="text-sm text-slate-500">({guideItem.spec})</span>
             </h3>

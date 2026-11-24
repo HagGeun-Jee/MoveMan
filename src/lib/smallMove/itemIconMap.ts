@@ -9,9 +9,17 @@ export function iconKeyFor(rawName: string, rawSpec = ''): string {
   const n = name.replace(/\s/g, '')
 
   // ── 규격 변형이 큰 핵심 품목 ──
-  if (n === '김치냉장고') return has(spec, '뚜껑') ? 'kimchi_top' : 'kimchi_stand'
+  if (n === '김치냉장고') {
+    if (has(spec, '뚜껑') && has(spec, '2도어')) return 'kimchi_top_2'
+    if (has(spec, '뚜껑')) return 'kimchi_top'
+    if (has(spec, '3도어')) return 'kimchi_stand_3'
+    return 'kimchi_stand'
+  }
   if (n === '냉장고') {
-    if (has(spec, '양문', '4도어')) return 'fridge_l'
+    if (has(spec, '4도어') && has(spec, '슬림')) return 'fridge_4door_slim'
+    if (has(spec, '4도어')) return 'fridge_4door_wide'
+    if (has(spec, '양문')) return 'fridge_2door'
+    if (has(spec, '500')) return 'fridge_m_500'
     if (has(spec, '소형', '150')) return 'fridge_s'
     return 'fridge_m'
   }
