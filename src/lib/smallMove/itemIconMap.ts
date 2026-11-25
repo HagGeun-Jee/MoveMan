@@ -92,8 +92,13 @@ export function iconKeyFor(rawName: string, rawSpec = ''): string {
   }
   if (n === '청소기') return has(spec, '로봇') ? 'robot_vac' : 'vacuum'
   if (n === '주방가전') {
+    if (has(spec, '가스', '인덕션')) return 'gas_stove'
+    if (has(spec, '광파', '오븐')) return 'oven_wave'
+    if (has(spec, '에어프라이어')) return 'airfryer'
     if (has(spec, '밥솥')) return 'ricecooker'
+    if (has(spec, '캡슐')) return 'coffee_capsule'
     if (has(spec, '커피')) return 'coffee'
+    if (has(spec, '정수기') && has(spec, '미니')) return 'water_mini'
     if (has(spec, '정수기')) return 'water'
     return 'micro'
   }
@@ -166,6 +171,12 @@ export function iconKeyFor(rawName: string, rawSpec = ''): string {
     if (has(spec, '안마기')) return 'foot_massager'
     return 'box'
   }
+  if (n === '커튼') {
+    if (has(spec, '버티컬')) return 'curtain_vertical'
+    if (has(spec, '블라인드')) return 'curtain_blind'
+    return 'curtain'
+  }
+  if (n === '블라인드') return 'curtain_blind'
   if (n === '피아노') {
     if (has(spec, '디지털')) return 'piano_digital'
     if (has(spec, '그랜드')) return 'piano_grand'
@@ -205,6 +216,7 @@ export function iconKeyFor(rawName: string, rawSpec = ''): string {
   // ── 품목명 기준 ──
   const byName: Record<string, string> = {
     공기청정기: 'purifier',
+    가스레인지: 'gas_stove',
     금고: 'safe',
     '김치통/아이스박스': 'box',
     리빙박스: 'box',

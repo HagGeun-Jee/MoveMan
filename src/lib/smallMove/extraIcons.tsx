@@ -551,14 +551,14 @@ export const EXTRA_ICONS: Record<string, ReactNode> = {
       <circle cx="38" cy="48" r="1.8" fill={W} stroke="#94a3b8" />
     </g>
   ),
-  // 비데 (위에서 본 모습): 상단 본체 + 타원형 변좌 시트 + 노즐 + 우측 조작부 패널
+  // 비데 (위에서 본 모습 · 뚜껑 닫힘): 상단 본체 + 닫힌 타원형 덮개 + 우측 조작부 패널
   bidet: (
     <g {...sw}>
       <ellipse cx="29" cy="36" rx="16" ry="21" fill={W} />
-      <rect x="14" y="7" width="30" height="12" rx="4" fill={F} />
-      <ellipse cx="29" cy="38" rx="9.5" ry="14" fill={F2} />
-      <rect x="27.5" y="23" width="3" height="5" rx="1" fill={A} stroke="none" />
-      <circle cx="29" cy="31" r="1.5" fill={A} stroke="none" />
+      <ellipse cx="29" cy="36" rx="12.5" ry="17" fill={F} stroke="#94a3b8" strokeWidth={1.2} />
+      <rect x="14" y="7" width="30" height="12" rx="4" fill={F2} />
+      <line x1="20" y1="19" x2="38" y2="19" />
+      <line x1="25" y1="53" x2="33" y2="53" stroke={A} />
       <rect x="43" y="13" width="12" height="19" rx="3" fill={F2} />
       <circle cx="49" cy="18" r="1.6" fill={A} stroke="none" />
       <circle cx="49" cy="23" r="1.6" fill="#ef4444" stroke="none" />
@@ -607,6 +607,122 @@ export const EXTRA_ICONS: Record<string, ReactNode> = {
       <line x1="27" y1="40" x2="27" y2="50" stroke={A} />
       <line x1="37" y1="40" x2="37" y2="50" stroke={A} />
       <rect x="42" y="14" width="10" height="12" rx="1.5" fill={W} />
+    </g>
+  ),
+  // ── 커튼 ──
+  // 일반 커튼: 커튼봉 + 양쪽으로 젖혀진 주름 커튼 + 타이백 + 창문
+  curtain: (
+    <g {...sw}>
+      <rect x="11" y="14" width="42" height="40" fill={W} />
+      <line x1="32" y1="14" x2="32" y2="54" stroke="#cbd5e1" />
+      <line x1="11" y1="34" x2="53" y2="34" stroke="#cbd5e1" />
+      <path d="M9 12h17c0 14-5 20-7 23l6 19H9V12z" fill={F2} />
+      <path d="M55 12H38c0 14 5 20 7 23l-6 19h16V12z" fill={F2} />
+      <path d="M9 35h10M45 35h10" stroke={A} strokeWidth={2.5} />
+      <line x1="5" y1="11" x2="59" y2="11" strokeWidth={2.5} />
+      <circle cx="5" cy="11" r="2.2" fill={A} stroke="none" />
+      <circle cx="59" cy="11" r="2.2" fill={A} stroke="none" />
+    </g>
+  ),
+  // 버티컬: 상단 레일 + 세로 날개(루버) + 하단 연결선
+  curtain_vertical: (
+    <g {...sw}>
+      <rect x="6" y="8" width="52" height="5" rx="1.5" fill="#1e293b" />
+      <rect x="9" y="13" width="6" height="43" fill={F} />
+      <rect x="18" y="13" width="6" height="43" fill={F2} />
+      <rect x="27" y="13" width="6" height="43" fill={F} />
+      <rect x="36" y="13" width="6" height="43" fill={F2} />
+      <rect x="45" y="13" width="6" height="43" fill={F} />
+      <line x1="9" y1="51" x2="51" y2="51" stroke={A} strokeDasharray="2 2" />
+      <line x1="55" y1="13" x2="55" y2="44" stroke={A} />
+      <circle cx="55" cy="46" r="2" fill={A} stroke="none" />
+    </g>
+  ),
+  // 블라인드: 상단 헤드레일 + 가로 슬랫 + 당김줄
+  curtain_blind: (
+    <g {...sw}>
+      <rect x="8" y="9" width="48" height="6" rx="1.5" fill={WOOD} />
+      <rect x="10" y="17" width="44" height="4" rx="1" fill="#fde68a" />
+      <rect x="10" y="23" width="44" height="4" rx="1" fill="#fde68a" />
+      <rect x="10" y="29" width="44" height="4" rx="1" fill="#fde68a" />
+      <rect x="10" y="35" width="44" height="4" rx="1" fill="#fde68a" />
+      <rect x="10" y="41" width="44" height="4" rx="1" fill="#fde68a" />
+      <line x1="20" y1="15" x2="20" y2="45" stroke="#94a3b8" strokeWidth={1.5} />
+      <line x1="44" y1="15" x2="44" y2="45" stroke="#94a3b8" strokeWidth={1.5} />
+      <line x1="52" y1="15" x2="52" y2="54" stroke={A} />
+      <circle cx="52" cy="55" r="2.2" fill={A} stroke="none" />
+    </g>
+  ),
+  // ── 주방가전 ──
+  // 광파오븐: 상단 다이얼 + 전면 큰 유리창 + 오븐 손잡이 + 내부 열선/트레이
+  oven_wave: (
+    <g {...sw}>
+      <rect x="6" y="13" width="52" height="40" rx="3" fill={F} />
+      <line x1="6" y1="22" x2="58" y2="22" />
+      <circle cx="15" cy="17.5" r="1.8" fill={A} stroke="none" />
+      <circle cx="22" cy="17.5" r="1.8" fill="#f59e0b" stroke="none" />
+      <rect x="34" y="15.5" width="16" height="4" rx="1" fill={W} />
+      <rect x="11" y="28" width="42" height="20" rx="2" fill="#1e293b" />
+      <line x1="16" y1="25" x2="48" y2="25" stroke={A} strokeWidth={2.5} />
+      <path d="M16 33c3-2 5 2 8 0s5 2 8 0 5 2 8 0 4 1 6 0" fill="none" stroke="#f97316" />
+      <line x1="15" y1="42" x2="49" y2="42" stroke="#94a3b8" />
+    </g>
+  ),
+  // 에어프라이어: 둥근 타워형 본체 + 하단 바스켓 손잡이 + 상단 다이얼
+  airfryer: (
+    <g {...sw}>
+      <path d="M17 16c0-5 6-8 15-8s15 3 15 8v34c0 3-3 5-6 5H23c-3 0-6-2-6-5V16z" fill="#1e293b" />
+      <ellipse cx="32" cy="15" rx="11" ry="3.5" fill={F2} />
+      <circle cx="32" cy="15" r="1.8" fill={A} stroke="none" />
+      <line x1="17" y1="33" x2="47" y2="33" stroke="#94a3b8" />
+      <rect x="29" y="37" width="6" height="14" rx="2" fill={F} />
+      <circle cx="32" cy="24" r="2" fill="#f59e0b" stroke="none" />
+    </g>
+  ),
+  // 커피머신 캡슐: 슬림한 바디 + 상단 레버 + 작은 에스프레소 잔
+  coffee_capsule: (
+    <g {...sw}>
+      <rect x="21" y="10" width="22" height="44" rx="4" fill="#fca5a5" />
+      <rect x="25" y="28" width="14" height="20" fill={W} />
+      <path d="M26 10l6-4h6l2 4" fill="#cbd5e1" />
+      <rect x="28" y="37" width="8" height="9" rx="1.5" fill={F2} />
+      <path d="M36 39h2.5a2 2 0 0 1 0 4H36" fill="none" />
+      <rect x="17" y="51" width="30" height="4" rx="1.5" fill="#1e293b" />
+      <circle cx="32" cy="18" r="2" fill={W} stroke="none" />
+    </g>
+  ),
+  // 정수기 미니(직수 슬림형): 폭 좁고 아담한 직수 정수기
+  water_mini: (
+    <g {...sw}>
+      <rect x="21" y="13" width="22" height="43" rx="4" fill={W} />
+      <rect x="21" y="13" width="22" height="10" rx="4" fill={F} />
+      <circle cx="32" cy="18" r="2.2" fill={A} stroke="none" />
+      <path d="M32 23v6" stroke={A} strokeWidth={2.5} />
+      <rect x="25" y="42" width="14" height="10" rx="1.5" fill={F2} />
+      <line x1="21" y1="53" x2="43" y2="53" />
+    </g>
+  ),
+  // 가스레인지 (3구: 대·중·소 화구 + 전면 다이얼 3개)
+  gas_stove: (
+    <g {...sw}>
+      <rect x="5" y="12" width="54" height="31" rx="3" fill="#e2e8f0" />
+      <rect x="5" y="42" width="54" height="10" rx="2" fill={F} />
+      {/* 대 화구 (좌) */}
+      <circle cx="17" cy="29" r="9.5" fill={W} />
+      <path d="M17 19.5v19M7.5 29h19" stroke="#64748b" strokeWidth={1.6} />
+      <circle cx="17" cy="29" r="3.5" fill="#f97316" stroke="none" />
+      {/* 소 화구 (중앙 상단) */}
+      <circle cx="33" cy="20" r="5" fill={W} />
+      <path d="M33 15v10M28 20h10" stroke="#64748b" strokeWidth={1.4} />
+      <circle cx="33" cy="20" r="1.8" fill="#f97316" stroke="none" />
+      {/* 중 화구 (우) */}
+      <circle cx="47" cy="29" r="7.5" fill={W} />
+      <path d="M47 21.5v15M39.5 29h15" stroke="#64748b" strokeWidth={1.5} />
+      <circle cx="47" cy="29" r="2.6" fill="#f97316" stroke="none" />
+      {/* 전면 점화 다이얼 3개 */}
+      <circle cx="17" cy="47" r="2.3" fill={A} stroke="none" />
+      <circle cx="33" cy="47" r="2" fill={A} stroke="none" />
+      <circle cx="47" cy="47" r="2.3" fill={A} stroke="none" />
     </g>
   ),
   // 휴대용 유모차: 가볍고 날렵한 기내반입형 유모차
